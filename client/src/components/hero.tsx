@@ -1,4 +1,14 @@
-export function Hero() {
+type HeroProps = {
+  siteTitle?: string;
+  siteDescription?: string;
+  siteTagline?: string;
+};
+
+export function Hero({
+  siteTitle = "Monolith",
+  siteDescription = "书写代码、设计与边缘计算的个人博客。",
+  siteTagline = "在秩序与混沌的交界处，寻找属于自己的巨石碑。",
+}: HeroProps) {
   return (
     <section className="relative flex flex-col items-center justify-center py-[60px] lg:py-[80px] overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
@@ -8,11 +18,11 @@ export function Hero() {
         <div className="h-[56px] w-[28px] rounded-[4px] bg-gradient-to-b from-foreground/80 to-foreground/40 shadow-[0_0_40px_rgba(255,255,255,0.06)]" />
         <div className="absolute -inset-[8px] rounded-[8px] bg-foreground/[0.03] blur-xl" />
       </div>
-      <h1 className="text-center text-[36px] font-semibold tracking-[-0.03em] leading-tight lg:text-[44px] animate-blur-in delay-1">Monolith</h1>
+      <h1 className="text-center text-[36px] font-semibold tracking-[-0.03em] leading-tight lg:text-[44px] animate-blur-in delay-1">{siteTitle}</h1>
       <p className="mt-[12px] max-w-[480px] text-center text-[15px] leading-relaxed text-muted-foreground animate-fade-in-up delay-2">
-        书写代码、设计与边缘计算的个人博客。
+        {siteDescription}
         <br />
-        <span className="text-muted-foreground/60">在秩序与混沌的交界处，寻找属于自己的巨石碑。</span>
+        <span className="text-muted-foreground/60">{siteTagline}</span>
       </p>
 
     </section>

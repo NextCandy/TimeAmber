@@ -3,24 +3,10 @@ import { Hero } from "@/components/hero";
 import { ArticleCard } from "@/components/article-card";
 
 import { Separator } from "@/components/ui/separator";
-import { fetchPosts, fetchCategories, type PostMeta, type CategoryInfo } from "@/lib/api";
+import { fetchPosts, fetchCategories, fetchPublicSettings, type PostMeta, type CategoryInfo, type PublicSettings } from "@/lib/api";
 import { AnimateIn } from "@/hooks/use-animate";
 import { SeoHead } from "@/components/seo-head";
 import { ExternalLink, Mail, Rss, Eye, FolderOpen, Hash, ChevronDown } from "lucide-react";
-
-type PublicSettings = {
-  site_title: string;
-  site_description: string;
-  site_tagline: string;
-  author_name: string;
-  author_title: string;
-  author_bio: string;
-  author_avatar: string;
-  github_url: string;
-  twitter_url: string;
-  email: string;
-  rss_enabled: string;
-};
 
 type TrafficData = {
   totalViews: number;
@@ -116,8 +102,7 @@ export function HomePage() {
       .catch(console.error)
       .finally(() => setLoading(false));
 
-    fetch("/api/settings/public")
-      .then((r) => r.json())
+    fetchPublicSettings()
       .then((data) => setSettings(data))
       .catch(() => {});
 
@@ -140,6 +125,9 @@ export function HomePage() {
   const maxTagCount = sortedTags.length > 0 ? sortedTags[0][1] : 1;
 
   const authorName = settings?.author_name || "Monolith";
+  const siteTitle = settings?.site_title || "Monolith";
+  const siteDescription = settings?.site_description || "书写代码、设计与边缘计算的个人博客。";
+  const siteTagline = settings?.site_tagline || "在秩序与混沌的交界处，寻找属于自己的巨石碑。";
   const authorTitle = settings?.author_title || "独立开发者";
   const authorBio = settings?.author_bio || "热衷于前端架构、设计系统与边缘计算。相信技术应当服务于人，而非反过来。";
   const authorAvatar = settings?.author_avatar || "";
@@ -152,8 +140,16 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col">
-      <SeoHead url="/" />
-      <Hero />
+      <SeoHead
+        url="/"
+        siteName={siteTitle}
+        description={siteDescription}
+      />
+      <Hero
+        siteTitle={siteTitle}
+        siteDescription={siteDescription}
+        siteTagline={siteTagline}
+      />
       <Separator className="bg-border/30" />
       <div className="grid grid-cols-1 gap-[32px] py-[40px] lg:grid-cols-[1fr_280px] lg:gap-[40px]">
         <section>

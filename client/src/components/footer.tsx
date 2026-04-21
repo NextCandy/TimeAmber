@@ -1,18 +1,22 @@
 import { useEffect, useState } from "react";
 import { AnimateIn } from "@/hooks/use-animate";
+import { fetchPublicSettings } from "@/lib/api";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
   const [footerText, setFooterText] = useState("");
+  const [siteTitle, setSiteTitle] = useState("Monolith");
 
   useEffect(() => {
-    fetch("/api/settings/public")
-      .then((r) => r.json())
-      .then((data) => setFooterText(data.footer_text || ""))
+    fetchPublicSettings()
+      .then((data) => {
+        setFooterText(data.footer_text || "");
+        setSiteTitle(data.site_title || "Monolith");
+      })
       .catch(() => {});
   }, []);
 
-  const displayText = footerText || `© ${currentYear} Monolith. 使用 Hono + Vite 构建，部署于 Cloudflare 边缘。`;
+  const displayText = footerText || `© ${currentYear} ${siteTitle}. 使用 Hono + Vite 构建，部署于 Cloudflare 边缘。`;
 
   return (
     <footer className="app-footer mt-auto border-t border-border/40">

@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { AdminGate } from "@/components/admin-gate";
 import { SearchTrigger } from "@/components/search";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { fetchPublicSettings } from "@/lib/api";
 
 const navLinks = [
   { href: "/", label: "首页" },
@@ -18,6 +19,7 @@ export function Navbar() {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
+  const [siteTitle, setSiteTitle] = useState("Monolith");
 
   // 全局键盘快捷键 Ctrl+Shift+A
   useEffect(() => {
@@ -29,6 +31,14 @@ export function Navbar() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  useEffect(() => {
+    fetchPublicSettings()
+      .then((settings) => {
+        setSiteTitle(settings.site_title || "Monolith");
+      })
+      .catch(() => {});
   }, []);
 
   // Logo 双击处理
@@ -55,7 +65,7 @@ export function Navbar() {
               <div className="absolute inset-0 rounded-[3px] bg-gradient-to-b from-foreground/90 to-foreground/60 transition-all duration-500 group-hover:from-cyan-400 group-hover:to-blue-600 group-hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]" />
             </div>
             <span className="text-[18px] font-semibold tracking-[-0.03em] text-foreground">
-              Monolith
+              {siteTitle}
             </span>
           </Link>
 

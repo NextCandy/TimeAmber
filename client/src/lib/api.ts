@@ -91,6 +91,27 @@ export async function fetchCategories(): Promise<CategoryInfo[]> {
 
 export type SeriesPost = { slug: string; title: string; seriesOrder: number };
 
+export type PublicSettings = {
+  site_title: string;
+  site_description: string;
+  site_tagline: string;
+  author_name: string;
+  author_title: string;
+  author_bio: string;
+  author_avatar: string;
+  github_url: string;
+  twitter_url: string;
+  email: string;
+  footer_text: string;
+  rss_enabled: string;
+  custom_header: string;
+  custom_footer: string;
+};
+
+export async function fetchPublicSettings(): Promise<PublicSettings> {
+  return fetchJsonWithCache<PublicSettings>("/api/settings/public", 60_000);
+}
+
 export async function fetchSeriesPosts(seriesSlug: string): Promise<SeriesPost[]> {
   const res = await fetch(`${API_BASE}/api/series/${seriesSlug}`);
   if (!res.ok) return [];
