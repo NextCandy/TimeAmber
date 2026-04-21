@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { SeoHead } from "@/components/seo-head";
 import { renderMarkdown } from "@/lib/markdown";
@@ -44,6 +44,7 @@ export function AboutPage() {
   const [page, setPage] = useState<AboutPageData | null>(null);
   const [settings, setSettings] = useState<PublicSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchPublicSettings()
@@ -67,6 +68,36 @@ export function AboutPage() {
   const siteTitle = settings?.site_title || "Time Amber";
   const description = page?.title ? `${page.title} - ${siteTitle} 独立页面` : fallbackDescription;
 
+  useEffect(() => {
+    if (!contentRef.current || loading) return;
+    const imgs = contentRef.current.querySelectorAll<HTMLImageElement>("img[data-lazy-img]");
+    if (imgs.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const img = entry.target as HTMLImageElement;
+            img.classList.add("lazy-img--loaded");
+            observer.unobserve(img);
+          }
+        });
+      },
+      { rootMargin: "100px", threshold: 0.01 }
+    );
+
+    imgs.forEach((img) => {
+      if (img.complete) {
+        img.classList.add("lazy-img--loaded");
+      } else {
+        img.addEventListener("load", () => img.classList.add("lazy-img--loaded"), { once: true });
+        observer.observe(img);
+      }
+    });
+
+    return () => observer.disconnect();
+  }, [content, loading]);
+
   return (
     <div className="mx-auto w-full max-w-[720px] py-[32px] lg:py-[56px] px-[16px] lg:px-0">
       <SeoHead
@@ -87,6 +118,7 @@ export function AboutPage() {
         </div>
       ) : (
         <div
+          ref={contentRef}
           className="prose-monolith"
           dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
         />
