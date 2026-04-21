@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { SeoHead } from "@/components/seo-head";
 import { renderMarkdown } from "@/lib/markdown";
+import { fetchPublicSettings, type PublicSettings } from "@/lib/api";
 
 type AboutPageData = {
   slug: string;
@@ -12,7 +13,7 @@ type AboutPageData = {
 };
 
 const fallbackTitle = "关于";
-const fallbackDescription = "关于 Monolith 博客 —— 书写代码、设计与边缘计算的技术空间。";
+const fallbackDescription = "关于 Time Amber 博客，一个用文字封存瞬间的个人博客。";
 
 const fallbackContent = `
 ## Monolith 是什么？
@@ -41,9 +42,14 @@ Monolith（巨石碑）是一个关于代码、设计与边缘计算的个人博
 
 export function AboutPage() {
   const [page, setPage] = useState<AboutPageData | null>(null);
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    fetchPublicSettings()
+      .then((data) => setSettings(data))
+      .catch(() => setSettings(null));
+
     fetch("/api/pages/about")
       .then(async (response) => {
         if (!response.ok) {
@@ -58,7 +64,8 @@ export function AboutPage() {
 
   const title = page?.title || fallbackTitle;
   const content = page?.content || fallbackContent;
-  const description = page?.title ? `${page.title} - Monolith 独立页面` : fallbackDescription;
+  const siteTitle = settings?.site_title || "Time Amber";
+  const description = page?.title ? `${page.title} - ${siteTitle} 独立页面` : fallbackDescription;
 
   return (
     <div className="mx-auto w-full max-w-[720px] py-[32px] lg:py-[56px] px-[16px] lg:px-0">
@@ -66,6 +73,7 @@ export function AboutPage() {
         title={title}
         description={description}
         url="/about"
+        siteName={siteTitle}
       />
       <h1 className="text-[28px] font-semibold tracking-[-0.02em]">{title}</h1>
       <Separator className="my-[24px] bg-border/30" />

@@ -19,7 +19,7 @@ export function Navbar() {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
-  const [siteTitle, setSiteTitle] = useState("Monolith");
+  const [siteTitle, setSiteTitle] = useState("Time Amber");
 
   // 全局键盘快捷键 Ctrl+Shift+A
   useEffect(() => {
@@ -36,7 +36,7 @@ export function Navbar() {
   useEffect(() => {
     fetchPublicSettings()
       .then((settings) => {
-        setSiteTitle(settings.site_title || "Monolith");
+        setSiteTitle(settings.site_title || "Time Amber");
       })
       .catch(() => {});
   }, []);

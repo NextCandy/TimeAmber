@@ -5,9 +5,9 @@ type HeroProps = {
 };
 
 export function Hero({
-  siteTitle = "Monolith",
-  siteDescription = "书写代码、设计与边缘计算的个人博客。",
-  siteTagline = "在秩序与混沌的交界处，寻找属于自己的巨石碑。",
+  siteTitle = "Time Amber",
+  siteDescription = "时光琥珀，一个用文字封存瞬间的个人博客。",
+  siteTagline = "时光成珀，字字如初",
 }: HeroProps) {
   return (
     <section className="relative flex flex-col items-center justify-center py-[60px] lg:py-[80px] overflow-hidden">

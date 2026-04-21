@@ -124,10 +124,10 @@ export function HomePage() {
   const sortedTags = Array.from(tagCounts.entries()).sort((a, b) => b[1] - a[1]);
   const maxTagCount = sortedTags.length > 0 ? sortedTags[0][1] : 1;
 
-  const authorName = settings?.author_name || "Monolith";
-  const siteTitle = settings?.site_title || "Monolith";
-  const siteDescription = settings?.site_description || "书写代码、设计与边缘计算的个人博客。";
-  const siteTagline = settings?.site_tagline || "在秩序与混沌的交界处，寻找属于自己的巨石碑。";
+  const authorName = settings?.author_name || "Amber";
+  const siteTitle = settings?.site_title || "Time Amber";
+  const siteDescription = settings?.site_description || "时光琥珀，一个用文字封存瞬间的个人博客。";
+  const siteTagline = settings?.site_tagline || "时光成珀，字字如初";
   const authorTitle = settings?.author_title || "独立开发者";
   const authorBio = settings?.author_bio || "热衷于前端架构、设计系统与边缘计算。相信技术应当服务于人，而非反过来。";
   const authorAvatar = settings?.author_avatar || "";

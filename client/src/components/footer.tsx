@@ -5,13 +5,13 @@ import { fetchPublicSettings } from "@/lib/api";
 export function Footer() {
   const currentYear = new Date().getFullYear();
   const [footerText, setFooterText] = useState("");
-  const [siteTitle, setSiteTitle] = useState("Monolith");
+  const [siteTitle, setSiteTitle] = useState("Time Amber");
 
   useEffect(() => {
     fetchPublicSettings()
       .then((data) => {
         setFooterText(data.footer_text || "");
-        setSiteTitle(data.site_title || "Monolith");
+        setSiteTitle(data.site_title || "Time Amber");
       })
       .catch(() => {});
   }, []);

@@ -19,8 +19,8 @@ type SeoProps = {
   noindex?: boolean;
 };
 
-const DEFAULT_SITE_NAME = "Monolith";
-const DEFAULT_DESCRIPTION = "书写代码、设计与边缘计算的个人博客。";
+const DEFAULT_SITE_NAME = "Time Amber";
+const DEFAULT_DESCRIPTION = "时光琥珀，一个用文字封存瞬间的个人博客。";
 
 /**
  * SEO 头部组件
