@@ -15,8 +15,6 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-const SITE_LOGO_URL = "https://i.see.you/2026/04/21/j9uU/Gemini_Generated_Image_h08xdmh08.png";
-
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
@@ -73,14 +71,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       {/* Brand */}
       <div className="p-6">
         <Link href="/admin" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
-          <div className="w-8 h-8 overflow-hidden rounded-lg ring-1 ring-border/40">
-            <img
-              src={SITE_LOGO_URL}
-              alt="Time Amber logo"
-              className="h-full w-full object-cover"
-            />
+          <div className="w-8 h-8 rounded-lg bg-foreground text-background flex items-center justify-center font-bold text-lg">
+            M
           </div>
-          <span className="font-semibold text-lg tracking-tight">Time Amber</span>
+          <span className="font-semibold text-lg tracking-tight">Monolith</span>
         </Link>
       </div>
 
