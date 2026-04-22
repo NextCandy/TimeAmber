@@ -101,6 +101,30 @@ function clearDraft(slug: string) {
   try { localStorage.removeItem(`${DRAFT_KEY}_${slug || "new"}`); } catch { /* 忽略 */ }
 }
 
+function formatPublishAtForInput(value: string | null | undefined): string {
+  if (!value) return "";
+
+  const normalized = value.trim();
+  if (!normalized) return "";
+
+  if (/[zZ]|[+-]\d{2}:\d{2}$/.test(normalized)) {
+    const parsed = new Date(normalized);
+    if (Number.isNaN(parsed.getTime())) return "";
+    const localTime = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000);
+    return localTime.toISOString().slice(0, 16);
+  }
+
+  return normalized.replace(" ", "T").slice(0, 16);
+}
+
+function serializePublishAt(value: string): string | null {
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  const withSeconds = normalized.length === 16 ? `${normalized}:00` : normalized;
+  return withSeconds.replace("T", " ");
+}
+
 export function AdminEditor() {
   const params = useParams<{ slug?: string }>();
   const [, setLocation] = useLocation();
@@ -163,7 +187,7 @@ export function AdminEditor() {
           tags: post.tags.join(", "),
           published: post.published,
           pinned: post.pinned,
-          publishAt: post.publishAt ? new Date(new Date(post.publishAt).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "",
+          publishAt: formatPublishAtForInput(post.publishAt),
           seriesSlug: post.seriesSlug || "",
           seriesOrder: post.seriesOrder ?? 0,
           category: post.category || "",
@@ -230,7 +254,7 @@ export function AdminEditor() {
         published: form.published,
         tags: tagsList,
         pinned: form.pinned,
-        publishAt: form.publishAt ? new Date(form.publishAt).toISOString() : null,
+        publishAt: serializePublishAt(form.publishAt),
         seriesSlug: form.seriesSlug || null,
         seriesOrder: form.seriesOrder,
         category: form.category,
