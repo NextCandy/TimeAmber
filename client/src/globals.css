@@ -413,35 +413,77 @@
   background: oklch(0.15 0.006 220) !important;
   border: 1px solid oklch(1 0 0 / 6%);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* iOS 惯性滚动 */
 }
 
 .prose-monolith .code-block-wrapper pre {
   margin: 0;
-  padding: 16px 20px;
+  padding: 14px 24px;
   border-radius: 0;
   border: none;
+  /* 不在 pre 层裁剪，由 wrapper 统一负责横向滚动 */
   overflow-x: visible;
+  /* 强制不换行，让内容真实撑开 wrapper */
+  white-space: pre;
   font-size: 13px;
   line-height: 1.85;
   letter-spacing: 0;
   font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
 }
 
-/* 移动端代码块右侧留白增强 */
 @media (max-width: 768px) {
   .prose-monolith .code-block-wrapper pre {
-    padding-right: 24px;
+    padding: 10px 12px;
+  }
+
+  .prose-monolith .code-header {
+    padding: 5px 10px 5px 12px;
+  }
+
+  .prose-monolith .code-title-bar {
+    padding: 8px 12px;
+  }
+
+  .prose-monolith .copy-code-btn {
+    padding: 3px 6px;
+    font-size: 10px;
+    gap: 3px;
+  }
+
+  .prose-monolith .code-title-dots span {
+    width: 7px;
+    height: 7px;
+  }
+
+  .prose-monolith .code-lang {
+    font-size: 10px;
+  }
+
+  .prose-monolith .code-title-text {
+    font-size: 11px;
+  }
+
+  .prose-monolith pre code .line-number {
+    width: 22px;
+    padding-right: 8px;
+    font-size: 10px;
+  }
+
+  .prose-monolith .has-line-numbers pre {
+    padding-left: 8px;
   }
 }
 
 /* 独立 pre 兜底样式（不在 code-block-wrapper 内时） */
 .prose-monolith pre:not(.hljs) {
   margin: 24px 0;
-  padding: 16px 20px;
+  padding: 14px 24px;
   border-radius: 8px;
   background: oklch(0.15 0.006 220) !important;
   border: 1px solid oklch(1 0 0 / 6%);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* iOS 惯性滚动 */
+  white-space: pre; /* 强制不换行 */
   font-size: 13px;
   line-height: 1.85;
   letter-spacing: 0;
@@ -544,6 +586,10 @@
   border-bottom: none;
   border-radius: 8px 8px 0 0;
   overflow: hidden;
+  /* 横向滚动时固定在顶部，不随代码滑走 */
+  position: sticky;
+  left: 0;
+  z-index: 5;
 }
 
 .prose-monolith .has-header > pre {
@@ -616,6 +662,9 @@
   color: oklch(0.55 0 0);
   font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
   overflow: hidden;
+  position: sticky;
+  left: 0;
+  z-index: 5;
 }
 
 .prose-monolith .has-title pre {
@@ -649,18 +698,25 @@
 
 /* 代码行布局 */
 .prose-monolith pre code .code-line {
-  display: inline-block;
-  min-width: 100%;
+  display: flex;
+  align-items: baseline;
   padding: 0 4px;
   margin: 0 -4px;
   border-radius: 2px;
 }
 
+.prose-monolith pre code .line-content {
+  flex: 1;
+  min-width: 0;
+  white-space: pre;
+}
+
 /* 行号 */
 .prose-monolith pre code .line-number {
+  flex-shrink: 0;
   display: inline-block;
-  width: 32px;
-  margin-right: 16px;
+  width: 28px;
+  padding-right: 12px;
   text-align: right;
   color: oklch(0.35 0 0);
   user-select: none;
@@ -678,7 +734,7 @@
 
 /* 有行号时调整 pre 左边距 */
 .prose-monolith .has-line-numbers pre {
-  padding-left: 16px;
+  padding-left: 12px;
 }
 
 /* 高亮行 */
@@ -838,6 +894,13 @@
   background: oklch(0.96 0.002 250) !important;
   border-color: oklch(0 0 0 / 8%);
 }
+
+@media (max-width: 768px) {
+  :root[data-theme="light"] .prose-monolith .code-block-wrapper {
+    border-radius: 0;
+  }
+}
+
 :root[data-theme="light"] .prose-monolith pre {
   background: oklch(0.96 0.002 250) !important;
   border-color: oklch(0 0 0 / 8%);
