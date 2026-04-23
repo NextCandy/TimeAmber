@@ -20,6 +20,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         setStatus("denied");
         setLocation("/admin/login");
       }
+    }).catch(() => {
+      setStatus("denied");
+      setLocation("/admin/login");
     });
   }, [setLocation]);
 

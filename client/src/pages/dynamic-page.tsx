@@ -21,14 +21,18 @@ export function DynamicPage() {
 
   useEffect(() => {
     if (!params.slug) return;
+    let stale = false;
+
     fetch(`/api/pages/${params.slug}`)
       .then((r) => r.json())
       .then((data) => {
+        if (stale) return;
         if (data.error) { setError("页面不存在"); return; }
         setPage(data);
       })
-      .catch(() => setError("页面加载失败"))
-      .finally(() => setLoading(false));
+      .catch(() => { if (!stale) setError("页面加载失败"); })
+      .finally(() => { if (!stale) setLoading(false); });
+    return () => { stale = true; };
   }, [params.slug]);
 
   if (loading) {

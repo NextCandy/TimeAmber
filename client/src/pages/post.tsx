@@ -70,17 +70,19 @@ export function PostPage() {
 
   useEffect(() => {
     if (!params.slug) return;
-    
-    // 路由跳转时如果不带锚点，强制回到顶部
+    let stale = false;
+
     if (!window.location.hash) {
       window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     }
-    
+
     setLoading(true);
+    setError("");
     fetchPost(params.slug)
-      .then(setPost)
-      .catch(() => setError("文章未找到"))
-      .finally(() => setLoading(false));
+      .then((data) => { if (!stale) setPost(data); })
+      .catch(() => { if (!stale) setError("文章未找到"); })
+      .finally(() => { if (!stale) setLoading(false); });
+    return () => { stale = true; };
   }, [params.slug]);
 
   // 提取标题列表（用于 TOC）和 Markdown 渲染

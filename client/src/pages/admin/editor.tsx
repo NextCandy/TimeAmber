@@ -107,22 +107,31 @@ function formatPublishAtForInput(value: string | null | undefined): string {
   const normalized = value.trim();
   if (!normalized) return "";
 
+  let parsed: Date;
+
   if (/[zZ]|[+-]\d{2}:\d{2}$/.test(normalized)) {
-    const parsed = new Date(normalized);
-    if (Number.isNaN(parsed.getTime())) return "";
-    const localTime = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000);
-    return localTime.toISOString().slice(0, 16);
+    parsed = new Date(normalized);
+  } else {
+    const isoStr = normalized.includes("T") ? normalized : normalized.replace(" ", "T");
+    parsed = new Date(`${isoStr}Z`);
   }
 
-  return normalized.replace(" ", "T").slice(0, 16);
+  if (Number.isNaN(parsed.getTime())) return "";
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
 }
 
 function serializePublishAt(value: string): string | null {
   const normalized = value.trim();
   if (!normalized) return null;
 
-  const withSeconds = normalized.length === 16 ? `${normalized}:00` : normalized;
-  return withSeconds.replace("T", " ");
+  const isoStr = normalized.includes("T") ? normalized : normalized.replace(" ", "T");
+  const localDate = new Date(isoStr);
+  if (Number.isNaN(localDate.getTime())) return null;
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${localDate.getFullYear()}-${pad(localDate.getMonth() + 1)}-${pad(localDate.getDate())} ${pad(localDate.getHours())}:${pad(localDate.getMinutes())}:${pad(localDate.getSeconds())}`;
 }
 
 export function AdminEditor() {
