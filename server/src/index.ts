@@ -1061,6 +1061,7 @@ app.post("/api/admin/backup/webdav", async (c) => {
   const db = c.get("db");
   const data = await db.exportAll();
   const json = JSON.stringify(data, null, 2);
+  const payload = new TextEncoder().encode(json);
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const filename = `time-amber-backup-${timestamp}.json`;
   const baseUrl = normalizeWebdavBaseUrl(parsedUrl);
@@ -1072,14 +1073,7 @@ app.post("/api/admin/backup/webdav", async (c) => {
   try {
     const mkdirWarning = await ensureWebdavDirectory(baseUrl, remotePath, webdavHeaders);
 
-    const res = await fetch(fullUrl, {
-      method: "PUT",
-      headers: {
-        ...webdavHeaders,
-        "Content-Type": "application/json",
-      },
-      body: json,
-    });
+    const res = await putWebdavFile(fullUrl, webdavHeaders, payload);
 
     if (!isWebdavSuccess(res.status)) {
       const detail = await safeResponseText(res);
@@ -1088,7 +1082,7 @@ app.post("/api/admin/backup/webdav", async (c) => {
       }, 500);
     }
 
-    return c.json({ success: true, url: fullUrl, size: json.length, timestamp: data.exportedAt, warning: mkdirWarning || undefined });
+    return c.json({ success: true, url: fullUrl, size: payload.byteLength, timestamp: data.exportedAt, warning: mkdirWarning || undefined });
   } catch (err) {
     return c.json({ error: `WebDAV 连接失败: ${err instanceof Error ? err.message : "未知错误"}` }, 500);
   }
@@ -1135,6 +1129,29 @@ function makeWebdavHeaders(authHeader: string): Record<string, string> {
     Accept: "*/*",
     "User-Agent": "TimeAmber-Backup/1.0",
   };
+}
+
+async function putWebdavFile(url: string, headers: Record<string, string>, payload: Uint8Array): Promise<Response> {
+  const uploadHeaders = {
+    ...headers,
+    "Content-Type": "application/octet-stream",
+    "Content-Length": String(payload.byteLength),
+  };
+
+  try {
+    return await fetch(url, {
+      method: "PUT",
+      headers: uploadHeaders,
+      body: payload,
+    });
+  } catch {
+    const { "Content-Length": _contentLength, ...fallbackHeaders } = uploadHeaders;
+    return fetch(url, {
+      method: "PUT",
+      headers: fallbackHeaders,
+      body: payload,
+    });
+  }
 }
 
 async function ensureWebdavDirectory(baseUrl: string, remotePath: string, headers: Record<string, string>): Promise<string | null> {
