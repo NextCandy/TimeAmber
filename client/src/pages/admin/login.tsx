@@ -15,13 +15,15 @@ export function AdminLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const normalizedPassword = password.trim();
+    if (!normalizedPassword) return;
     setError("");
     setLoading(true);
     try {
-      await login(password);
+      await login(normalizedPassword);
       setLocation("/admin");
-    } catch {
-      setError("密码错误，请重试");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "密码错误，请重试");
     } finally {
       setLoading(false);
     }
@@ -47,7 +49,7 @@ export function AdminLogin() {
           {error && <p className="text-[13px] text-destructive">{error}</p>}
           <button
             type="submit"
-            disabled={loading || !password}
+            disabled={loading || !password.trim()}
             className="h-[40px] rounded-md bg-foreground text-background text-[14px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {loading ? "登录中..." : "登录"}

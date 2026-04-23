@@ -169,12 +169,17 @@ function authHeaders(): HeadersInit {
 }
 
 export async function login(password: string): Promise<string> {
+  clearToken();
   const res = await fetch(`${API_BASE}/api/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password }),
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    cache: "no-store",
+    body: JSON.stringify({ password: password.trim() }),
   });
-  if (!res.ok) throw new Error("密码错误");
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || "密码错误");
+  }
   const data = await res.json();
   setToken(data.token);
   return data.token;
@@ -184,10 +189,13 @@ export async function checkAuth(): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
       headers: authHeaders(),
+      cache: "no-store",
     });
     const data = await res.json();
+    if (!data.authenticated) clearToken();
     return data.authenticated;
   } catch {
+    clearToken();
     return false;
   }
 }

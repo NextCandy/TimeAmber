@@ -447,6 +447,7 @@ const LOGIN_RATE_WINDOW = 15 * 60 * 1000; // 15 分钟窗口
 
 // 登录
 app.post("/api/auth/login", async (c) => {
+  c.header("Cache-Control", "no-store");
   const ip = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For") || "unknown";
 
   // 速率限制
@@ -462,8 +463,16 @@ app.post("/api/auth/login", async (c) => {
   }
 
   const body = await c.req.json<{ password: string }>();
+  const expectedPassword = c.env.ADMIN_PASSWORD?.trim();
 
-  if (!body.password || body.password !== c.env.ADMIN_PASSWORD) {
+  if (!expectedPassword) {
+    return c.json({ error: "后台密码未配置，请检查 ADMIN_PASSWORD" }, 500);
+  }
+  if (!c.env.JWT_SECRET?.trim()) {
+    return c.json({ error: "JWT 密钥未配置，请检查 JWT_SECRET" }, 500);
+  }
+
+  if (!body.password?.trim() || body.password.trim() !== expectedPassword) {
     return c.json({ error: "密码错误" }, 401);
   }
 
@@ -473,7 +482,7 @@ app.post("/api/auth/login", async (c) => {
   const now2 = Math.floor(Date.now() / 1000);
   const token = await sign(
     { sub: "admin", iat: now2, exp: now2 + 60 * 60 * 24 * 7 },
-    c.env.JWT_SECRET,
+    c.env.JWT_SECRET.trim(),
     "HS256"
   );
 
@@ -482,12 +491,13 @@ app.post("/api/auth/login", async (c) => {
 
 // 验证当前登录状态
 app.get("/api/auth/me", async (c) => {
+  c.header("Cache-Control", "no-store");
   const authHeader = c.req.header("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return c.json({ authenticated: false });
   }
   try {
-    await verify(authHeader.slice(7), c.env.JWT_SECRET, "HS256");
+    await verify(authHeader.slice(7), c.env.JWT_SECRET.trim(), "HS256");
     return c.json({ authenticated: true, user: "admin" });
   } catch {
     return c.json({ authenticated: false });
@@ -503,7 +513,7 @@ app.use("/api/admin/*", async (c, next) => {
     return c.json({ error: "未认证" }, 401);
   }
   try {
-    const payload = await verify(authHeader.slice(7), c.env.JWT_SECRET, "HS256");
+    const payload = await verify(authHeader.slice(7), c.env.JWT_SECRET.trim(), "HS256");
     c.set("jwtPayload", payload as Variables["jwtPayload"]);
     await next();
   } catch {

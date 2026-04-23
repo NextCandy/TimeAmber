@@ -45,16 +45,17 @@ export function AdminGate({
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!password.trim()) return;
+      const normalizedPassword = password.trim();
+      if (!normalizedPassword) return;
 
       setLoading(true);
       setError("");
       try {
-        await login(password);
+        await login(normalizedPassword);
         onClose();
         setLocation("/admin");
-      } catch {
-        setError("密码错误");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "密码错误");
         setPassword("");
         inputRef.current?.focus();
       } finally {
