@@ -5,6 +5,7 @@ import { platforms, type ImportResult, type PlatformInfo } from "@/lib/importers
 
 type R2Backup = { key: string; name: string; size: number; uploaded: string };
 type PreviewData = { version: string; exportedAt: string; postCount: number; tagCount: number; postTitles: { title: string; slug: string }[]; settingsKeys: string[] };
+type WebdavConfig = { url: string; username: string; password: string; path: string };
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -23,6 +24,16 @@ function timeAgo(d: string): string {
   return days < 30 ? `${days} 天前` : new Date(d).toLocaleDateString("zh-CN");
 }
 
+function normalizeWebdavConfig(config: WebdavConfig): WebdavConfig {
+  const path = config.path.trim() || "/time-amber-backups";
+  return {
+    url: config.url.trim(),
+    username: config.username.trim(),
+    password: config.password,
+    path: path.startsWith("/") ? path : `/${path}`,
+  };
+}
+
 export function AdminBackup() {
   const [message, setMessage] = useState({ text: "", type: "" as "" | "success" | "error" });
   const [r2Backups, setR2Backups] = useState<R2Backup[]>([]);
@@ -34,7 +45,7 @@ export function AdminBackup() {
   const [restoreMode, setRestoreMode] = useState<"merge" | "overwrite">("merge");
   const [webdavExpanded, setWebdavExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [webdavConfig, setWebdavConfig] = useState({ url: "", username: "", password: "", path: "/monolith-backups" });
+  const [webdavConfig, setWebdavConfig] = useState<WebdavConfig>({ url: "", username: "", password: "", path: "/time-amber-backups" });
 
   // 通用多平台迁移状态
   const migrationFileRef = useRef<HTMLInputElement>(null);
@@ -270,22 +281,30 @@ export function AdminBackup() {
     try {
       const res = await fetch("/api/admin/settings", { headers: authHeaders });
       const s = await res.json();
-      if (s.webdav_url) setWebdavConfig({ url: s.webdav_url || "", username: s.webdav_username || "", password: s.webdav_password || "", path: s.webdav_path || "/monolith-backups" });
+      if (s.webdav_url) setWebdavConfig({ url: s.webdav_url || "", username: s.webdav_username || "", password: s.webdav_password || "", path: s.webdav_path || "/time-amber-backups" });
     } catch {}
   };
 
   const saveWebdavConfig = async () => {
     try {
-      await fetch("/api/admin/settings", { method: "PUT", headers: jsonHeaders, body: JSON.stringify({ webdav_url: webdavConfig.url, webdav_username: webdavConfig.username, webdav_password: webdavConfig.password, webdav_path: webdavConfig.path }) });
+      const config = normalizeWebdavConfig(webdavConfig);
+      const res = await fetch("/api/admin/settings", { method: "PUT", headers: jsonHeaders, body: JSON.stringify({ webdav_url: config.url, webdav_username: config.username, webdav_password: config.password, webdav_path: config.path }) });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "保存失败");
+      }
+      setWebdavConfig(config);
       showMsg("WebDAV 配置已保存", "success");
-    } catch { showMsg("保存失败", "error"); }
+    } catch (err) { showMsg(err instanceof Error ? err.message : "保存失败", "error"); }
   };
 
   const backupToWebdav = async () => {
-    if (!webdavConfig.url || !webdavConfig.username) { showMsg("请先配置 WebDAV", "error"); return; }
+    const config = normalizeWebdavConfig(webdavConfig);
+    if (!config.url || !config.username || !config.password) { showMsg("请先完整配置 WebDAV", "error"); return; }
+    if (!config.url.startsWith("https://")) { showMsg("WebDAV 地址必须使用 HTTPS", "error"); return; }
     setBacking("webdav");
     try {
-      const res = await fetch("/api/admin/backup/webdav", { method: "POST", headers: jsonHeaders, body: JSON.stringify(webdavConfig) });
+      const res = await fetch("/api/admin/backup/webdav", { method: "POST", headers: jsonHeaders, body: JSON.stringify(config) });
       const data = await res.json();
       data.success ? showMsg(`已备份到 WebDAV（${formatSize(data.size)}）`, "success") : showMsg(data.error || "失败", "error");
     } catch { showMsg("WebDAV 连接失败", "error"); }
@@ -573,7 +592,7 @@ export function AdminBackup() {
             </div>
             <div>
               <label className="mb-[2px] block text-[10px] text-muted-foreground/30 uppercase tracking-wider">远程路径</label>
-              <input value={webdavConfig.path} onChange={(e) => setWebdavConfig((p) => ({ ...p, path: e.target.value }))} placeholder="/monolith-backups" className={inputClass} />
+              <input value={webdavConfig.path} onChange={(e) => setWebdavConfig((p) => ({ ...p, path: e.target.value }))} placeholder="/time-amber-backups" className={inputClass} />
             </div>
             <div className="flex items-center justify-between pt-[2px]">
               <p className="text-[10px] text-muted-foreground/20">坚果云 / NextCloud / Synology 等</p>

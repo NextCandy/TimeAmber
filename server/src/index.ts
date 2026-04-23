@@ -1041,50 +1041,141 @@ app.post("/api/admin/backup/webdav", async (c) => {
   }>();
 
   // SSRF 防护：仅允许 https:// 的外部 URL
+  let parsedUrl: URL;
   try {
-    const parsed = new URL(body.url);
-    if (parsed.protocol !== "https:") {
+    parsedUrl = new URL(body.url);
+    if (parsedUrl.protocol !== "https:") {
       return c.json({ error: "仅允许 HTTPS 协议的 WebDAV 地址" }, 400);
     }
-    if (/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|127\.|0\.|169\.254\.|::1|fc)/.test(parsed.hostname)) {
+    if (isBlockedWebdavHost(parsedUrl.hostname)) {
       return c.json({ error: "不允许内网地址" }, 400);
     }
   } catch {
     return c.json({ error: "无效的 WebDAV 地址" }, 400);
   }
 
+  if (!body.username?.trim() || !body.password) {
+    return c.json({ error: "请填写 WebDAV 用户名和密码/应用密钥" }, 400);
+  }
+
   const db = c.get("db");
   const data = await db.exportAll();
   const json = JSON.stringify(data, null, 2);
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const filename = `monolith-backup-${timestamp}.json`;
-  const remotePath = (body.path || "/").replace(/\/$/, "");
-  const fullUrl = `${body.url.replace(/\/$/, "")}${remotePath}/${filename}`;
+  const filename = `time-amber-backup-${timestamp}.json`;
+  const baseUrl = normalizeWebdavBaseUrl(parsedUrl);
+  const remotePath = normalizeWebdavPath(body.path || "/time-amber-backups");
+  const authHeader = basicAuthHeader(body.username.trim(), body.password);
+  const webdavHeaders = makeWebdavHeaders(authHeader);
+  const fullUrl = buildWebdavUrl(baseUrl, remotePath, filename);
 
   try {
-    await fetch(`${body.url.replace(/\/$/, "")}${remotePath}/`, {
-      method: "MKCOL",
-      headers: { Authorization: "Basic " + btoa(`${body.username}:${body.password}`) },
-    }).catch(() => {});
+    const mkdirWarning = await ensureWebdavDirectory(baseUrl, remotePath, webdavHeaders);
 
     const res = await fetch(fullUrl, {
       method: "PUT",
       headers: {
-        Authorization: "Basic " + btoa(`${body.username}:${body.password}`),
+        ...webdavHeaders,
         "Content-Type": "application/json",
       },
       body: json,
     });
 
-    if (!res.ok && res.status !== 201 && res.status !== 204) {
-      return c.json({ error: `WebDAV 上传失败: ${res.status} ${res.statusText}` }, 500);
+    if (!isWebdavSuccess(res.status)) {
+      const detail = await safeResponseText(res);
+      return c.json({
+        error: `WebDAV 上传失败: ${res.status} ${res.statusText}${detail ? ` - ${detail}` : ""}${mkdirWarning ? `；目录创建提示：${mkdirWarning}` : ""}`,
+      }, 500);
     }
 
-    return c.json({ success: true, url: fullUrl, size: json.length, timestamp: data.exportedAt });
+    return c.json({ success: true, url: fullUrl, size: json.length, timestamp: data.exportedAt, warning: mkdirWarning || undefined });
   } catch (err) {
     return c.json({ error: `WebDAV 连接失败: ${err instanceof Error ? err.message : "未知错误"}` }, 500);
   }
 });
+
+function isBlockedWebdavHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  return (
+    host === "localhost" ||
+    host === "::1" ||
+    host.startsWith("fc") ||
+    host.startsWith("fd") ||
+    /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|127\.|0\.|169\.254\.)/.test(host)
+  );
+}
+
+function normalizeWebdavBaseUrl(url: URL): string {
+  url.hash = "";
+  url.search = "";
+  return url.toString().replace(/\/+$/, "");
+}
+
+function normalizeWebdavPath(path: string): string {
+  const clean = path.trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+  if (!clean) return "";
+  return `/${clean.split("/").filter(Boolean).map(encodeURIComponent).join("/")}`;
+}
+
+function buildWebdavUrl(baseUrl: string, remotePath: string, filename?: string): string {
+  const encodedFile = filename ? `/${encodeURIComponent(filename)}` : "";
+  return `${baseUrl}${remotePath}${encodedFile}`;
+}
+
+function basicAuthHeader(username: string, password: string): string {
+  const bytes = new TextEncoder().encode(`${username}:${password}`);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return `Basic ${btoa(binary)}`;
+}
+
+function makeWebdavHeaders(authHeader: string): Record<string, string> {
+  return {
+    Authorization: authHeader,
+    Accept: "*/*",
+    "User-Agent": "TimeAmber-Backup/1.0",
+  };
+}
+
+async function ensureWebdavDirectory(baseUrl: string, remotePath: string, headers: Record<string, string>): Promise<string | null> {
+  const segments = remotePath.split("/").filter(Boolean);
+  let currentPath = "";
+  const warnings: string[] = [];
+
+  for (const segment of segments) {
+    currentPath += `/${segment}`;
+    const res = await fetch(buildWebdavUrl(baseUrl, currentPath), {
+      method: "MKCOL",
+      headers,
+    });
+
+    // 405 usually means the directory already exists; both cases are safe to continue.
+    if (res.status === 405) continue;
+    if (res.status >= 500) {
+      const detail = await safeResponseText(res);
+      warnings.push(`${res.status} ${res.statusText}${detail ? ` - ${detail}` : ""}`);
+      continue;
+    }
+    if (!isWebdavSuccess(res.status)) {
+      const detail = await safeResponseText(res);
+      return `WebDAV 目录创建失败: ${res.status} ${res.statusText}${detail ? ` - ${detail}` : ""}`;
+    }
+  }
+
+  return warnings.length ? warnings.join("; ") : null;
+}
+
+function isWebdavSuccess(status: number): boolean {
+  return status >= 200 && status < 300;
+}
+
+async function safeResponseText(res: Response): Promise<string> {
+  try {
+    return (await res.text()).slice(0, 300).replace(/\s+/g, " ").trim();
+  } catch {
+    return "";
+  }
+}
 
 // ── Halo 博客数据导入 ─────────────────────────
 

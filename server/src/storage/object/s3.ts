@@ -4,13 +4,7 @@
    通过 endpoint 参数区分不同厂商
    ────────────────────────────────────────────── */
 
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-  DeleteObjectCommand,
-  ListObjectsV2Command,
-} from "@aws-sdk/client-s3";
+import { AwsClient } from "aws4fetch";
 import type { IObjectStorage, StorageObject, StorageListItem } from "../interfaces";
 
 export type S3Config = {
@@ -24,21 +18,32 @@ export type S3Config = {
 };
 
 export class S3Adapter implements IObjectStorage {
-  private client: S3Client;
+  private client: AwsClient;
+  private endpoint: string;
   private bucket: string;
 
   constructor(config: S3Config) {
+    this.endpoint = config.endpoint.replace(/\/+$/, "");
     this.bucket = config.bucket;
-    this.client = new S3Client({
-      endpoint: config.endpoint,
+    this.client = new AwsClient({
+      accessKeyId: config.accessKey,
+      secretAccessKey: config.secretKey,
       region: config.region || "auto",
-      credentials: {
-        accessKeyId: config.accessKey,
-        secretAccessKey: config.secretKey,
-      },
-      // B2 和部分 OSS 需要 path-style
-      forcePathStyle: true,
+      service: "s3",
     });
+  }
+
+  private objectUrl(key: string): string {
+    const keyPath = key.split("/").map(encodeURIComponent).join("/");
+    return `${this.endpoint}/${encodeURIComponent(this.bucket)}/${keyPath}`;
+  }
+
+  private listUrl(prefix: string, limit: number): string {
+    const url = new URL(`${this.endpoint}/${encodeURIComponent(this.bucket)}`);
+    url.searchParams.set("list-type", "2");
+    url.searchParams.set("prefix", prefix);
+    url.searchParams.set("max-keys", String(limit));
+    return url.toString();
   }
 
   async put(
@@ -71,71 +76,98 @@ export class S3Adapter implements IObjectStorage {
       }
     }
 
-    await this.client.send(new PutObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-      Body: body,
-      ContentType: options?.contentType,
-      Metadata: options?.customMetadata,
-    }));
-  }
+    const headers = new Headers();
+    if (options?.contentType) headers.set("Content-Type", options.contentType);
+    for (const [name, value] of Object.entries(options?.customMetadata || {})) {
+      headers.set(`x-amz-meta-${name}`, value);
+    }
 
-  async get(key: string): Promise<StorageObject | null> {
-    try {
-      const response = await this.client.send(new GetObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-      }));
+    const response = await this.client.fetch(this.objectUrl(key), {
+      method: "PUT",
+      headers,
+      body,
+    });
 
-      if (!response.Body) return null;
-
-      const contentType = response.ContentType || "application/octet-stream";
-
-      // @aws-sdk 返回的 Body 在 Node.js 是 Readable，在浏览器是 ReadableStream
-      // Workers 环境中需要转换
-      const bodyStream = response.Body.transformToWebStream();
-
-      return {
-        body: bodyStream,
-        contentType,
-        writeHeaders(headers: Headers) {
-          headers.set("Content-Type", contentType);
-          if (response.ContentLength) {
-            headers.set("Content-Length", String(response.ContentLength));
-          }
-          if (response.ETag) {
-            headers.set("ETag", response.ETag);
-          }
-          headers.set("Cache-Control", "public, max-age=31536000, immutable");
-        },
-      };
-    } catch (err: unknown) {
-      // NoSuchKey → 返回 null
-      if (err && typeof err === "object" && "name" in err && (err as { name: string }).name === "NoSuchKey") {
-        return null;
-      }
-      throw err;
+    if (!response.ok) {
+      throw new Error(`S3 upload failed: ${response.status} ${response.statusText}`);
     }
   }
 
+  async get(key: string): Promise<StorageObject | null> {
+    const response = await this.client.fetch(this.objectUrl(key));
+
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      throw new Error(`S3 download failed: ${response.status} ${response.statusText}`);
+    }
+    if (!response.body) return null;
+
+    const contentType = response.headers.get("Content-Type") || "application/octet-stream";
+    return {
+      body: response.body,
+      contentType,
+      writeHeaders(headers: Headers) {
+        headers.set("Content-Type", contentType);
+        const contentLength = response.headers.get("Content-Length");
+        if (contentLength) {
+          headers.set("Content-Length", contentLength);
+        }
+        const etag = response.headers.get("ETag");
+        if (etag) {
+          headers.set("ETag", etag);
+        }
+        headers.set("Cache-Control", "public, max-age=31536000, immutable");
+      },
+    };
+  }
+
   async delete(key: string): Promise<void> {
-    await this.client.send(new DeleteObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-    }));
+    const response = await this.client.fetch(this.objectUrl(key), { method: "DELETE" });
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`S3 delete failed: ${response.status} ${response.statusText}`);
+    }
   }
 
   async list(prefix: string, limit = 50): Promise<StorageListItem[]> {
-    const response = await this.client.send(new ListObjectsV2Command({
-      Bucket: this.bucket,
-      Prefix: prefix,
-      MaxKeys: limit,
-    }));
+    const response = await this.client.fetch(this.listUrl(prefix, limit));
+    if (!response.ok) {
+      throw new Error(`S3 list failed: ${response.status} ${response.statusText}`);
+    }
 
-    return (response.Contents || []).map((obj) => ({
-      key: obj.Key || "",
-      size: obj.Size || 0,
-      uploaded: (obj.LastModified || new Date()).toISOString(),
-    }));
+    const xml = await response.text();
+    return parseListObjects(xml);
   }
+}
+
+function parseListObjects(xml: string): StorageListItem[] {
+  const items: StorageListItem[] = [];
+  const contentsPattern = /<Contents>([\s\S]*?)<\/Contents>/g;
+  for (const match of xml.matchAll(contentsPattern)) {
+    const block = match[1];
+    items.push({
+      key: decodeXml(readXmlTag(block, "Key")),
+      size: Number(readXmlTag(block, "Size") || 0),
+      uploaded: readXmlTag(block, "LastModified") || new Date().toISOString(),
+    });
+  }
+  return items;
+}
+
+function readXmlTag(xml: string, tag: string): string {
+  const openTag = `<${tag}>`;
+  const closeTag = `</${tag}>`;
+  const start = xml.indexOf(openTag);
+  if (start === -1) return "";
+  const contentStart = start + openTag.length;
+  const end = xml.indexOf(closeTag, contentStart);
+  return end === -1 ? "" : xml.slice(contentStart, end);
+}
+
+function decodeXml(value: string): string {
+  return value
+    .replace(/&apos;/g, "'")
+    .replace(/&quot;/g, "\"")
+    .replace(/&gt;/g, ">")
+    .replace(/&lt;/g, "<")
+    .replace(/&amp;/g, "&");
 }

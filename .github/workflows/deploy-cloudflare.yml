@@ -47,7 +47,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy Monolith to Cloudflare
+    name: Deploy Time Amber to Cloudflare
     runs-on: ubuntu-latest
     permissions:
       contents: read
