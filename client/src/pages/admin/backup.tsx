@@ -306,7 +306,13 @@ export function AdminBackup() {
     try {
       const res = await fetch("/api/admin/backup/webdav", { method: "POST", headers: jsonHeaders, body: JSON.stringify(config) });
       const data = await res.json();
-      data.success ? showMsg(`已备份到 WebDAV（${formatSize(data.size)}）`, "success") : showMsg(data.error || "失败", "error");
+      if (data.success) {
+        showMsg(`已备份到 WebDAV（${formatSize(data.size)}）`, "success");
+      } else if (data.code === "webdav_ip_blocked") {
+        showMsg("WebDAV 服务商拦截了服务器出口 IP，请改用 R2/本地备份或更换支持 Cloudflare Worker 的 WebDAV", "error");
+      } else {
+        showMsg(data.error || "失败", "error");
+      }
     } catch { showMsg("WebDAV 连接失败", "error"); }
     setBacking("");
   };

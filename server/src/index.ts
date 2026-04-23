@@ -1077,6 +1077,12 @@ app.post("/api/admin/backup/webdav", async (c) => {
 
     if (!isWebdavSuccess(res.status)) {
       const detail = await safeResponseText(res);
+      if (isProviderIpBlocked(res.status, detail)) {
+        return c.json({
+          code: "webdav_ip_blocked",
+          error: `WebDAV 服务商拦截了当前服务器出口 IP，无法从 Cloudflare Worker 直接上传。请改用 R2/本地备份，或换用允许 Cloudflare Worker 出口 IP 的 WebDAV 服务。${mkdirWarning ? ` 目录创建提示：${mkdirWarning}` : ""}`,
+        }, 502);
+      }
       return c.json({
         error: `WebDAV 上传失败: ${res.status} ${res.statusText}${detail ? ` - ${detail}` : ""}${mkdirWarning ? `；目录创建提示：${mkdirWarning}` : ""}`,
       }, 500);
@@ -1184,6 +1190,10 @@ async function ensureWebdavDirectory(baseUrl: string, remotePath: string, header
 
 function isWebdavSuccess(status: number): boolean {
   return status >= 200 && status < 300;
+}
+
+function isProviderIpBlocked(status: number, detail: string): boolean {
+  return status === 403 && /ip has been blocked|security system|blocked by/i.test(detail);
 }
 
 async function safeResponseText(res: Response): Promise<string> {
