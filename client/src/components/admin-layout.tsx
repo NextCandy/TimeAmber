@@ -94,7 +94,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <div className="w-[32px] h-[32px] rounded-lg bg-foreground text-background flex items-center justify-center font-bold text-[16px]">
             M
           </div>
-          <span className="font-semibold text-[18px] tracking-[-0.02em]">Monolith</span>
+          <span className="font-semibold text-[18px] tracking-[-0.02em]">Time Amber</span>
         </Link>
       </div>
 
@@ -160,7 +160,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-[16px] h-[52px] border-b border-border/40 bg-background/80 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-[8px] font-semibold text-[14px]">
             <div className="w-[24px] h-[24px] rounded bg-foreground text-background flex items-center justify-center text-[11px] font-bold">M</div>
-            <span>Admin</span>
+            <span>Time Amber</span>
           </div>
           <div className="flex items-center gap-[4px]">
             <ThemeToggle />

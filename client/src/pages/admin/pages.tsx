@@ -23,7 +23,7 @@ export function AdminPages() {
   const jsonHeaders = { ...authHeaders, "Content-Type": "application/json" };
 
   useEffect(() => {
-    document.title = "独立页管理 | Monolith";
+    document.title = "独立页管理 | Time Amber";
     loadPages();
   }, []);
 

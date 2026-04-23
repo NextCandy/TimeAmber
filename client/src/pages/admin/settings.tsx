@@ -20,17 +20,17 @@ type Settings = {
 };
 
 const defaultSettings: Settings = {
-  site_title: "Monolith",
+  site_title: "Time Amber",
   site_description: "书写代码、设计与边缘计算的个人博客",
   site_tagline: "在秩序与混沌的交界处，寻找属于自己的巨石碑。",
-  author_name: "Monolith",
+  author_name: "Time Amber",
   author_title: "独立开发者",
   author_bio: "热爱于前端架构、设计系统与边缘计算。\n相信技术应当服务于人，而非反过来。",
   author_avatar: "",
   github_url: "",
   twitter_url: "",
   email: "",
-  footer_text: "© 2026 Monolith. 使用 Hono + Vite 构建，部署于 Cloudflare 边缘。",
+  footer_text: "© 2026 Time Amber. 使用 Hono + Vite 构建，部署于 Cloudflare 边缘。",
   rss_enabled: "true",
   custom_header: "",
   custom_footer: "",
@@ -56,7 +56,7 @@ export function AdminSettings() {
   const [avatarError, setAvatarError] = useState(false);
 
   useEffect(() => {
-    document.title = "站点设置 | Monolith";
+    document.title = "站点设置 | Time Amber";
     fetchSettings();
   }, []);
 
@@ -186,7 +186,7 @@ export function AdminSettings() {
                 <h2 className="text-[16px] font-semibold mb-[4px]">常规设置</h2>
                 <p className="text-[12px] text-muted-foreground/50 mb-[16px]">管理站点的基础身份信息与大纲结构。</p>
                 <div className="rounded-xl border border-border/15 bg-card/5 p-[20px] sm:p-[24px] space-y-[18px]">
-                  <SettingField label="站点标题" value={settings.site_title} onChange={(v) => updateSetting("site_title", v)} placeholder="Monolith" />
+                  <SettingField label="站点标题" value={settings.site_title} onChange={(v) => updateSetting("site_title", v)} placeholder="Time Amber" />
                   <SettingField label="站点描述" value={settings.site_description} onChange={(v) => updateSetting("site_description", v)} placeholder="一句话描述你的博客（用于 SEO Meta）" />
                   <SettingField label="首页标语 (Tagline)" value={settings.site_tagline} onChange={(v) => updateSetting("site_tagline", v)} placeholder="显示在首页 Hero 区域的引言" />
                   <SettingField label="页脚文本" value={settings.footer_text} onChange={(v) => updateSetting("footer_text", v)} placeholder="© 2026 ..."  />
@@ -300,7 +300,7 @@ export function AdminSettings() {
                 </h2>
                 <p className="text-[12px] text-muted-foreground/50 mb-[16px]">向站点核心区域注入自定义脚本或标签。错误的语法可能导致前端崩溃。</p>
                 <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-[12px] py-[8px] mb-[16px] text-[11px] text-amber-400/80">
-                  ⚠️ 隐私提醒：注入的分析脚本（如 Google Analytics）会在访客浏览器中执行。根据 GDPR 等隐私法规，您需确保已获得访客明示同意。Monolith 内置 Cookie 同意横幅，访客接受后才会加载第三方脚本。
+                  ⚠️ 隐私提醒：注入的分析脚本（如 Google Analytics）会在访客浏览器中执行。根据 GDPR 等隐私法规，您需确保已获得访客明示同意。Time Amber 内置 Cookie 同意横幅，访客接受后才会加载第三方脚本。
                 </div>
                 <div className="rounded-xl border border-border/15 bg-card/5 p-[20px] sm:p-[24px] space-y-[20px]">
                   <div>

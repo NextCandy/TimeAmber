@@ -27,7 +27,7 @@ export function AdminComments() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    document.title = "评论管理 | Monolith";
+    document.title = "评论管理 | Time Amber";
     fetchAdminComments()
       .then((data) => {
         setComments(data);

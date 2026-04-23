@@ -31,7 +31,7 @@ export function AdminAnalytics() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    document.title = "访客分析 | Monolith";
+    document.title = "访客分析 | Time Amber";
     setLoading(true);
     fetchAnalytics(days)
       .then((result) => {

@@ -44,7 +44,7 @@ export function AdminMedia() {
   const [msg, setMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   useEffect(() => {
-    document.title = "媒体库 | Monolith";
+    document.title = "媒体库 | Time Amber";
     loadMedia();
   }, []);
 

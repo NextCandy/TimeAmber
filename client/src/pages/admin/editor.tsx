@@ -183,7 +183,7 @@ export function AdminEditor() {
   }, [isEdit, params.slug, lastSaved]);
 
   useEffect(() => {
-    document.title = isEdit ? "编辑文章 | Monolith" : "新建文章 | Monolith";
+    document.title = isEdit ? "编辑文章 | Time Amber" : "新建文章 | Time Amber";
 
     if (isEdit && params.slug) {
       fetchPost(params.slug).then((post) => {

@@ -140,7 +140,7 @@ export function AdminBackup() {
   };
 
   useEffect(() => {
-    document.title = "备份管理 | Monolith";
+    document.title = "备份管理 | Time Amber";
     loadR2Backups();
     loadWebdavConfig();
   }, []);
@@ -339,7 +339,7 @@ export function AdminBackup() {
         <SectionTitle icon={Shield} title="快速备份" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-[8px]">
           <ActionCard icon={Cloud} color="orange" label="R2 云备份" desc="Cloudflare R2 存储" loading={backing === "r2"} onClick={backupToR2} disabled={!!backing} />
-          <ActionCard icon={Globe} color="blue" label="WebDAV" desc="坚果云 / NextCloud" loading={backing === "webdav"} onClick={backupToWebdav} disabled={!!backing} />
+          <ActionCard icon={Globe} color="blue" label="WebDAV" desc="部分服务商会拦截 Worker" loading={backing === "webdav"} onClick={backupToWebdav} disabled={!!backing} />
           <ActionCard icon={HardDrive} color="emerald" label="本地下载" desc="JSON 文件" loading={backing === "local"} onClick={downloadLocal} disabled={!!backing} />
         </div>
       </section>
@@ -584,7 +584,7 @@ export function AdminBackup() {
           <div className="rounded-lg border border-border/25 bg-card/15 p-[16px] space-y-[10px] animate-fade-in">
             <div>
               <label className="mb-[2px] block text-[10px] text-muted-foreground/30 uppercase tracking-wider">服务器地址</label>
-              <input value={webdavConfig.url} onChange={(e) => setWebdavConfig((p) => ({ ...p, url: e.target.value }))} placeholder="https://dav.jianguoyun.com/dav/" className={inputClass} />
+              <input value={webdavConfig.url} onChange={(e) => setWebdavConfig((p) => ({ ...p, url: e.target.value }))} placeholder="https://your-webdav.example.com/remote.php/dav/files/user/" className={inputClass} />
             </div>
             <div className="grid grid-cols-2 gap-[8px]">
               <div>
@@ -601,7 +601,7 @@ export function AdminBackup() {
               <input value={webdavConfig.path} onChange={(e) => setWebdavConfig((p) => ({ ...p, path: e.target.value }))} placeholder="/time-amber-backups" className={inputClass} />
             </div>
             <div className="flex items-center justify-between pt-[2px]">
-              <p className="text-[10px] text-muted-foreground/20">坚果云 / NextCloud / Synology 等</p>
+              <p className="text-[10px] text-muted-foreground/20">坚果云和 Koofr 已知会拦截 Cloudflare Worker 出口 IP，建议使用 R2、本地下载，或自建 Nextcloud / Synology。</p>
               <button onClick={saveWebdavConfig} className="h-[28px] px-[10px] rounded-md bg-foreground text-background text-[11px] font-medium hover:opacity-90 transition-opacity">保存配置</button>
             </div>
           </div>

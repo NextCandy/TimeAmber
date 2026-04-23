@@ -9,7 +9,7 @@ export function AdminLogin() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    document.title = "管理登录 | Monolith";
+    document.title = "管理登录 | Time Amber";
     checkAuth().then((ok) => { if (ok) setLocation("/admin"); });
   }, [setLocation]);
 
