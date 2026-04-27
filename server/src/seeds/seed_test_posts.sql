@@ -1,21 +1,52 @@
-INSERT INTO posts (slug, title, content, published, view_count, pinned, publish_at, cover_color) VALUES 
-('building-edge-api', '构建属于你的现代化 Edge API', '# 边缘计算时代的新规范
+INSERT OR IGNORE INTO tags (name) VALUES
+('Edge API'),
+('Cloudflare Workers'),
+('Hono'),
+('前端架构'),
+('设计系统'),
+('模块化单体');
 
-随着 Cloudflare Workers 和 Vercel Edge Runtime 的成熟，构建无服务器应用程序的范式正在发生巨变。
+INSERT INTO posts (
+  slug,
+  title,
+  content,
+  excerpt,
+  published,
+  view_count,
+  pinned,
+  publish_at,
+  cover_color,
+  cover_image
+) VALUES
+('building-edge-api', '构建现代 Edge API：从架构到上线实践', '# 构建现代 Edge API：从架构到上线实践
 
-## 为什么选择 Edge？
+随着 Cloudflare Workers、Vercel Edge Runtime 和标准 Web API 逐渐成熟，后端接口的设计方式正在从“集中式服务器”转向“贴近用户的边缘节点”。对博客、SaaS 控制台、数据看板和轻量 AI 工具来说，Edge API 能同时改善首字节时间、全球访问稳定性和部署复杂度。
 
-传统的 Node.js API 通常会面临冷启动、全球分布式延迟高等问题。而我们在 Monolith 中采用了完全不同的思路。
+本文会从 SEO 分析器建议的角度重新整理这篇文章：使用清晰标题、可检索摘要、合理段落层级、内部链接和外部参考，让内容既适合读者阅读，也更容易被搜索引擎理解。
 
-### 冷启动终结者
-通过 V8 Isolate 技术，隔离区启动时间可以控制在 1-5 毫秒内，这几乎消灭了所谓的冷启动惩罚。
+## 为什么选择 Edge API
 
-### 极致的全球分布
-部署代码即刻分发至全球 300 多个数据中心。
+传统 Node.js API 通常部署在单一区域。用户离机房越远，网络往返越多，TTFB 就越难稳定。Edge API 的核心价值是把请求处理逻辑分发到全球节点，让鉴权、缓存、A/B 实验、内容裁剪和轻量聚合这类工作在离用户更近的位置完成。
 
-## 实战：使用 Hono 构建路由
+它并不适合所有任务。长时间运行的批处理、大型文件转码、复杂事务写入仍然更适合常规后端服务。但对于高频读取、短生命周期请求和入口网关，Edge API 往往能用更少的运维成本换来更好的体验。
 
-下面是一个使用 Hono 框架快速搭建 Edge API 的代码示例：
+## 架构设计要点
+
+### 1. 使用标准 Web API
+
+在边缘环境中，`Request`、`Response`、`Headers`、`URL` 和 `fetch` 是最可靠的基础接口。少依赖 Node.js 专属模块，可以降低跨平台迁移成本，也能让同一套路由逻辑在 Workers、Pages Functions 或其他运行时中复用。
+
+### 2. 把缓存策略前置
+
+边缘接口的收益很大一部分来自缓存。公开内容可以使用 `Cache-Control` 和 CDN 缓存；用户相关内容可以采用短 TTL、ETag 或按权限拆分的缓存键。缓存策略应在接口设计阶段就确定，而不是上线后再补丁式添加。
+
+### 3. 保持数据写入简单
+
+Edge API 最适合做入口层：校验参数、读取缓存、聚合轻量数据、转发到核心服务。涉及强一致事务时，可以把写入交给区域数据库或队列，由边缘层负责快速确认和限流。
+
+## 使用 Hono 快速实现路由
+
+下面是一个最小可运行的 Hono 示例，它使用 CORS 中间件并返回边缘运行时信息：
 
 ```typescript
 import { Hono } from ''hono''
@@ -28,78 +59,84 @@ app.use(''*'', cors())
 app.get(''/api/ping'', (c) => {
   return c.json({
     message: ''pong'',
-    timestamp: Date.now(),
-    edgeRequest: true
+    runtime: ''edge'',
+    timestamp: Date.now()
   })
 })
 
 export default app
 ```
 
-注意，这里我们大量采用了标准 Web API 对象，比如 `Request` 和 `Response`，彻底摆脱了早期 Node `req`, `res` 的历史包袱。
+如果你正在维护 Monolith 项目，可以把这类接口与站点的 [RSS 输出](/rss.xml)、[站点地图](/sitemap.xml) 和后台 SEO 面板结合起来：内容更新后自动进入 sitemap，搜索引擎抓取时也能获得更完整的结构化信息。
 
-> “在边缘端执行代码意味着你需要忘记 Node 那些重巧的内置模块，用更轻量、更标准的现代积木武装自己。” —— 边缘开发者社区
+## 上线前检查清单
 
-## 结尾
-未来的全栈开发正在进一步左移到端侧与边缘端。尽早适应这套架构体系，会让你的产品快得飞起！
-', 1, 342, 1, strftime('%s', 'now'), 'from-cyan-500/20 to-blue-600/20'),
+1. 标题是否包含核心关键词，并控制在 60 个字符以内。
+2. 摘要是否能在 60 到 160 个字符内说明文章价值。
+3. 正文是否至少包含两个 H2 标题，方便读者扫描。
+4. 是否提供内部链接或权威外部链接，帮助搜索引擎理解上下文。
+5. 是否设置封面图，保证社交平台分享时有稳定的 Open Graph 预览。
 
-('frontend-components-2026', '2026 前端组件库架构指南', '# 设计体系的工业级实践
-
-构建前端组件库不仅是在堆叠各种 UI 元素，其内核更是建立可扩展的技术与设计契约。
-
-## 核心原子理论复兴
-
-原子化设计在经历了顺周期和逆周期之后，最终在 2026 年迎来了与 CSS Variables（CSS 变量）以及 OKLCH 取色域的完美结合。
-
-### 1. 样式隔离与覆盖
-
-我们现在完全可以借助原生的 `@layer` 层叠以及 `@scope` 实现无污染的 CSS。
-
-#### 1.1 `layer` 的优雅
-
-使用 Tailwind CSS `v4` 后，你可以很从容地控制层叠上下文：
-
-```css
-@layer base {
-  :root {
-    --primary: oklch(0.9 0 220);
-  }
-}
-```
-
-#### 1.2 `color-mix` 与透明度
-
-现在可以完全抛弃 SCSS，原生地进行色彩计算了。
-
-### 2. 状态机的彻底引入
-
-使用 XState 管理组件级复杂互动状态。比如一个带自动提示补全的搜索框，涉及异步数据抓取、防抖、错误重试、缓存以及键盘导航等等。
+你也可以参考 [Cloudflare Workers 官方文档](https://developers.cloudflare.com/workers/) 了解运行时限制、缓存 API 和部署方式。
 
 ## 总结
-未来的应用不需要庞大累赘的 UI 框架，更倾向于 Headless Component（无头组件）+ 自定义原子 CSS 渲染引擎的组合。
-', 1, 87, 0, strftime('%s', 'now', '-1 day'), 'from-emerald-500/20 to-teal-600/20'),
 
-('abandon-traditional-microservices', '致未来：我为何抛弃了传统的微服务', '# 分久必合的必然
+现代 Edge API 的重点不是把所有后端逻辑都搬到边缘，而是把最适合边缘执行的部分前移：入口校验、缓存、路由、轻量聚合和内容分发。这样既能降低延迟，也能保留核心服务在数据一致性和复杂业务上的优势。
 
-很多人为了追求所谓“先进”的架构，在项目只有 2 个开发者时，就强行拆分了 8 个微服务。
+当文章内容同时具备清晰结构、可读摘要、关键词覆盖和链接上下文时，SEO 优化就不再是额外工作，而是内容质量的一部分。
+', '本文从架构、缓存、Hono 路由和上线检查清单出发，介绍如何构建现代 Edge API，并补齐标题、摘要、层级、链接和封面等 SEO 要素。', 1, 342, 1, strftime('%s', 'now'), 'from-cyan-500/20 to-blue-600/20', '/og-default.png'),
 
-## 宏大叙事下的性能陷阱
+('frontend-components-2026', '2026 前端组件库架构指南', '# 设计体系的工程化实践
 
-将紧密耦合的业务模型拆分后，原本只有 1ms 的进程内部调用（RPC）被无限放大为 HTTP/gRPC 网络开销：
+构建前端组件库不只是堆叠 UI 元素，更重要的是建立可扩展的技术约束、设计令牌和协作规范。
 
-1. **网络穿透成本**：序列化和反序列化的性能惩罚
-2. **数据一致性地狱**：最终一致性、分布式事务等问题徒增烦恼
-3. **部署复杂度暴涨**：原来配一个 `.env` 搞定的应用，现在需要拉起半个 K8s 集群。
+## 核心原则
 
-## 模块化单体 (Modular Monolith)
+组件库应从真实业务场景中提炼，而不是脱离产品流程独立设计。颜色、间距、排版、动效和交互状态都应形成统一语言。
 
-Monolith（单体）本身并不是贬义词。只要你的代码内部做好了高内聚、低耦合，即使全都放在一个工程里也是极为健壮的。我们这套系统命名为 `Monolith` 也是正是出于致敬这一理念。
+## 工程落地
 
-> 最好的微服务架构，都是从一个边界清晰、设计优秀的单体服务慢慢演化剥离出来的，而不是一开始就强行设计成的。
+在现代前端项目中，可以结合 CSS Variables、Tailwind、Headless 组件和类型安全 API，让组件保持灵活，同时避免无序扩张。
+', '一篇关于前端组件库、设计令牌和工程化落地的简明指南，适合规划 2026 年前端架构时参考。', 1, 87, 0, strftime('%s', 'now', '-1 day'), 'from-emerald-500/20 to-teal-600/20', ''),
 
-### 未来的后端开发
-只要物理边界没有达到必须切分的瓶颈，不如将计算交给强大的单机 Server。
+('abandon-traditional-microservices', '致未来：我为何放弃传统微服务', '# 分久必合的架构选择
 
-让我们回归代码和业务本身，而非被框架绑架。
-', 1, 1024, 0, strftime('%s', 'now', '-2 days'), 'from-slate-500/20 to-gray-600/20');
+很多团队为了追求“先进架构”，在项目只有少量开发者时就拆出多个微服务，最终让部署、监控、数据一致性和沟通成本快速膨胀。
+
+## 模块化单体
+
+模块化单体并不是退步。只要代码边界清晰、业务内聚、依赖方向稳定，一个单体仓库也可以拥有很好的扩展性。
+
+## 什么时候再拆分
+
+当团队边界、发布节奏、扩展瓶颈和数据 ownership 都足够清晰时，再从单体中拆出独立服务会更自然，也更可靠。
+', '本文讨论从传统微服务回到模块化单体的原因，并说明什么时候拆分服务才真正有价值。', 1, 1024, 0, strftime('%s', 'now', '-2 days'), 'from-slate-500/20 to-gray-600/20', '')
+ON CONFLICT(slug) DO UPDATE SET
+  title = excluded.title,
+  content = excluded.content,
+  excerpt = excluded.excerpt,
+  published = excluded.published,
+  view_count = excluded.view_count,
+  pinned = excluded.pinned,
+  publish_at = excluded.publish_at,
+  cover_color = excluded.cover_color,
+  cover_image = excluded.cover_image,
+  updated_at = datetime('now');
+
+INSERT OR IGNORE INTO post_tags (post_id, tag_id)
+SELECT p.id, t.id
+FROM posts p
+JOIN tags t ON t.name IN ('Edge API', 'Cloudflare Workers', 'Hono')
+WHERE p.slug = 'building-edge-api';
+
+INSERT OR IGNORE INTO post_tags (post_id, tag_id)
+SELECT p.id, t.id
+FROM posts p
+JOIN tags t ON t.name IN ('前端架构', '设计系统')
+WHERE p.slug = 'frontend-components-2026';
+
+INSERT OR IGNORE INTO post_tags (post_id, tag_id)
+SELECT p.id, t.id
+FROM posts p
+JOIN tags t ON t.name IN ('模块化单体')
+WHERE p.slug = 'abandon-traditional-microservices';
