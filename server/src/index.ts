@@ -7,21 +7,27 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { sign, verify } from "hono/jwt";
-import { marked } from "marked";
 import { createDatabase, createObjectStorage } from "./storage/factory";
 import type { IDatabase } from "./storage/interfaces";
 import type { IObjectStorage } from "./storage/interfaces";
+import { writeAnalyticsPoint, isWebsiteAllowed } from "./analytics/ae-tracker";
+import { queryAEAnalytics } from "./analytics/ae-query";
 
 /* ── 类型定义 ──────────────────────────────── */
 type Bindings = {
   DB: D1Database;
   BUCKET: R2Bucket;
+  AE?: AnalyticsEngineDataset; // Cloudflare Analytics Engine（CF 专属，可选）
   ADMIN_PASSWORD: string;
   JWT_SECRET: string;
   REACTION_SALT?: string;
   DB_PROVIDER?: string;
   STORAGE_PROVIDER?: string;
   WEBHOOK_URLS?: string; // 逗号分隔的 Webhook 目标地址
+  SITE_ORIGIN?: string; // 对外公开域名（如 https://monolith-client.pages.dev），用于 sitemap/robots
+  CLOUDFLARE_ACCOUNT_ID?: string; // AE GraphQL 查询用
+  CLOUDFLARE_API_TOKEN?: string; // AE GraphQL 查询用（需要 Account Analytics:Read 权限）
+  ANALYTICS_WEBSITE_WHITELIST?: string; // 站点白名单，格式: domain1|domain2 (空=放行所有)
 };
 
 type Variables = {
@@ -96,6 +102,49 @@ async function triggerWebhook(c: any, eventName: string, payload: any) {
 app.get("/api/health", async (c) => {
   return c.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+/* ── 访客埋点端点（CF 专属，AE 不可用时静默 204） ─────────── */
+// POST /api/track  body: { website?, path, referer?, screen?, language?, visitorId?, duration? }
+// 公开端点，受白名单 + Origin 校验保护，不写 D1（避免高频写穿）
+app.post("/api/track", async (c) => {
+  // 白名单校验：通过 Origin 头判断站点合法性
+  const origin = c.req.header("Origin") || c.req.header("Referer") || "";
+  if (!isWebsiteAllowed(origin, c.env.ANALYTICS_WEBSITE_WHITELIST)) {
+    return c.json({ error: "origin not allowed" }, 403);
+  }
+
+  let body: Record<string, unknown> = {};
+  try { body = await c.req.json(); } catch { return c.json({ error: "invalid json" }, 400); }
+
+  const path = typeof body.path === "string" ? body.path : "";
+  if (!path || path.length > 256) return c.json({ error: "invalid path" }, 400);
+
+  // AE 不可用（Turso/PG 部署）→ 直接 204，前端无感
+  if (!c.env.AE) {
+    c.status(204);
+    return c.body(null);
+  }
+
+  writeAnalyticsPoint(
+    {
+      website: typeof body.website === "string" ? body.website : "default",
+      path,
+      referer: typeof body.referer === "string" ? body.referer : c.req.header("Referer"),
+      screen: typeof body.screen === "string" ? body.screen : "",
+      language: typeof body.language === "string" ? body.language : c.req.header("Accept-Language")?.split(",")[0],
+      visitorId: typeof body.visitorId === "string" ? body.visitorId : "",
+      duration: typeof body.duration === "number" ? body.duration : 0,
+    },
+    {
+      ae: c.env.AE,
+      userAgent: c.req.header("User-Agent"),
+      country: c.req.header("CF-IPCountry") || "XX",
+    },
+  );
+  c.status(204);
+  return c.body(null);
+});
+
 /* ── 公开 API ──────────────────────────────── */
 
 // 获取文章列表（仅已发布）
@@ -141,6 +190,12 @@ app.get("/api/posts/:slug", async (c) => {
       : /mobile|android|iphone/i.test(ua) ? "mobile"
       : /tablet|ipad/i.test(ua) ? "tablet" : "desktop";
     const visitPromise = db.recordVisit({ path: `/posts/${slug}`, country, refererDomain, deviceType });
+
+    // CF 专属：同步双写 Analytics Engine（Workers 环境零成本）
+    writeAnalyticsPoint(
+      { website: "default", path: `/posts/${slug}`, referer },
+      { ae: c.env.AE, userAgent: c.req.header("User-Agent"), country },
+    );
 
     // 边缘环境中使用 waitUntil 确保异步任务完成
     if (c.executionCtx?.waitUntil) {
@@ -370,7 +425,7 @@ ${items}
 // sitemap.xml — 动态站点地图
 app.get("/sitemap.xml", async (c) => {
   const db = c.get("db");
-  const siteUrl = new URL(c.req.url).origin;
+  const siteUrl = c.env.SITE_ORIGIN || new URL(c.req.url).origin;
 
   const allPosts = await db.getRecentPublishedPosts(1000);
   const allPages = await db.getPublishedPages();
@@ -425,7 +480,7 @@ ${urls.join("\n")}
 
 // robots.txt — 爬虫规则
 app.get("/robots.txt", (c) => {
-  const siteUrl = new URL(c.req.url).origin;
+  const siteUrl = c.env.SITE_ORIGIN || new URL(c.req.url).origin;
   const txt = `User-agent: *
 Allow: /
 Disallow: /admin
@@ -544,6 +599,38 @@ app.get("/api/admin/analytics", async (c) => {
   return c.json(analytics);
 });
 
+// 访客分析数据 — AE 增强版（CF 专属，仅在 D1 后端 + 配置好 API Token 时可用）
+app.get("/api/admin/analytics/ae", async (c) => {
+  // 守卫：仅 D1 后端支持 AE（默认未设 DB_PROVIDER 视为 d1）
+  const provider = (c.env.DB_PROVIDER || "d1").toLowerCase();
+  if (provider !== "d1") {
+    return c.json({
+      error: "AE analytics is Cloudflare-only (D1 deployment)",
+      provider,
+    }, 501);
+  }
+  if (!c.env.CLOUDFLARE_ACCOUNT_ID || !c.env.CLOUDFLARE_API_TOKEN) {
+    return c.json({
+      error: "Missing CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN secrets",
+    }, 503);
+  }
+
+  let days = parseInt(c.req.query("days") || "7", 10);
+  if (isNaN(days) || days <= 0) days = 7;
+
+  try {
+    const data = await queryAEAnalytics(
+      { CLOUDFLARE_ACCOUNT_ID: c.env.CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN: c.env.CLOUDFLARE_API_TOKEN },
+      Math.min(days, 31),
+    );
+    return c.json(data);
+  } catch (err) {
+    return c.json({
+      error: err instanceof Error ? err.message : "AE query failed",
+    }, 502);
+  }
+});
+
 // 获取所有评论（管理后台）
 app.get("/api/admin/comments", async (c) => {
   const db = c.get("db");
@@ -571,10 +658,25 @@ app.delete("/api/admin/comments/:id", async (c) => {
   return c.json({ success: true });
 });
 
+// 从 markdown 中提取首张图片 URL，作为封面缺省兜底
+function extractFirstImage(markdown: string): string {
+  if (!markdown) return "";
+  // 优先匹配 ![](url)；只允许非空白与非右括号字符，避免回溯灾难
+  const md = markdown.match(/!\[[^\]]*\]\(([^\s)]+)/);
+  if (md?.[1]) return md[1];
+  // 兜底匹配 <img src="url">
+  const html = markdown.match(/<img[^>]+src=["']([^"']+)["']/i);
+  if (html?.[1]) return html[1];
+  return "";
+}
+
 // 创建文章
 app.post("/api/admin/posts", async (c) => {
   const body = await c.req.json();
   const db = c.get("db");
+  if (!body.coverImage) {
+    body.coverImage = extractFirstImage(body.content || "");
+  }
   const newPost = await db.createPost(body);
   await triggerWebhook(c, "post_created", newPost);
   return c.json(newPost, 201);
@@ -585,6 +687,10 @@ app.put("/api/admin/posts/:slug", async (c) => {
   const slug = c.req.param("slug");
   const body = await c.req.json();
   const db = c.get("db");
+  // 若用户清空了封面但正文有图，自动回填首图
+  if (body.content !== undefined && (body.coverImage === undefined || body.coverImage === "")) {
+    body.coverImage = extractFirstImage(body.content);
+  }
   const updated = await db.updatePost(slug, body);
   if (!updated) return c.json({ error: "文章未找到" }, 404);
   

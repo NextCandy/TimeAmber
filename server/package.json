@@ -1,6 +1,6 @@
 {
   "name": "monolith-server",
-  "version": "0.1.0",
+  "version": "2.3.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,14 +10,14 @@
     "db:migrate:remote": "wrangler d1 migrations apply monolith-db --remote",
     "db:seed:local": "wrangler d1 execute monolith-db --local --file=src/migrations/0002_seed.sql",
     "db:seed:test-posts:local": "wrangler d1 execute monolith-db --local --file=src/seeds/seed_test_posts.sql",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
     "aws4fetch": "^1.0.20",
     "@libsql/client": "^0.17.2",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.14",
-    "marked": "^18.0.0",
     "postgres": "^3.4.9"
   },
   "devDependencies": {

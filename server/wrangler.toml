@@ -6,6 +6,8 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 # 非敏感配置变量（敏感的用 wrangler secret put）
 BLOG_NAME = "Time Amber"
+# 对外公开域名（用于 sitemap.xml / robots.txt 的绝对 URL）
+SITE_ORIGIN = "https://monolith-client.pages.dev"
 
 # D1 数据库绑定
 [[d1_databases]]
@@ -18,6 +20,13 @@ migrations_dir = "src/migrations"
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "monolith-assets"
+
+# Analytics Engine 数据集绑定（CF 专属增强分析模块）
+# 灵感来源: HanAnalytics (MIT) — https://github.com/uxiaohan/HanAnalytics
+# 仅在 Cloudflare 部署时生效，Turso/PG 后端会自动跳过 AE 写入与查询
+[[analytics_engine_datasets]]
+binding = "AE"
+dataset = "monolith_analytics"
 
 # 定时触发器 (每 1 分钟执行一次)
 [triggers]
