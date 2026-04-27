@@ -12,14 +12,14 @@ SITE_ORIGIN = "https://timeamber.com"
 # D1 数据库绑定
 [[d1_databases]]
 binding = "DB"
-database_name = "monolith-db"
-database_id = "304c7ff8-6412-4bb6-83bb-2a63d81e1e80"
+database_name = "timeamber-db"
+database_id = "005fcc1e-7fe0-452a-84f5-f688ac6ae85a"
 migrations_dir = "src/migrations"
 
 # R2 存储桶绑定
 [[r2_buckets]]
 binding = "BUCKET"
-bucket_name = "monolith-assets"
+bucket_name = "timeamber-assets"
 
 # Analytics Engine 数据集绑定（CF 专属增强分析模块）
 # 灵感来源: HanAnalytics (MIT) — https://github.com/uxiaohan/HanAnalytics

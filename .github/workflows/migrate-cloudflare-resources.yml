@@ -41,14 +41,17 @@ jobs:
             printf '%s\n' "$create_output"
             list_json="$(npx wrangler d1 list --json)"
             db_id="$(node -e 'const dbs=JSON.parse(process.argv[1]); const db=dbs.find((d)=>d.name===process.env.NEW_D1_NAME); if(!db) process.exit(1); process.stdout.write(db.uuid || db.id);' "$list_json")"
+            echo "created=true" >> "$GITHUB_OUTPUT"
           else
             echo "D1 database $NEW_D1_NAME already exists."
+            echo "created=false" >> "$GITHUB_OUTPUT"
           fi
 
           echo "database_id=$db_id" >> "$GITHUB_OUTPUT"
           echo "TIMEAMBER_D1_ID=$db_id"
 
       - name: Copy D1 data
+        if: steps.d1.outputs.created == 'true'
         working-directory: server
         run: |
           set -euo pipefail

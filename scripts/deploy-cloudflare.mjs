@@ -195,7 +195,7 @@ if (!options.skipMigrate) {
   runStep(
     "应用远程数据库迁移",
     "npx",
-    ["wrangler", "d1", "migrations", "apply", "monolith-db", "--remote"],
+    ["wrangler", "d1", "migrations", "apply", "timeamber-db", "--remote"],
     { cwd: `${projectRoot}/server`, input: "y\n" },
   );
 }

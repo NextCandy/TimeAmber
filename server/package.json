@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "wrangler dev --port 8787",
     "deploy": "wrangler deploy",
-    "db:migrate:local": "wrangler d1 migrations apply monolith-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply monolith-db --remote",
-    "db:seed:local": "wrangler d1 execute monolith-db --local --file=src/migrations/0002_seed.sql",
-    "db:seed:test-posts:local": "wrangler d1 execute monolith-db --local --file=src/seeds/seed_test_posts.sql",
+    "db:migrate:local": "wrangler d1 migrations apply timeamber-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply timeamber-db --remote",
+    "db:seed:local": "wrangler d1 execute timeamber-db --local --file=src/migrations/0002_seed.sql",
+    "db:seed:test-posts:local": "wrangler d1 execute timeamber-db --local --file=src/seeds/seed_test_posts.sql",
     "check": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0"
   },
