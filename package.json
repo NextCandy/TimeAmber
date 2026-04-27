@@ -28,7 +28,11 @@
     "concurrently": "^9.0.0"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "4.60.2"
+    "@esbuild/linux-x64": "0.25.12",
+    "@rollup/rollup-linux-x64-gnu": "4.60.2",
+    "@swc/core-linux-x64-gnu": "1.15.26",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.2.2",
+    "lightningcss-linux-x64-gnu": "1.32.0"
   },
   "overrides": {
     "dompurify": "^3.4.0",
