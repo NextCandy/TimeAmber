@@ -1,5 +1,5 @@
 /* ──────────────────────────────────────────────
-   Monolith 博客后端 API
+   TimeAmber 博客后端 API
    路由层 — 只依赖 IDatabase / IObjectStorage 接口
    底层实现通过环境变量 DB_PROVIDER / STORAGE_PROVIDER 切换
    ────────────────────────────────────────────── */
@@ -24,7 +24,7 @@ type Bindings = {
   DB_PROVIDER?: string;
   STORAGE_PROVIDER?: string;
   WEBHOOK_URLS?: string; // 逗号分隔的 Webhook 目标地址
-  SITE_ORIGIN?: string; // 对外公开域名（如 https://monolith-client.pages.dev），用于 sitemap/robots
+  SITE_ORIGIN?: string; // 对外公开域名（如 https://timeamber.com），用于 sitemap/robots/RSS
   CLOUDFLARE_ACCOUNT_ID?: string; // AE GraphQL 查询用
   CLOUDFLARE_API_TOKEN?: string; // AE GraphQL 查询用（需要 Account Analytics:Read 权限）
   ANALYTICS_WEBSITE_WHITELIST?: string; // 站点白名单，格式: domain1|domain2 (空=放行所有)
@@ -286,9 +286,9 @@ app.post("/api/posts/:slug/comments", async (c) => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          from: "Monolith Bot <onboarding@resend.dev>", // Resend 测试域名或需要替换为自有域名
+          from: "TimeAmber Bot <onboarding@resend.dev>", // Resend 测试域名或需要替换为自有域名
           to: adminEmail,
-          subject: `[Monolith] 新评论待审核: ${slug}`,
+          subject: `[TimeAmber] 新评论待审核: ${slug}`,
           html: `<p><strong>${escHtml(body.authorName.trim())}</strong> 刚刚在文章 <code>${escHtml(slug)}</code> 提交了评论：</p>
                  <blockquote style="border-left: 4px solid #eee; padding-left: 10px; color: #555;">${escHtml(body.content.trim())}</blockquote>
                  <p>邮箱: ${escHtml(body.authorEmail?.trim() || "无")}</p>
@@ -327,7 +327,7 @@ app.post("/api/posts/:slug/reactions", async (c) => {
 
   // IP hash 去重（使用环境变量盐值，避免源码泄露后可反推）
   const ip = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For") || "unknown";
-  const reactionSalt = c.env.REACTION_SALT || "monolith-reaction-default";
+  const reactionSalt = c.env.REACTION_SALT || "timeamber-reaction-default";
   const encoder = new TextEncoder();
   const data = encoder.encode(ip + ":" + reactionSalt);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -345,11 +345,11 @@ app.get("/api/settings/public", async (c) => {
   const db = c.get("db");
   const all = await db.getSettings();
   return c.json({
-    site_title: all.site_title || "Monolith",
+    site_title: all.site_title || "TimeAmber",
     site_description: all.site_description || "",
     site_tagline: all.site_tagline || "",
     footer_text: all.footer_text || "",
-    author_name: all.author_name || "Monolith",
+    author_name: all.author_name || "TimeAmber",
     author_title: all.author_title || "",
     author_bio: all.author_bio || "",
     author_avatar: all.author_avatar || "",
@@ -386,9 +386,9 @@ app.get("/rss.xml", async (c) => {
 
   // 读取站点信息
   const settings = await db.getSettings();
-  const siteTitle = settings.site_title || "Monolith";
+  const siteTitle = settings.site_title || "TimeAmber";
   const siteDesc = settings.site_description || "";
-  const siteUrl = new URL(c.req.url).origin;
+  const siteUrl = c.env.SITE_ORIGIN || new URL(c.req.url).origin;
 
   // 获取最新 20 篇文章
   const allPosts = await db.getRecentPublishedPosts(20);
@@ -814,7 +814,7 @@ app.post("/api/admin/posts/:slug/localize-images", async (c) => {
     try {
       const abortCtrl = new AbortController();
       const timeoutId = setTimeout(() => abortCtrl.abort(), 10000); // 10秒超时
-      const resp = await fetch(url, { headers: { "User-Agent": "Monolith-Bot/1.0" }, signal: abortCtrl.signal });
+      const resp = await fetch(url, { headers: { "User-Agent": "TimeAmber-Bot/1.0" }, signal: abortCtrl.signal });
       clearTimeout(timeoutId);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
@@ -878,7 +878,7 @@ app.post("/api/admin/localize-all-images", async (c) => {
     for (const url of externalUrls) {
       if (!isSafeImageUrl(url)) { failed++; continue; }
       try {
-        const resp = await fetch(url, { headers: { "User-Agent": "Monolith-Bot/1.0" } });
+        const resp = await fetch(url, { headers: { "User-Agent": "TimeAmber-Bot/1.0" } });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
         const contentType = resp.headers.get("content-type") || "image/png";
@@ -1014,7 +1014,7 @@ app.post("/api/admin/backup/r2", async (c) => {
   const data = await db.exportAll();
   const json = JSON.stringify(data, null, 2);
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const key = `backups/monolith-backup-${timestamp}.json`;
+  const key = `backups/timeamber-backup-${timestamp}.json`;
 
   await storage.put(key, json, {
     contentType: "application/json",
@@ -1322,7 +1322,7 @@ async function safeResponseText(res: Response): Promise<string> {
 
 // ── Halo 博客数据导入 ─────────────────────────
 
-/** 将 Halo 导出的 JSON 数据转换为 Monolith 的导入格式 */
+/** 将 Halo 导出的 JSON 数据转换为 TimeAmber 的导入格式 */
 function convertHaloData(haloData: any): {
   posts: any[];
   tags: { name: string }[];

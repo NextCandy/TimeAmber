@@ -1,5 +1,5 @@
 {
-  "name": "monolith",
+  "name": "timeamber",
   "version": "2.3.2",
   "private": true,
   "workspaces": [
@@ -8,16 +8,16 @@
   ],
   "scripts": {
     "dev": "npx concurrently -n server,client -c blue,green \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:client": "npm -w monolith-client run dev",
-    "dev:server": "npm -w monolith-server run dev",
-    "build": "npm -w monolith-client run build",
-    "deploy:server": "npm -w monolith-server run deploy",
-    "deploy:client": "node -e \"const {spawnSync}=require('node:child_process'); const result=spawnSync('npx',['wrangler','pages','deploy','dist','--project-name','monolith-client','--branch','main','--commit-dirty=true'],{cwd:'client',stdio:'inherit',shell:process.platform==='win32'}); process.exit(result.status ?? 1);\"",
+    "dev:client": "npm -w timeamber-client run dev",
+    "dev:server": "npm -w timeamber-server run dev",
+    "build": "npm -w timeamber-client run build",
+    "deploy:server": "npm -w timeamber-server run deploy",
+    "deploy:client": "node -e \"const {spawnSync}=require('node:child_process'); const result=spawnSync('npx',['wrangler','pages','deploy','dist','--project-name','timeamber-client','--branch','main','--commit-dirty=true'],{cwd:'client',stdio:'inherit',shell:process.platform==='win32'}); process.exit(result.status ?? 1);\"",
     "deploy:cloudflare": "node scripts/deploy-cloudflare.mjs",
-    "db:migrate:local": "npm -w monolith-server run db:migrate:local",
-    "db:migrate:remote": "npm -w monolith-server run db:migrate:remote",
-    "db:seed:local": "npm -w monolith-server run db:seed:local",
-    "db:seed:test-posts:local": "npm -w monolith-server run db:seed:test-posts:local",
+    "db:migrate:local": "npm -w timeamber-server run db:migrate:local",
+    "db:migrate:remote": "npm -w timeamber-server run db:migrate:remote",
+    "db:seed:local": "npm -w timeamber-server run db:seed:local",
+    "db:seed:test-posts:local": "npm -w timeamber-server run db:seed:test-posts:local",
     "check": "npm -ws run check",
     "lint": "npm -ws run lint"
   },

@@ -67,7 +67,7 @@ app.get(''/api/ping'', (c) => {
 export default app
 ```
 
-如果你正在维护 Monolith 项目，可以把这类接口与站点的 [RSS 输出](/rss.xml)、[站点地图](/sitemap.xml) 和后台 SEO 面板结合起来：内容更新后自动进入 sitemap，搜索引擎抓取时也能获得更完整的结构化信息。
+如果你正在维护 TimeAmber 项目，可以把这类接口与站点的 [RSS 输出](/rss.xml)、[站点地图](/sitemap.xml) 和后台 SEO 面板结合起来：内容更新后自动进入 sitemap，搜索引擎抓取时也能获得更完整的结构化信息。
 
 ## 上线前检查清单
 

@@ -146,7 +146,7 @@ export function AdminAnalytics() {
   const [tab, setTab] = useState<TabKey>("basic");
 
   useEffect(() => {
-    document.title = "访客分析 | Time Amber";
+    document.title = "访客分析 | TimeAmber";
   }, []);
 
   useEffect(() => {

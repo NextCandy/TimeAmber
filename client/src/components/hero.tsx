@@ -5,7 +5,7 @@ type HeroProps = {
 };
 
 export function Hero({
-  siteTitle = "Time Amber",
+  siteTitle = "TimeAmber",
   siteDescription = "时光琥珀，一个用文字封存瞬间的个人博客。",
   siteTagline = "时光成珀，字字如初",
 }: HeroProps) {

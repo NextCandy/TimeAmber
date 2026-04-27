@@ -7,9 +7,9 @@ import { Link } from "wouter";
 import Editor, { type Monaco } from "@monaco-editor/react";
 import type * as MonacoTypes from "monaco-editor";
 
-/** 注册 Monolith 暗色主题 — 暗夜琥珀：黑 + 金点缀 */
+/** 注册 TimeAmber 暗色主题：暗夜琥珀，黑 + 金点缀 */
 function handleEditorWillMount(monaco: Monaco) {
-  monaco.editor.defineTheme("monolith-dark", {
+  monaco.editor.defineTheme("timeamber-dark", {
     base: "vs-dark",
     inherit: true,
     rules: [
@@ -87,7 +87,7 @@ function generateSlug(title: string): string {
 }
 
 /** 本地草稿存储 */
-const DRAFT_KEY = "monolith_editor_draft";
+const DRAFT_KEY = "timeamber_editor_draft";
 function saveDraft(slug: string, data: Record<string, unknown>) {
   try { localStorage.setItem(`${DRAFT_KEY}_${slug || "new"}`, JSON.stringify(data)); } catch { /* 忽略 */ }
 }
@@ -187,7 +187,7 @@ export function AdminEditor() {
   }, [isEdit, params.slug, lastSaved]);
 
   useEffect(() => {
-    document.title = isEdit ? "编辑文章 | Time Amber" : "新建文章 | Time Amber";
+    document.title = isEdit ? "编辑文章 | TimeAmber" : "新建文章 | TimeAmber";
 
     if (isEdit && params.slug) {
       fetchPost(params.slug).then((post) => {
@@ -777,7 +777,7 @@ export function AdminEditor() {
               defaultLanguage="markdown"
               value={form.content}
               onChange={(val) => updateField("content", val || "")}
-              theme="monolith-dark"
+              theme="timeamber-dark"
               beforeMount={handleEditorWillMount}
               onMount={(editor) => {
                 editorRef.current = editor;
@@ -878,7 +878,7 @@ export function AdminEditor() {
                   <div className="h-[16px] w-5/6 rounded bg-card/20" />
                 </div>
               ) : (
-                <div className="prose-monolith" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                <div className="prose-timeamber" dangerouslySetInnerHTML={{ __html: previewHtml }} />
               )}
             </div>
           </div>

@@ -187,14 +187,14 @@ renderer.image = ({ href, title, text }: { href: string; title?: string | null; 
 
   let normalizedHref = href;
   try {
-    normalizedHref = new URL(href, "https://monolith.local").toString();
+    normalizedHref = new URL(href, "https://timeamber.local").toString();
   } catch {
     normalizedHref = href;
   }
 
   let mediaExtension = "";
   try {
-    const videoUrl = new URL(normalizedHref, "https://monolith.local");
+    const videoUrl = new URL(normalizedHref, "https://timeamber.local");
     const lastSegment = videoUrl.pathname.split("/").filter(Boolean).pop() || "";
     const dotIndex = lastSegment.lastIndexOf(".");
     mediaExtension = dotIndex >= 0 ? lastSegment.slice(dotIndex + 1).toLowerCase() : "";

@@ -6,14 +6,14 @@ import { fetchNavPages, fetchPublicSettings, type NavPage } from "@/lib/api";
 export function Footer() {
   const currentYear = new Date().getFullYear();
   const [footerText, setFooterText] = useState("");
-  const [siteTitle, setSiteTitle] = useState("Time Amber");
+  const [siteTitle, setSiteTitle] = useState("TimeAmber");
   const [navPages, setNavPages] = useState<NavPage[]>([]);
 
   useEffect(() => {
     fetchPublicSettings()
       .then((data) => {
         setFooterText(data.footer_text || "");
-        setSiteTitle(data.site_title || "Time Amber");
+        setSiteTitle(data.site_title || "TimeAmber");
       })
       .catch(() => {});
   }, []);

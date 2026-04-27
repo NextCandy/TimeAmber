@@ -88,7 +88,7 @@ export function DynamicPage() {
     <article className="mx-auto w-full max-w-[720px] py-[40px] lg:py-[56px]">
       <SeoHead
         title={page.title}
-        description={`${page.title} — Time Amber 独立页面`}
+        description={`${page.title} — TimeAmber 独立页面`}
         url={`/page/${page.slug}`}
       />
       <Link
@@ -106,7 +106,7 @@ export function DynamicPage() {
       <Separator className="mb-[32px] bg-border/30" />
 
       {htmlContent ? (
-        <div className="prose-monolith animate-fade-in delay-2" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+        <div className="prose-timeamber animate-fade-in delay-2" dangerouslySetInnerHTML={{ __html: htmlContent }} />
       ) : (
         <div className="animate-pulse space-y-[16px]">
           <div className="h-[16px] w-full rounded bg-card/20" />

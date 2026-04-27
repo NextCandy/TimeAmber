@@ -3,7 +3,7 @@
  * 所有平台转换器（Importer）共享统一的导入数据结构。
  */
 
-/** 转换后的标准化文章结构，与 Monolith 的 importAll 接口兼容 */
+/** 转换后的标准化文章结构，与 TimeAmber 的 importAll 接口兼容 */
 export interface ImportedPost {
   slug: string;
   title: string;

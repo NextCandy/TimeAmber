@@ -6,7 +6,7 @@
 
 ## 数据收集声明
 
-Monolith 博客在您访问时可能自动收集以下非个人身份信息：
+TimeAmber 博客在您访问时可能自动收集以下非个人身份信息：
 
 | 数据类型 | 来源 | 用途 | 存储方式 |
 |---------|------|------|---------|
@@ -42,7 +42,7 @@ Monolith 博客在您访问时可能自动收集以下非个人身份信息：
 如您希望删除您的评论或相关数据，请通过以下方式联系：
 
 - GitHub Issue（公开请求）
-- [GitHub Security Advisories](https://github.com/one-ea/Monolith/security/advisories/new)（私密请求）
+- [GitHub Security Advisories](https://github.com/NextCandy/TimeAmber/security/advisories/new)（私密请求）
 
 我们将在 14 个工作日内处理您的请求。
 
@@ -54,7 +54,7 @@ Monolith 博客在您访问时可能自动收集以下非个人身份信息：
 
 ## Data Collection Notice
 
-Monolith blog may automatically collect the following non-personally identifiable information when you visit:
+TimeAmber blog may automatically collect the following non-personally identifiable information when you visit:
 
 | Data Type | Source | Purpose | Storage |
 |-----------|--------|---------|---------|
@@ -90,7 +90,7 @@ When custom header/footer scripts (e.g., analytics) are configured, visitors wil
 To request deletion of your comments or related data, please contact us via:
 
 - GitHub Issue (public request)
-- [GitHub Security Advisories](https://github.com/one-ea/Monolith/security/advisories/new) (private request)
+- [GitHub Security Advisories](https://github.com/NextCandy/TimeAmber/security/advisories/new) (private request)
 
 We will process your request within 14 business days.
 

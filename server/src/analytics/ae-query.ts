@@ -63,7 +63,7 @@ async function runSql<T = Record<string, unknown>>(env: AEQueryEnv, sql: string)
 }
 
 /** AE 数据集名称必须与 wrangler.toml 一致 */
-const DATASET = "monolith_analytics";
+const DATASET = "timeamber_analytics";
 
 /** 把 days 限制在合法范围（AE 默认保留 31 天） */
 function safeDays(days: number): number {

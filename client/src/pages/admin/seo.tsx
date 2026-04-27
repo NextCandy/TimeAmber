@@ -94,7 +94,7 @@ export function AdminSeo() {
   };
 
   useEffect(() => {
-    document.title = "SEO 优化 | Monolith";
+    document.title = "SEO 优化 | TimeAmber";
     loadAll();
   }, []);
 

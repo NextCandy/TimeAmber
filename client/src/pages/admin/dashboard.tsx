@@ -29,7 +29,7 @@ export function AdminDashboard() {
   const [viewStats, setViewStats] = useState<ViewStats | null>(null);
 
   useEffect(() => {
-    document.title = "管理后台 | Time Amber";
+    document.title = "管理后台 | TimeAmber";
     fetchAdminPosts().then(setPosts).finally(() => setLoading(false));
     fetchViewStats().then(setViewStats).catch(() => {});
   }, []);

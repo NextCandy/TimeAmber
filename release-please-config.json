@@ -20,7 +20,7 @@
   ],
   "packages": {
     ".": {
-      "package-name": "monolith",
+      "package-name": "timeamber",
       "extra-files": [
         {
           "type": "json",

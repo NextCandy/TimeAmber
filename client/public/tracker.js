@@ -1,5 +1,5 @@
 /*!
- * Monolith Analytics Tracker (CF Analytics Engine)
+ * TimeAmber Analytics Tracker (CF Analytics Engine)
  * Adapted from HanAnalytics (MIT) — https://github.com/uxiaohan/HanAnalytics
  *
  * 用法：在第三方站点的 </body> 前插入：
@@ -19,7 +19,7 @@
 
   var website = script.getAttribute("data-website-id") || "default";
   var endpoint = script.getAttribute("data-endpoint") || "/api/track";
-  var VID_KEY = "monolith_vid";
+  var VID_KEY = "timeamber_vid";
   var VID_TTL = 30 * 24 * 60 * 60 * 1000;
   var enterAt = 0;
   var lastPath = "";

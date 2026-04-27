@@ -83,13 +83,13 @@ export function App() {
         const inject = () => {
           if (s.custom_header) {
             const container = document.createElement("div");
-            container.id = "monolith-custom-header";
+            container.id = "timeamber-custom-header";
             injectHtml(container, s.custom_header);
             Array.from(container.childNodes).forEach((n) => document.head.appendChild(n));
           }
           if (s.custom_footer) {
             const container = document.createElement("div");
-            container.id = "monolith-custom-footer";
+            container.id = "timeamber-custom-footer";
             injectHtml(container, s.custom_footer);
             document.body.appendChild(container);
           }

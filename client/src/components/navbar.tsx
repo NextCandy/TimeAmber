@@ -19,7 +19,7 @@ export function Navbar() {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
-  const [siteTitle, setSiteTitle] = useState("Time Amber");
+  const [siteTitle, setSiteTitle] = useState("TimeAmber");
   const [navPages, setNavPages] = useState<NavPage[]>([]);
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export function Navbar() {
   useEffect(() => {
     fetchPublicSettings()
       .then((settings) => {
-        setSiteTitle(settings.site_title || "Time Amber");
+        setSiteTitle(settings.site_title || "TimeAmber");
       })
       .catch(() => {});
   }, []);

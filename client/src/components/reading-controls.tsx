@@ -20,7 +20,7 @@ const DEFAULT_PREFERENCES: ReadingPreferences = {
   maxWidth: 780,
 };
 
-const STORAGE_KEY = "monolith_reading_preferences";
+const STORAGE_KEY = "timeamber_reading_preferences";
 
 export function useReadingPreferences() {
   const [preferences, setPreferences] = useState<ReadingPreferences>(() => {

@@ -39,7 +39,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   try {
     const apiRes = await fetch(`${backend}/api/posts/${slug}`, {
-      headers: { "User-Agent": "Monolith-Prerender/1.0" },
+      headers: { "User-Agent": "TimeAmber-Prerender/1.0" },
     });
 
     if (!apiRes.ok) {
@@ -81,7 +81,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
     // 替换 <title>
-    html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc(post.title)} | Monolith</title>`);
+    html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc(post.title)} | TimeAmber</title>`);
 
     // 替换 OG 标签
     html = html.replace(

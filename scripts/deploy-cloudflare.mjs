@@ -9,9 +9,9 @@ const SHELL = IS_WIN;
 
 function parseArgs(argv) {
   const options = {
-    pagesProject: "monolith-client",
+    pagesProject: "timeamber-client",
     branch: "main",
-    apiBase: process.env.MONOLITH_API_BASE || "",
+    apiBase: process.env.TIMEAMBER_API_BASE || process.env.MONOLITH_API_BASE || "",
     skipMigrate: false,
     skipServer: false,
     skipClient: false,
@@ -162,7 +162,7 @@ function checkPrerequisites() {
       console.warn(
         "[warn] 仓库位于 OneDrive 同步目录——OneDrive 实时同步会与 Node fs.watch 抢锁，构建偶发卡死。",
       );
-      console.warn("[hint] 建议把仓库迁移到 C:\\dev\\Monolith 等独立本地目录后重试。");
+      console.warn("[hint] 建议把仓库迁移到 C:\\dev\\TimeAmber 等独立本地目录后重试。");
     }
   }
 }
@@ -203,12 +203,12 @@ if (!options.skipMigrate) {
 if (!options.skipServer) {
   if (process.env.ADMIN_PASSWORD) {
     runStep("写入 Backend 的 ADMIN_PASSWORD", "npx", [
-      "wrangler", "secret", "put", "ADMIN_PASSWORD", "--name", "monolith-server"
+      "wrangler", "secret", "put", "ADMIN_PASSWORD", "--name", "timeamber-server"
     ], { input: `${process.env.ADMIN_PASSWORD}\n`, cwd: `${projectRoot}/server` });
   }
   if (process.env.JWT_SECRET) {
     runStep("写入 Backend 的 JWT_SECRET", "npx", [
-      "wrangler", "secret", "put", "JWT_SECRET", "--name", "monolith-server"
+      "wrangler", "secret", "put", "JWT_SECRET", "--name", "timeamber-server"
     ], { input: `${process.env.JWT_SECRET}\n`, cwd: `${projectRoot}/server` });
   }
 
@@ -245,7 +245,7 @@ if (!options.skipClient) {
     options.branch,
     "--commit-dirty=true",
     "--commit-message",
-    "monolith deploy",
+    "timeamber deploy",
   ], { cwd: clientRoot });
 }
 

@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.png", "icon-192.png", "icon-512.png"],
       manifest: {
-        name: "Time Amber",
-        short_name: "Time Amber",
+        name: "TimeAmber",
+        short_name: "TimeAmber",
         description: "时光成珀，字字如初。",
         theme_color: "#0a0a0a",
         background_color: "#0a0a0a",
@@ -37,7 +37,7 @@ export default defineConfig({
             urlPattern: /\/cdn\/.*/i,
             handler: "CacheFirst",
             options: {
-              cacheName: "monolith-images",
+              cacheName: "timeamber-images",
               expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
               cacheableResponse: { statuses: [0, 200] }
             }
@@ -46,7 +46,7 @@ export default defineConfig({
             urlPattern: /\/api\//i,
             handler: "NetworkFirst",
             options: {
-              cacheName: "monolith-api",
+              cacheName: "timeamber-api",
               expiration: { maxEntries: 100, maxAgeSeconds: 24 * 60 * 60 },
               networkTimeoutSeconds: 5,
               cacheableResponse: { statuses: [0, 200] }

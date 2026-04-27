@@ -1,6 +1,6 @@
 # 安全策略
 
-> Monolith 是一个边缘原生（Cloudflare Workers + D1 + R2）的全栈博客系统。
+> TimeAmber 是一个边缘原生（Cloudflare Workers + D1 + R2）的全栈博客系统。
 > 我们认真对待每一个安全报告，并致力于以专业、透明的方式响应漏洞披露。
 
 ## 支持的版本
@@ -22,7 +22,7 @@
 
 | 渠道 | 链接 | 说明 |
 |------|------|------|
-| **GitHub Security Advisories**（首选） | [新建私密报告](https://github.com/one-ea/Monolith/security/advisories/new) | 自带漏洞跟踪 + CVE 申请通道 |
+| **GitHub Security Advisories**（首选） | [新建私密报告](https://github.com/NextCandy/TimeAmber/security/advisories/new) | 自带漏洞跟踪 + CVE 申请通道 |
 | **GitHub 私信** | [@one-ea](https://github.com/one-ea) | 备用渠道，先发简短摘要 |
 
 ### 报告应包含

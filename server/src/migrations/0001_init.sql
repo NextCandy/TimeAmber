@@ -1,4 +1,4 @@
--- Monolith 初始数据库迁移
+-- TimeAmber 初始数据库迁移
 -- 创建文章、标签、文章-标签关联表
 
 CREATE TABLE IF NOT EXISTS posts (

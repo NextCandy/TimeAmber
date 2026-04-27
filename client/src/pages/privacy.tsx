@@ -5,7 +5,7 @@ export function PrivacyPage() {
     <div className="mx-auto w-full max-w-[720px] px-[16px] py-[32px] lg:px-0 lg:py-[56px]">
       <SeoHead
         title="隐私政策"
-        description="Time Amber 的数据收集、Cookie 使用与隐私保护说明。"
+        description="TimeAmber 的数据收集、Cookie 使用与隐私保护说明。"
         url="/privacy"
       />
       <h1 className="text-[28px] font-semibold tracking-[-0.02em]">隐私政策</h1>
@@ -13,10 +13,10 @@ export function PrivacyPage() {
         最后更新：2026-04-22
       </p>
 
-      <div className="prose-monolith space-y-[24px]">
+      <div className="prose-timeamber space-y-[24px]">
         <section>
           <h2>数据收集说明</h2>
-          <p>Time Amber 在您访问时，可能会自动收集以下非个人身份信息：</p>
+          <p>TimeAmber 在您访问时，可能会自动收集以下非个人身份信息：</p>
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-border/20">
@@ -106,7 +106,7 @@ export function PrivacyPage() {
           <ul>
             <li>
               <a
-                href="https://github.com/NextCandy/Monolith/issues"
+                href="https://github.com/NextCandy/TimeAmber/issues"
                 className="text-foreground/70 underline transition-colors hover:text-foreground"
               >
                 GitHub Issues

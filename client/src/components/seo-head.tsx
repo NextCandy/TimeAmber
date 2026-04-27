@@ -19,8 +19,13 @@ type SeoProps = {
   noindex?: boolean;
 };
 
-const DEFAULT_SITE_NAME = "Time Amber";
+const DEFAULT_SITE_NAME = "TimeAmber";
 const DEFAULT_DESCRIPTION = "时光琥珀，一个用文字封存瞬间的个人博客。";
+const PUBLIC_SITE_ORIGIN = "https://timeamber.com";
+
+function toPublicUrl(pathOrUrl: string): string {
+  return new URL(pathOrUrl, PUBLIC_SITE_ORIGIN).toString();
+}
 
 /**
  * SEO 头部组件
@@ -45,8 +50,8 @@ export function SeoHead({
 }: SeoProps) {
   const fullTitle = title ? `${title} | ${siteName}` : `${siteName} — ${DEFAULT_DESCRIPTION}`;
   const metaDescription = description || DEFAULT_DESCRIPTION;
-  const canonicalUrl = url ? `${window.location.origin}${url}` : window.location.href;
-  const ogImage = image || `${window.location.origin}/og-default.png`;
+  const canonicalUrl = url ? toPublicUrl(url) : toPublicUrl(window.location.pathname + window.location.search);
+  const ogImage = image ? toPublicUrl(image) : toPublicUrl("/og-default.png");
 
   useEffect(() => {
     // 设置标题
@@ -157,11 +162,11 @@ export function SeoHead({
         "@context": "https://schema.org",
         "@type": "WebSite",
         name: siteName,
-        url: window.location.origin,
+        url: PUBLIC_SITE_ORIGIN,
         description: metaDescription,
         potentialAction: {
           "@type": "SearchAction",
-          target: `${window.location.origin}/?q={search_term_string}`,
+          target: `${PUBLIC_SITE_ORIGIN}/?q={search_term_string}`,
           "query-input": "required name=search_term_string",
         },
       });
@@ -176,7 +181,7 @@ export function SeoHead({
           "@type": "ListItem",
           position: index + 1,
           name: item.name,
-          item: `${window.location.origin}${item.url}`,
+          item: toPublicUrl(item.url),
         })),
       });
     }

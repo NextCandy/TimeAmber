@@ -1,5 +1,5 @@
 {
-  "name": "monolith-server",
+  "name": "timeamber-server",
   "version": "2.3.2",
   "private": true,
   "type": "module",

@@ -1,6 +1,6 @@
 # 贡献指南
 
-感谢有意为 **Monolith** 出力 ❤️ — 本指南描述本仓库的协作约定，请在动手前快速阅读。
+感谢有意为 **TimeAmber** 出力 ❤️ — 本指南描述本仓库的协作约定，请在动手前快速阅读。
 
 ## 分支策略
 
@@ -78,7 +78,7 @@ npm run lint
 npm run deploy:cloudflare   # 远程迁移 + Workers + Pages 一键发布
 ```
 
-详细步骤见 [Wiki · Deployment](https://github.com/one-ea/Monolith/wiki/Deployment)。
+详细步骤见 [Wiki · Deployment](https://github.com/NextCandy/TimeAmber/wiki/Deployment)。
 
 ## 提 PR 前自查清单
 
@@ -92,10 +92,10 @@ npm run deploy:cloudflare   # 远程迁移 + Workers + Pages 一键发布
 
 ## 问题反馈
 
-- Bug：使用 [Bug Report](https://github.com/one-ea/Monolith/issues/new?template=bug_report.md) 模板
-- 功能建议：使用 [Feature Request](https://github.com/one-ea/Monolith/issues/new?template=feature_request.md) 模板
+- Bug：使用 [Bug Report](https://github.com/NextCandy/TimeAmber/issues/new?template=bug_report.md) 模板
+- 功能建议：使用 [Feature Request](https://github.com/NextCandy/TimeAmber/issues/new?template=feature_request.md) 模板
 - 安全漏洞：请按 [SECURITY.md](./SECURITY.md) 流程私下汇报，**不要**直接提公开 Issue
 
 ---
 
-更详细的开发文档见 [项目 Wiki](https://github.com/one-ea/Monolith/wiki)。
+更详细的开发文档见 [项目 Wiki](https://github.com/NextCandy/TimeAmber/wiki)。

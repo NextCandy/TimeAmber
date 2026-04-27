@@ -153,15 +153,15 @@ export async function fetchNavPages(): Promise<NavPage[]> {
 
 /* ── 认证 ──────────────────────────────────── */
 export function getToken(): string | null {
-  return localStorage.getItem("monolith_token");
+  return localStorage.getItem("timeamber_token");
 }
 
 export function setToken(token: string) {
-  localStorage.setItem("monolith_token", token);
+  localStorage.setItem("timeamber_token", token);
 }
 
 export function clearToken() {
-  localStorage.removeItem("monolith_token");
+  localStorage.removeItem("timeamber_token");
 }
 
 function authHeaders(): HeadersInit {

@@ -13,12 +13,12 @@ type AboutPageData = {
 };
 
 const fallbackTitle = "关于";
-const fallbackDescription = "关于 Time Amber 博客，一个用文字封存瞬间的个人博客。";
+const fallbackDescription = "关于 TimeAmber 博客，一个用文字封存瞬间的个人博客。";
 
 const fallbackContent = `
-## Time Amber 是什么？
+## TimeAmber 是什么？
 
-Time Amber 是一个用文字封存瞬间的个人博客。它关注技术、生活与长期思考，把那些容易被时间冲散的片段慢慢沉淀成琥珀。
+TimeAmber 是一个用文字封存瞬间的个人博客。它关注技术、生活与长期思考，把那些容易被时间冲散的片段慢慢沉淀成琥珀。
 
 这里不追求高频更新，而是希望每一篇文章都能留下清晰的上下文、真实的判断和可回看的经验。
 
@@ -66,7 +66,7 @@ export function AboutPage() {
 
   const title = page?.title || fallbackTitle;
   const content = page?.content || fallbackContent;
-  const siteTitle = settings?.site_title || "Time Amber";
+  const siteTitle = settings?.site_title || "TimeAmber";
   const description = page?.title ? `${page.title} - ${siteTitle} 独立页面` : fallbackDescription;
 
   useEffect(() => {
@@ -135,7 +135,7 @@ export function AboutPage() {
       ) : htmlContent ? (
         <div
           ref={contentRef}
-          className="prose-monolith"
+          className="prose-timeamber"
           dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
       ) : (

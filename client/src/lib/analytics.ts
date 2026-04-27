@@ -11,7 +11,7 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const TRACK_ENDPOINT = `${API_BASE}/api/track`;
-const VID_KEY = "monolith_vid";
+const VID_KEY = "timeamber_vid";
 const VID_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 天
 
 let pageEnterAt = 0;

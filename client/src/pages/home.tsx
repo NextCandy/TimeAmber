@@ -125,7 +125,7 @@ export function HomePage() {
   const maxTagCount = sortedTags.length > 0 ? sortedTags[0][1] : 1;
 
   const authorName = settings?.author_name || "Amber";
-  const siteTitle = settings?.site_title || "Time Amber";
+  const siteTitle = settings?.site_title || "TimeAmber";
   const siteDescription = settings?.site_description || "时光琥珀，一个用文字封存瞬间的个人博客。";
   const siteTagline = settings?.site_tagline || "时光成珀，字字如初";
   const authorTitle = settings?.author_title || "独立开发者";

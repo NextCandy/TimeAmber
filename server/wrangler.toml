@@ -1,13 +1,13 @@
-name = "monolith-server"
+name = "timeamber-server"
 main = "src/index.ts"
 compatibility_date = "2024-12-30"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
 # 非敏感配置变量（敏感的用 wrangler secret put）
-BLOG_NAME = "Time Amber"
+BLOG_NAME = "TimeAmber"
 # 对外公开域名（用于 sitemap.xml / robots.txt 的绝对 URL）
-SITE_ORIGIN = "https://monolith-client.pages.dev"
+SITE_ORIGIN = "https://timeamber.com"
 
 # D1 数据库绑定
 [[d1_databases]]
@@ -26,7 +26,7 @@ bucket_name = "monolith-assets"
 # 仅在 Cloudflare 部署时生效，Turso/PG 后端会自动跳过 AE 写入与查询
 [[analytics_engine_datasets]]
 binding = "AE"
-dataset = "monolith_analytics"
+dataset = "timeamber_analytics"
 
 # 定时触发器 (每 1 分钟执行一次)
 [triggers]

@@ -254,7 +254,7 @@ export function PostPage() {
           {/* 文章正文，同时处理代码块复制逻辑 */}
           <div 
             ref={contentRef}
-            className="prose-monolith animate-fade-in delay-3" 
+            className="prose-timeamber animate-fade-in delay-3"
             dangerouslySetInnerHTML={{ __html: htmlContent }} 
             onClick={(e) => {
           const target = e.target as HTMLElement;

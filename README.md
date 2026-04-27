@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/box.svg" width="96" height="96" alt="Monolith" />
+<img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/box.svg" width="96" height="96" alt="TimeAmber" />
 
-# Monolith
+# TimeAmber
 
 **高质感无服务器边缘博客系统**
 
@@ -18,7 +18,7 @@
 
 <br/>
 
-[**📚 文档**](https://github.com/one-ea/Monolith/wiki) · [**☁️ 在线预览**](https://monolith-client.pages.dev) · [**🐛 反馈**](https://github.com/one-ea/Monolith/issues) · [**🛡️ 安全**](./SECURITY.md) · [**🔒 隐私**](./PRIVACY.md)
+[**📚 文档**](https://github.com/NextCandy/TimeAmber/wiki) · [**☁️ 在线预览**](https://timeamber.com) · [**🐛 反馈**](https://github.com/NextCandy/TimeAmber/issues) · [**🛡️ 安全**](./SECURITY.md) · [**🔒 隐私**](./PRIVACY.md)
 
 </div>
 
@@ -26,7 +26,7 @@
 
 ## ✨ 简介
 
-**Monolith** 是一套运行在 Cloudflare 全球边缘网络上的现代化博客系统，前后端通过适配器模式解耦，零运维即可获得全球 < 50ms 的访问延迟。
+**TimeAmber** 是一套运行在 Cloudflare 全球边缘网络上的现代化博客系统，前后端通过适配器模式解耦，零运维即可获得全球 < 50ms 的访问延迟。
 
 设计哲学：**内容优先 · 边缘原生 · 沉浸式阅读**。
 
@@ -57,7 +57,7 @@
 - **多端备份** — JSON / R2-S3 / WebDAV 自由切换
 
 ### 🤖 智能扩展
-- **MCP 工具链** — 配套 [Monolith-MCP](https://github.com/one-ea/Monolith-MCP)，让 AI 助手代为写稿、审评、备份
+- **MCP 工具链** — 配套 [TimeAmber-MCP](https://github.com/NextCandy/TimeAmber-MCP)，让 AI 助手代为写稿、审评、备份
 - **SEO 友好** — sitemap、RSS 2.0、JSON-LD、OG/Twitter Card
 - **数据洞察** — 浏览量、14 日趋势、热门 Top 10
 
@@ -96,7 +96,7 @@
                                           │ MCP Protocol                   │
                                           │                                │
                                 ┌──────────────────┐                       │
-                                │  Monolith-MCP    │                       │
+                                │  TimeAmber-MCP    │                       │
                                 │  (AI 助手通道)    │                       │
                                 │  ├ 写稿 / 审评    │ ──────────────────────┘
                                 │  ├ 备份 / 恢复    │   (写入媒体库)
@@ -112,7 +112,7 @@
 | 前端 | React SPA + Pages Functions | `client/src` · `client/functions` |
 | 后端 | Hono Workers + Storage Factory | `server/src/index.ts` · `server/src/storage` |
 | 持久层 | D1 / Turso / PostgreSQL · R2 / S3 | `server/src/storage/db` · `server/src/storage/object` |
-| 智能层 | Monolith-MCP（独立仓库） | [one-ea/Monolith-MCP](https://github.com/one-ea/Monolith-MCP) |
+| 智能层 | TimeAmber-MCP（独立仓库） | [NextCandy/TimeAmber-MCP](https://github.com/NextCandy/TimeAmber-MCP) |
 
 **关键设计决策**
 
@@ -121,19 +121,19 @@
 - **Drizzle ORM** — 所有 SQL 参数化，Schema 一处定义、三端同步生成
 - **Monorepo 单脚本部署** — `npm run deploy:cloudflare` 串起迁移 → Workers → Pages 全链路
 
-> 详细架构、模块图与设计决策请参阅 [**Wiki · 架构概览**](https://github.com/one-ea/Monolith/wiki/Architecture)。
+> 详细架构、模块图与设计决策请参阅 [**Wiki · 架构概览**](https://github.com/NextCandy/TimeAmber/wiki/Architecture)。
 
 ---
 
 ## 🚀 快速开始
 
 ```bash
-git clone https://github.com/one-ea/Monolith.git && cd Monolith
+git clone https://github.com/NextCandy/TimeAmber.git && cd TimeAmber
 npm install
 npm run dev
 ```
 
-> 完整环境准备、密钥配置与本地数据库初始化请参阅 [**Wiki · 快速开始**](https://github.com/one-ea/Monolith/wiki/Quick-Start)。
+> 完整环境准备、密钥配置与本地数据库初始化请参阅 [**Wiki · 快速开始**](https://github.com/NextCandy/TimeAmber/wiki/Quick-Start)。
 
 ## ☁️ 部署
 
@@ -144,7 +144,7 @@ npm run deploy:cloudflare   # 远程迁移 → Workers → API_BASE 注入 → P
 
 支持 Windows / macOS / Linux 三端，脚本启动会自动预检 wrangler 登录态、Token、账户 ID 与 Node 版本。
 
-> 完整部署指南（含 Cloudflare 资源准备、密钥生成、CI 部署、故障排查）请参阅 [**Wiki · 部署指南**](https://github.com/one-ea/Monolith/wiki/Deployment)。
+> 完整部署指南（含 Cloudflare 资源准备、密钥生成、CI 部署、故障排查）请参阅 [**Wiki · 部署指南**](https://github.com/NextCandy/TimeAmber/wiki/Deployment)。
 
 | 方案 | 状态 | 适用场景 |
 |------|------|---------|
@@ -157,8 +157,8 @@ npm run deploy:cloudflare   # 远程迁移 → Workers → API_BASE 注入 → P
 
 | 入口 | 内容 |
 |------|------|
-| [Wiki · 部署指南](https://github.com/one-ea/Monolith/wiki/Deployment) | Cloudflare 部署完整指南（速通 + 进阶 + 排错） |
-| [Wiki](https://github.com/one-ea/Monolith/wiki) | 架构、API、二次开发 |
+| [Wiki · 部署指南](https://github.com/NextCandy/TimeAmber/wiki/Deployment) | Cloudflare 部署完整指南（速通 + 进阶 + 排错） |
+| [Wiki](https://github.com/NextCandy/TimeAmber/wiki) | 架构、API、二次开发 |
 | [SECURITY.md](./SECURITY.md) | 安全策略与漏洞披露 |
 | [PRIVACY.md](./PRIVACY.md) | 隐私政策 |
 | [LICENSE](./LICENSE) | MIT 开源协议 |
@@ -167,7 +167,7 @@ npm run deploy:cloudflare   # 远程迁移 → Workers → API_BASE 注入 → P
 
 ## 🤝 贡献
 
-欢迎通过 [Issue](https://github.com/one-ea/Monolith/issues) 反馈问题，或通过 Pull Request 贡献代码。提交前请阅读 [Wiki · 贡献指南](https://github.com/one-ea/Monolith/wiki/Contributing)。
+欢迎通过 [Issue](https://github.com/NextCandy/TimeAmber/issues) 反馈问题，或通过 Pull Request 贡献代码。提交前请阅读 [Wiki · 贡献指南](https://github.com/NextCandy/TimeAmber/wiki/Contributing)。
 
 ## 📄 License
 

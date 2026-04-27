@@ -140,7 +140,7 @@ export function AdminBackup() {
   };
 
   useEffect(() => {
-    document.title = "备份管理 | Time Amber";
+    document.title = "备份管理 | TimeAmber";
     loadR2Backups();
     loadWebdavConfig();
   }, []);
@@ -236,7 +236,7 @@ export function AdminBackup() {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = `monolith-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+      a.href = url; a.download = `timeamber-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click();
       URL.revokeObjectURL(url);
       showMsg(`已下载（${data.meta?.postCount || 0} 篇文章）`, "success");
     } catch { showMsg("导出失败", "error"); }
