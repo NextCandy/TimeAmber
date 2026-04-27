@@ -51,11 +51,13 @@ export function AdminSeo() {
   const loadAll = async () => {
     setRefreshing(true);
     setError(null);
+    const bust = `v=${Date.now()}`;
+    const noStore: RequestInit = { cache: "no-store" };
     const [postsResult, smResult, rbResult, rssResult] = await Promise.allSettled([
       fetchAdminPosts(),
-      fetch("/sitemap.xml").then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)))),
-      fetch("/robots.txt").then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)))),
-      fetch("/rss.xml", { method: "HEAD" }).then((r) => (r.ok ? true : Promise.reject(new Error(`HTTP ${r.status}`)))),
+      fetch(`/sitemap.xml?${bust}`, noStore).then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)))),
+      fetch(`/robots.txt?${bust}`, noStore).then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)))),
+      fetch(`/rss.xml?${bust}`, { method: "HEAD", cache: "no-store" }).then((r) => (r.ok ? true : Promise.reject(new Error(`HTTP ${r.status}`)))),
     ]);
 
     if (postsResult.status === "fulfilled") {

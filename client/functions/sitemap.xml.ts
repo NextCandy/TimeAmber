@@ -28,6 +28,9 @@ export const onRequest: PagesFunction<{ API_BASE: string }> = async (context) =>
   });
   return new Response(res.body, {
     status: res.status,
-    headers: res.headers,
+    headers: {
+      "Content-Type": res.headers.get("Content-Type") || "application/xml; charset=utf-8",
+      "Cache-Control": "no-store, max-age=0",
+    },
   });
 };
