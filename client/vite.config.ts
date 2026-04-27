@@ -4,13 +4,14 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 
+const BRAND_ASSET_URL = "https://i.see.you/2026/04/27/Wfo7/gemini-svg-3.svg";
+
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.png", "icon-192.png", "icon-512.png"],
       manifest: {
         name: "TimeAmber",
         short_name: "TimeAmber",
@@ -19,14 +20,14 @@ export default defineConfig({
         background_color: "#0a0a0a",
         icons: [
           {
-            src: "icon-192.png",
-            sizes: "192x192",
-            type: "image/png"
+            src: BRAND_ASSET_URL,
+            sizes: "any",
+            type: "image/svg+xml"
           },
           {
-            src: "icon-512.png",
-            sizes: "512x512",
-            type: "image/png"
+            src: BRAND_ASSET_URL,
+            sizes: "any",
+            type: "image/svg+xml"
           }
         ]
       },
