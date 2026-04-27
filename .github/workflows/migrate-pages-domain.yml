@@ -1,0 +1,72 @@
+name: Migrate Pages Domain
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    name: Move timeamber.com to clean Pages project
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DOMAIN: timeamber.com
+      LEGACY_PROJECT: timeamber-client-legacy
+      TARGET_PROJECT: timeamber-client
+      TARGET_CNAME: timeamber-client.pages.dev
+    steps:
+      - name: Migrate domain
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          api() {
+            curl -fsS "$@" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json"
+          }
+
+          zone_id="$(api "https://api.cloudflare.com/client/v4/zones?name=${DOMAIN}" \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const r=JSON.parse(s);if(!r.success||!r.result?.[0]?.id) throw new Error(JSON.stringify(r)); process.stdout.write(r.result[0].id);})")"
+
+          echo "Using zone ${zone_id}"
+
+          echo "Removing ${DOMAIN} from legacy Pages project if present"
+          curl -fsS -X DELETE \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${LEGACY_PROJECT}/domains/${DOMAIN}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" || true
+
+          echo "Replacing apex DNS records with CNAME ${TARGET_CNAME}"
+          records_json="$(api "https://api.cloudflare.com/client/v4/zones/${zone_id}/dns_records?name=${DOMAIN}")"
+          echo "${records_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const r=JSON.parse(s);if(!r.success) throw new Error(JSON.stringify(r)); for (const rec of r.result.filter(x=>['A','AAAA','CNAME'].includes(x.type))) console.log(rec.id);})" \
+            | while read -r record_id; do
+                [ -n "${record_id}" ] || continue
+                api -X DELETE "https://api.cloudflare.com/client/v4/zones/${zone_id}/dns_records/${record_id}" >/dev/null
+              done
+
+          api -X POST "https://api.cloudflare.com/client/v4/zones/${zone_id}/dns_records" \
+            --data "{\"type\":\"CNAME\",\"name\":\"${DOMAIN}\",\"content\":\"${TARGET_CNAME}\",\"proxied\":true,\"ttl\":1,\"comment\":\"TimeAmber Pages custom domain\"}" >/dev/null
+
+          echo "Adding ${DOMAIN} to ${TARGET_PROJECT}"
+          api -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${TARGET_PROJECT}/domains" \
+            --data "{\"name\":\"${DOMAIN}\"}" >/dev/null
+
+          echo "Waiting for Pages domain to become active"
+          for i in {1..30}; do
+            status_json="$(api "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${TARGET_PROJECT}/domains/${DOMAIN}")"
+            status="$(echo "${status_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const r=JSON.parse(s);process.stdout.write(r.result?.status||'unknown');})")"
+            verification="$(echo "${status_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const r=JSON.parse(s);process.stdout.write(r.result?.verification_data?.status||'unknown');})")"
+            validation="$(echo "${status_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const r=JSON.parse(s);process.stdout.write(r.result?.validation_data?.status||'unknown');})")"
+            echo "Attempt ${i}: status=${status}, verification=${verification}, validation=${validation}"
+            [ "${status}" = "active" ] && break
+            sleep 10
+          done
+
+          echo "Purging SEO files"
+          api -X POST "https://api.cloudflare.com/client/v4/zones/${zone_id}/purge_cache" \
+            --data "{\"files\":[\"https://${DOMAIN}/robots.txt\",\"https://${DOMAIN}/sitemap.xml\",\"https://${DOMAIN}/rss.xml\"]}" >/dev/null
+
+          echo "Verifying production domain"
+          curl -fsS "https://${DOMAIN}/api/health"
