@@ -89,3 +89,15 @@ jobs:
           SKIP_MIGRATE: ${{ github.event.inputs.skip_migrate || 'false' }}
           SKIP_SERVER: ${{ github.event.inputs.skip_server || 'false' }}
           SKIP_CLIENT: ${{ github.event.inputs.skip_client || 'false' }}
+
+      - name: Purge TimeAmber SEO cache
+        if: ${{ success() }}
+        run: |
+          zone_id="$(curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/zones?name=timeamber.com" \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const r=JSON.parse(s);if(!r.success||!r.result?.[0]?.id) process.exit(1); process.stdout.write(r.result[0].id);})")"
+
+          curl -fsS -X POST "https://api.cloudflare.com/client/v4/zones/${zone_id}/purge_cache" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"files":["https://timeamber.com/robots.txt","https://timeamber.com/sitemap.xml","https://timeamber.com/rss.xml"]}'
