@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useDeferredValue, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { fetchPost, createPost, updatePost, uploadImage, localizePostImages, fetchPostVersions, restorePostVersion, type PostVersion } from "@/lib/api";
-import { renderMarkdown } from "@/lib/markdown";
+import { renderMarkdownAsync } from "@/lib/markdown-loader";
 import { Save, Eye, EyeOff, Upload, Image, ChevronDown, ChevronUp, Bold, Italic, Heading2, Heading3, Link2, Code, Quote, List, ListOrdered, Minus, Maximize2, Minimize2, Table, CheckSquare, FileCode, ImageDown, History, Check, X, ArrowDownUp, PanelRightClose, PanelRight, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import Editor, { type Monaco } from "@monaco-editor/react";
@@ -173,6 +173,9 @@ export function AdminEditor() {
   const [syncScroll, setSyncScroll] = useState(true);
   const syncScrollRef = useRef(true);
   const previewRef = useRef<HTMLDivElement>(null);
+  const deferredPreviewContent = useDeferredValue(form.content);
+  const [previewHtml, setPreviewHtml] = useState("");
+  const [previewPending, setPreviewPending] = useState(false);
 
   // 保持 ref 与 state 同步（避免 onMount 闭包陷阱）
   useEffect(() => { syncScrollRef.current = syncScroll; }, [syncScroll]);
@@ -219,6 +222,29 @@ export function AdminEditor() {
     const chars = form.content.replace(/\s/g, "").length;
     setWordCount(chars);
   }, [form.content]);
+
+  useEffect(() => {
+    if (!showPreview) return;
+
+    let cancelled = false;
+    setPreviewPending(true);
+
+    renderMarkdownAsync(deferredPreviewContent)
+      .then((nextHtml) => {
+        if (!cancelled) {
+          setPreviewHtml(nextHtml);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setPreviewPending(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deferredPreviewContent, showPreview]);
 
   // 自动保存草稿（每 10 秒）
   useEffect(() => {
@@ -845,7 +871,15 @@ export function AdminEditor() {
               {form.title && (
                 <h1 className="text-[22px] font-semibold tracking-[-0.02em] mb-[16px]">{form.title}</h1>
               )}
-              <div className="prose-monolith" dangerouslySetInnerHTML={{ __html: renderMarkdown(form.content) }} />
+              {previewPending && !previewHtml ? (
+                <div className="animate-pulse space-y-[16px]">
+                  <div className="h-[16px] w-full rounded bg-card/20" />
+                  <div className="h-[16px] w-4/5 rounded bg-card/20" />
+                  <div className="h-[16px] w-5/6 rounded bg-card/20" />
+                </div>
+              ) : (
+                <div className="prose-monolith" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+              )}
             </div>
           </div>
         )}

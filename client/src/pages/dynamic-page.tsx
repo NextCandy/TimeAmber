@@ -1,23 +1,24 @@
 import { useEffect, useState } from "react";
-import { useParams } from "wouter";
-import { Link } from "wouter";
+import { Link, useParams } from "wouter";
 import { Separator } from "@/components/ui/separator";
-import { renderMarkdown } from "@/lib/markdown";
+import { renderMarkdownAsync } from "@/lib/markdown-loader";
 import { ArrowLeft } from "lucide-react";
 import { SeoHead } from "@/components/seo-head";
 
 type PageData = {
-  slug: string; title: string; content: string;
-  createdAt: string; updatedAt: string;
+  slug: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
 };
-
-
 
 export function DynamicPage() {
   const params = useParams<{ slug: string }>();
   const [page, setPage] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [htmlContent, setHtmlContent] = useState("");
 
   useEffect(() => {
     if (!params.slug) return;
@@ -27,13 +28,41 @@ export function DynamicPage() {
       .then((r) => r.json())
       .then((data) => {
         if (stale) return;
-        if (data.error) { setError("页面不存在"); return; }
+        if (data.error) {
+          setError("页面不存在");
+          return;
+        }
         setPage(data);
       })
-      .catch(() => { if (!stale) setError("页面加载失败"); })
-      .finally(() => { if (!stale) setLoading(false); });
-    return () => { stale = true; };
+      .catch(() => {
+        if (!stale) setError("页面加载失败");
+      })
+      .finally(() => {
+        if (!stale) setLoading(false);
+      });
+
+    return () => {
+      stale = true;
+    };
   }, [params.slug]);
+
+  useEffect(() => {
+    if (!page) {
+      setHtmlContent("");
+      return;
+    }
+
+    let cancelled = false;
+    renderMarkdownAsync(page.content).then((nextHtml) => {
+      if (!cancelled) {
+        setHtmlContent(nextHtml);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [page]);
 
   if (loading) {
     return (
@@ -59,11 +88,15 @@ export function DynamicPage() {
     <article className="mx-auto w-full max-w-[720px] py-[40px] lg:py-[56px]">
       <SeoHead
         title={page.title}
-        description={`${page.title} — Monolith 独立页面`}
+        description={`${page.title} — Time Amber 独立页面`}
         url={`/page/${page.slug}`}
       />
-      <Link href="/" className="mb-[32px] inline-flex items-center gap-[6px] text-[13px] text-muted-foreground/60 transition-all duration-200 hover:text-foreground hover:-translate-x-[2px] animate-fade-in">
-        <ArrowLeft className="h-[14px] w-[14px]" />返回首页
+      <Link
+        href="/"
+        className="mb-[32px] inline-flex items-center gap-[6px] text-[13px] text-muted-foreground/60 transition-all duration-200 hover:text-foreground hover:-translate-x-[2px] animate-fade-in"
+      >
+        <ArrowLeft className="h-[14px] w-[14px]" />
+        返回首页
       </Link>
 
       <header className="mb-[32px] animate-fade-in-up delay-1">
@@ -72,7 +105,15 @@ export function DynamicPage() {
 
       <Separator className="mb-[32px] bg-border/30" />
 
-      <div className="prose-monolith animate-fade-in delay-2" dangerouslySetInnerHTML={{ __html: renderMarkdown(page.content) }} />
+      {htmlContent ? (
+        <div className="prose-monolith animate-fade-in delay-2" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+      ) : (
+        <div className="animate-pulse space-y-[16px]">
+          <div className="h-[16px] w-full rounded bg-card/20" />
+          <div className="h-[16px] w-4/5 rounded bg-card/20" />
+          <div className="h-[16px] w-5/6 rounded bg-card/20" />
+        </div>
+      )}
     </article>
   );
 }

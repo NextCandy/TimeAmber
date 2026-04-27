@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, startTransition } from "react";
 import { useParams } from "wouter";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { fetchPost, type Post } from "@/lib/api";
-import { renderMarkdown, extractHeadings } from "@/lib/markdown";
+import { renderMarkdownAsync, extractHeadingsAsync } from "@/lib/markdown-loader";
 import { ArrowLeft, Eye, BookOpen, X } from "lucide-react";
 import { ReadingControls, useReadingPreferences } from "@/components/reading-controls";
 import { TableOfContents, ReadingProgressBar } from "@/components/toc";
@@ -104,14 +104,30 @@ export function PostPage() {
       return;
     }
 
-    const nextHeadings = extractHeadings(post.content);
-    const nextHtmlContent = renderMarkdown(post.content);
-    renderedPostCache.set(cacheKey, {
-      headings: nextHeadings,
-      htmlContent: nextHtmlContent,
+    let cancelled = false;
+    setHeadings([]);
+    setHtmlContent("");
+
+    Promise.all([
+      extractHeadingsAsync(post.content),
+      renderMarkdownAsync(post.content),
+    ]).then(([nextHeadings, nextHtmlContent]) => {
+      if (cancelled) return;
+
+      renderedPostCache.set(cacheKey, {
+        headings: nextHeadings,
+        htmlContent: nextHtmlContent,
+      });
+
+      startTransition(() => {
+        setHeadings(nextHeadings);
+        setHtmlContent(nextHtmlContent);
+      });
     });
-    setHeadings(nextHeadings);
-    setHtmlContent(nextHtmlContent);
+
+    return () => {
+      cancelled = true;
+    };
   }, [post]);
 
   // 图片渐进淡入（Intersection Observer）

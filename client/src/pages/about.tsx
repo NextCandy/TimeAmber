@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { SeoHead } from "@/components/seo-head";
-import { renderMarkdown } from "@/lib/markdown";
+import { renderMarkdownAsync } from "@/lib/markdown-loader";
 import { fetchPublicSettings, type PublicSettings } from "@/lib/api";
 
 type AboutPageData = {
@@ -44,6 +44,7 @@ export function AboutPage() {
   const [page, setPage] = useState<AboutPageData | null>(null);
   const [settings, setSettings] = useState<PublicSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [htmlContent, setHtmlContent] = useState("");
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,6 +68,21 @@ export function AboutPage() {
   const content = page?.content || fallbackContent;
   const siteTitle = settings?.site_title || "Time Amber";
   const description = page?.title ? `${page.title} - ${siteTitle} 独立页面` : fallbackDescription;
+
+  useEffect(() => {
+    if (loading) return;
+
+    let cancelled = false;
+    renderMarkdownAsync(content).then((nextHtml) => {
+      if (!cancelled) {
+        setHtmlContent(nextHtml);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [content, loading]);
 
   useEffect(() => {
     if (!contentRef.current || loading) return;
@@ -96,7 +112,7 @@ export function AboutPage() {
     });
 
     return () => observer.disconnect();
-  }, [content, loading]);
+  }, [htmlContent, loading]);
 
   return (
     <div className="mx-auto w-full max-w-[720px] py-[32px] lg:py-[56px] px-[16px] lg:px-0">
@@ -116,12 +132,18 @@ export function AboutPage() {
           <div className="h-[16px] w-4/5 rounded bg-card/20" />
           <div className="h-[16px] w-5/6 rounded bg-card/20" />
         </div>
-      ) : (
+      ) : htmlContent ? (
         <div
           ref={contentRef}
           className="prose-monolith"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
+      ) : (
+        <div className="animate-pulse space-y-[16px]">
+          <div className="h-[16px] w-full rounded bg-card/20" />
+          <div className="h-[16px] w-4/5 rounded bg-card/20" />
+          <div className="h-[16px] w-5/6 rounded bg-card/20" />
+        </div>
       )}
     </div>
   );
