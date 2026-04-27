@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { BRAND_ASSET_URL } from "@/lib/brand";
 
 type BreadcrumbItem = {
   name: string;
@@ -51,7 +52,7 @@ export function SeoHead({
   const fullTitle = title ? `${title} | ${siteName}` : `${siteName} — ${DEFAULT_DESCRIPTION}`;
   const metaDescription = description || DEFAULT_DESCRIPTION;
   const canonicalUrl = url ? toPublicUrl(url) : toPublicUrl(window.location.pathname + window.location.search);
-  const ogImage = image ? toPublicUrl(image) : toPublicUrl("/og-default.png");
+  const ogImage = image ? toPublicUrl(image) : BRAND_ASSET_URL;
 
   useEffect(() => {
     // 设置标题

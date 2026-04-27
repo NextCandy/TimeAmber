@@ -37,6 +37,7 @@ type Variables = {
 };
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+const DEFAULT_COVER_IMAGE = "https://i.see.you/2026/04/27/Wfo7/gemini-svg-3.svg";
 
 /* ── 全局中间件 ────────────────────────────── */
 app.use("*", cors({
@@ -675,7 +676,7 @@ app.post("/api/admin/posts", async (c) => {
   const body = await c.req.json();
   const db = c.get("db");
   if (!body.coverImage) {
-    body.coverImage = extractFirstImage(body.content || "");
+    body.coverImage = extractFirstImage(body.content || "") || DEFAULT_COVER_IMAGE;
   }
   const newPost = await db.createPost(body);
   await triggerWebhook(c, "post_created", newPost);
@@ -689,7 +690,7 @@ app.put("/api/admin/posts/:slug", async (c) => {
   const db = c.get("db");
   // 若用户清空了封面但正文有图，自动回填首图
   if (body.content !== undefined && (body.coverImage === undefined || body.coverImage === "")) {
-    body.coverImage = extractFirstImage(body.content);
+    body.coverImage = extractFirstImage(body.content) || DEFAULT_COVER_IMAGE;
   }
   const updated = await db.updatePost(slug, body);
   if (!updated) return c.json({ error: "文章未找到" }, 404);

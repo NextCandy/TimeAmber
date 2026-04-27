@@ -6,6 +6,7 @@ import { Save, Eye, EyeOff, Upload, Image, ChevronDown, ChevronUp, Bold, Italic,
 import { Link } from "wouter";
 import Editor, { type Monaco } from "@monaco-editor/react";
 import type * as MonacoTypes from "monaco-editor";
+import { BRAND_ASSET_URL } from "@/lib/brand";
 
 /** 注册 TimeAmber 暗色主题：暗夜琥珀，黑 + 金点缀 */
 function handleEditorWillMount(monaco: Monaco) {
@@ -147,7 +148,7 @@ export function AdminEditor() {
     content: "",
     excerpt: "",
     coverColor: "from-cyan-500/20 to-blue-600/20",
-    coverImage: "",
+    coverImage: BRAND_ASSET_URL,
     tags: "",
     published: true,
     pinned: false,

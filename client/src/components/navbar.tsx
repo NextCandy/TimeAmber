@@ -8,6 +8,7 @@ import { AdminGate } from "@/components/admin-gate";
 import { SearchTrigger } from "@/components/search";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { fetchNavPages, fetchPublicSettings, type NavPage } from "@/lib/api";
+import { BRAND_ASSET_URL } from "@/lib/brand";
 
 const fixedStart = [{ href: "/", label: "首页" }];
 const fixedEnd = [
@@ -71,9 +72,12 @@ export function Navbar() {
             className="group flex items-center gap-[10px] select-none animate-slide-in-left"
             onDoubleClick={handleLogoDoubleClick}
           >
-            <div className="relative flex h-[32px] w-[20px] items-center justify-center">
-              <div className="absolute inset-0 rounded-[3px] bg-gradient-to-b from-foreground/90 to-foreground/60 transition-all duration-500 group-hover:from-cyan-400 group-hover:to-blue-600 group-hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]" />
-            </div>
+            <img
+              src={BRAND_ASSET_URL}
+              alt=""
+              className="h-[32px] w-[32px] shrink-0 object-contain transition-transform duration-300 group-hover:scale-105"
+              decoding="async"
+            />
             <span className="text-[18px] font-semibold tracking-[-0.03em] text-foreground">
               {siteTitle}
             </span>
