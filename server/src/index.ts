@@ -699,6 +699,11 @@ async function uniqueSlug(db: IDatabase, baseSlug: string, reserved: Set<string>
 app.post("/api/admin/posts", async (c) => {
   const body = await c.req.json();
   const db = c.get("db");
+  const settings = await db.getSettings();
+  if (typeof body.content === "string") {
+    const seeResult = await rewriteExternalImagesToSee(body.content, settings);
+    body.content = seeResult.content;
+  }
   if (!body.coverImage) {
     body.coverImage = extractFirstImage(body.content || "") || DEFAULT_COVER_IMAGE;
   }
@@ -730,6 +735,7 @@ app.post("/api/admin/import/markdown", async (c) => {
   }
 
   const db = c.get("db");
+  const settings = await db.getSettings();
   const reserved = new Set<string>();
   const imported = [];
   const baseTime = Date.now();
@@ -737,8 +743,9 @@ app.post("/api/admin/import/markdown", async (c) => {
   for (let i = 0; i < body.posts.length; i++) {
     const item = body.posts[i];
     const title = (item.title || "").trim();
-    const content = item.content || "";
+    let content = item.content || "";
     if (!title || !content.trim()) continue;
+    content = (await rewriteExternalImagesToSee(content, settings)).content;
 
     const createdAt = new Date(baseTime - i * 1000).toISOString();
     const slug = await uniqueSlug(db, item.slug || title, reserved);
@@ -773,6 +780,11 @@ app.put("/api/admin/posts/:slug", async (c) => {
   const slug = c.req.param("slug");
   const body = await c.req.json();
   const db = c.get("db");
+  const settings = await db.getSettings();
+  if (typeof body.content === "string") {
+    const seeResult = await rewriteExternalImagesToSee(body.content, settings);
+    body.content = seeResult.content;
+  }
   // 若用户清空了封面但正文有图，自动回填首图
   if (body.content !== undefined && (body.coverImage === undefined || body.coverImage === "")) {
     body.coverImage = extractFirstImage(body.content) || DEFAULT_COVER_IMAGE;
@@ -873,6 +885,120 @@ function isSafeImageUrl(url: string): boolean {
 }
 
 // 单篇文章：外链图片转本地
+type SeeRewriteResult = {
+  content: string;
+  replaced: number;
+  failed: number;
+  errors: string[];
+};
+
+function isSeeHostedUrl(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return hostname === "s.ee" || hostname.endsWith(".s.ee");
+  } catch {
+    return false;
+  }
+}
+
+function filenameFromImageUrl(url: string, contentType: string): string {
+  const extFromType = contentType.includes("jpeg") || contentType.includes("jpg") ? "jpg"
+    : contentType.includes("png") ? "png"
+    : contentType.includes("gif") ? "gif"
+    : contentType.includes("webp") ? "webp"
+    : contentType.includes("svg") ? "svg"
+    : contentType.includes("avif") ? "avif"
+    : "png";
+
+  try {
+    const rawName = new URL(url).pathname.split("/").pop() || "";
+    const cleanName = decodeURIComponent(rawName).replace(/[^\w.-]/g, "-").slice(0, 96);
+    return cleanName && /\.[a-z0-9]{2,5}$/i.test(cleanName) ? cleanName : `timeamber-${Date.now()}.${extFromType}`;
+  } catch {
+    return `timeamber-${Date.now()}.${extFromType}`;
+  }
+}
+
+async function uploadImageToSee(url: string, apiToken: string): Promise<string> {
+  const abortCtrl = new AbortController();
+  const timeoutId = setTimeout(() => abortCtrl.abort(), 15000);
+  try {
+    const sourceResp = await fetch(url, {
+      headers: { "User-Agent": "TimeAmber-Bot/1.0" },
+      signal: abortCtrl.signal,
+    });
+    if (!sourceResp.ok) throw new Error(`source HTTP ${sourceResp.status}`);
+
+    const contentLength = sourceResp.headers.get("content-length");
+    if (contentLength && parseInt(contentLength) > 20 * 1024 * 1024) {
+      throw new Error("image exceeds 20MB limit");
+    }
+
+    const contentType = sourceResp.headers.get("content-type") || "image/png";
+    if (!contentType.toLowerCase().startsWith("image/")) {
+      throw new Error(`unsupported content type: ${contentType}`);
+    }
+
+    const arrayBuffer = await sourceResp.arrayBuffer();
+    if (arrayBuffer.byteLength > 20 * 1024 * 1024) {
+      throw new Error("image exceeds 20MB limit");
+    }
+
+    const form = new FormData();
+    form.append("file", new Blob([arrayBuffer], { type: contentType }), filenameFromImageUrl(url, contentType));
+
+    const uploadResp = await fetch("https://s.ee/api/v1/file/upload", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiToken}` },
+      body: form,
+    });
+    const payload = await uploadResp.json<{
+      success?: boolean;
+      message?: string;
+      data?: { url?: string };
+    }>().catch(() => null);
+
+    if (!uploadResp.ok || !payload?.success || !payload.data?.url) {
+      throw new Error(payload?.message || `S.EE HTTP ${uploadResp.status}`);
+    }
+    return payload.data.url;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function rewriteExternalImagesToSee(content: string, settings: Record<string, string>): Promise<SeeRewriteResult> {
+  const enabled = settings.see_image_hosting_enabled === "true";
+  const apiToken = (settings.see_api_token || "").trim();
+  if (!enabled || !apiToken || !content) {
+    return { content, replaced: 0, failed: 0, errors: [] };
+  }
+
+  const externalUrls = extractExternalImageUrls(content).filter((url) => !isSeeHostedUrl(url));
+  let nextContent = content;
+  let replaced = 0;
+  let failed = 0;
+  const errors: string[] = [];
+
+  for (const url of externalUrls) {
+    if (!isSafeImageUrl(url)) {
+      failed++;
+      errors.push(`${url}: only HTTPS public image URLs are allowed`);
+      continue;
+    }
+    try {
+      const seeUrl = await uploadImageToSee(url, apiToken);
+      nextContent = nextContent.split(url).join(seeUrl);
+      replaced++;
+    } catch (err) {
+      failed++;
+      errors.push(`${url}: ${err instanceof Error ? err.message : "unknown error"}`);
+    }
+  }
+
+  return { content: nextContent, replaced, failed, errors };
+}
+
 app.post("/api/admin/posts/:slug/localize-images", async (c) => {
   const slug = c.req.param("slug");
   const db = c.get("db");

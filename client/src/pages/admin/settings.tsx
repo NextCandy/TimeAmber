@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getToken } from "@/lib/api";
-import { Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, Rss, Wand2 } from "lucide-react";
+import { Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, Rss, Wand2, ImageIcon } from "lucide-react";
 
 type Settings = {
   site_title: string;
@@ -17,6 +17,8 @@ type Settings = {
   rss_enabled: string;
   custom_header: string;
   custom_footer: string;
+  see_image_hosting_enabled: string;
+  see_api_token: string;
   ai_provider: string;
   ai_api_key: string;
   ai_model: string;
@@ -38,19 +40,22 @@ const defaultSettings: Settings = {
   rss_enabled: "true",
   custom_header: "",
   custom_footer: "",
+  see_image_hosting_enabled: "false",
+  see_api_token: "",
   ai_provider: "deepseek",
   ai_api_key: "",
   ai_model: "deepseek-chat",
   ai_base_url: "https://api.deepseek.com",
 };
 
-type TabId = "general" | "profile" | "social" | "ai" | "advanced";
+type TabId = "general" | "profile" | "social" | "images" | "ai" | "advanced";
 type TabDefinition = { id: TabId; label: string; icon: typeof Globe };
 
 const TABS: TabDefinition[] = [
   { id: "general", label: "常规设置", icon: Globe },
   { id: "profile", label: "个人资料", icon: User },
   { id: "social", label: "社交与订阅", icon: Link2 },
+  { id: "images", label: "图片托管", icon: ImageIcon },
   { id: "ai", label: "AI 编辑", icon: Wand2 },
   { id: "advanced", label: "扩展与注入", icon: Code },
 ];
@@ -125,6 +130,7 @@ export function AdminSettings() {
   }, [settings.author_avatar]);
 
   const rssEnabled = settings.rss_enabled !== "false";
+  const seeHostingEnabled = settings.see_image_hosting_enabled === "true";
 
   if (loading) return <div className="py-[60px] text-center text-muted-foreground/40">加载中...</div>;
 
@@ -295,6 +301,41 @@ export function AdminSettings() {
                       </span>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: 图片托管 */}
+          {activeTab === "images" && (
+            <div className="space-y-[24px] animate-fade-in" role="tabpanel" id="settings-panel-images" aria-labelledby="settings-tab-images">
+              <div>
+                <h2 className="text-[16px] font-semibold mb-[4px] flex items-center gap-[6px]">
+                  <ImageIcon className="h-[15px] w-[15px] text-cyan-400" /> S.EE 图床
+                </h2>
+                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">开启后，新增、编辑文章和批量导入 Markdown 时，会自动把正文里的外部图片上传到 S.EE，并用新链接覆盖原链接。</p>
+                <div className="rounded-xl border border-border/15 bg-card/5 p-[20px] sm:p-[24px] space-y-[18px]">
+                  <div className="flex items-center justify-between gap-[16px]">
+                    <div>
+                      <p className="text-[14px] font-medium text-foreground">自动上传外部图片</p>
+                      <p className="text-[12px] text-muted-foreground/40 mt-[4px]">
+                        {seeHostingEnabled ? "已开启，保存文章时会自动替换正文图片链接" : "未开启，文章正文图片保持原链接"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSetting("see_image_hosting_enabled", seeHostingEnabled ? "false" : "true")}
+                      className="inline-flex items-center transition-opacity hover:opacity-80"
+                    >
+                      {seeHostingEnabled ? (
+                        <ToggleRight className="h-[32px] w-[32px] text-emerald-400" />
+                      ) : (
+                        <ToggleLeft className="h-[32px] w-[32px] text-muted-foreground/20" />
+                      )}
+                    </button>
+                  </div>
+                  <SettingField label="S.EE API Token" value={settings.see_api_token} onChange={(v) => updateSetting("see_api_token", v)} placeholder="S.EE API Token" />
+                  <p className="text-[11px] text-muted-foreground/35">只处理 HTTPS 图片地址；已经是 S.EE 的图片会自动跳过。</p>
                 </div>
               </div>
             </div>
