@@ -92,8 +92,7 @@ function serializeFriendLinks(links: FriendLink[]): string {
       name: link.name.trim(),
       url: link.url.trim(),
       logo: link.logo.trim(),
-    }))
-    .filter((link) => link.name || link.url || link.logo);
+    }));
   return JSON.stringify(normalized);
 }
 
