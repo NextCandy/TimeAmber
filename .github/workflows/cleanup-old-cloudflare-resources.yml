@@ -73,45 +73,38 @@ jobs:
               echo "Bucket is not empty. Deploying temporary cleanup Worker."
               cleanup_dir="$(mktemp -d)"
               cleanup_token="cleanup-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-              cat > "${cleanup_dir}/worker.ts" <<'WORKER'
-export interface Env {
-  BUCKET: R2Bucket;
-  CLEANUP_TOKEN: string;
-}
+              {
+                printf '%s\n' 'export default {'
+                printf '%s\n' '  async fetch(request, env) {'
+                printf '%s\n' '    const url = new URL(request.url);'
+                printf '%s\n' '    if (url.searchParams.get("token") !== env.CLEANUP_TOKEN) {'
+                printf '%s\n' '      return new Response("Forbidden", { status: 403 });'
+                printf '%s\n' '    }'
+                printf '%s\n' '    let deleted = 0;'
+                printf '%s\n' '    let cursor;'
+                printf '%s\n' '    do {'
+                printf '%s\n' '      const listed = await env.BUCKET.list({ cursor, limit: 1000 });'
+                printf '%s\n' '      await Promise.all(listed.objects.map((object) => env.BUCKET.delete(object.key)));'
+                printf '%s\n' '      deleted += listed.objects.length;'
+                printf '%s\n' '      cursor = listed.truncated ? listed.cursor : undefined;'
+                printf '%s\n' '    } while (cursor);'
+                printf '%s\n' '    return Response.json({ deleted });'
+                printf '%s\n' '  },'
+                printf '%s\n' '};'
+              } > "${cleanup_dir}/worker.js"
 
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    if (url.searchParams.get("token") !== env.CLEANUP_TOKEN) {
-      return new Response("Forbidden", { status: 403 });
-    }
-
-    let deleted = 0;
-    let cursor: string | undefined;
-    do {
-      const listed = await env.BUCKET.list({ cursor, limit: 1000 });
-      await Promise.all(listed.objects.map((object) => env.BUCKET.delete(object.key)));
-      deleted += listed.objects.length;
-      cursor = listed.truncated ? listed.cursor : undefined;
-    } while (cursor);
-
-    return Response.json({ deleted });
-  },
-};
-WORKER
-
-              cat > "${cleanup_dir}/wrangler.toml" <<EOF
-name = "timeamber-r2-cleanup"
-main = "worker.ts"
-compatibility_date = "2024-12-30"
-
-[vars]
-CLEANUP_TOKEN = "${cleanup_token}"
-
-[[r2_buckets]]
-binding = "BUCKET"
-bucket_name = "${OLD_R2_BUCKET}"
-EOF
+              {
+                printf '%s\n' 'name = "timeamber-r2-cleanup"'
+                printf '%s\n' 'main = "worker.js"'
+                printf '%s\n' 'compatibility_date = "2024-12-30"'
+                printf '%s\n' ''
+                printf '%s\n' '[vars]'
+                printf 'CLEANUP_TOKEN = "%s"\n' "${cleanup_token}"
+                printf '%s\n' ''
+                printf '%s\n' '[[r2_buckets]]'
+                printf '%s\n' 'binding = "BUCKET"'
+                printf 'bucket_name = "%s"\n' "${OLD_R2_BUCKET}"
+              } > "${cleanup_dir}/wrangler.toml"
 
               deploy_output="$(npx wrangler deploy --config "${cleanup_dir}/wrangler.toml")"
               printf '%s\n' "$deploy_output"
