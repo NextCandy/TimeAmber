@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { prefetchPost, type PostMeta } from "@/lib/api";
-import { BRAND_ASSET_URL } from "@/lib/brand";
 import { preloadMarkdownRenderer } from "@/lib/markdown-loader";
 
 function formatDate(dateStr: string): string {
@@ -10,7 +9,7 @@ function formatDate(dateStr: string): string {
 }
 
 export function ArticleCard({ post }: { post: PostMeta }) {
-  const cover = post.coverImage || BRAND_ASSET_URL;
+  const cover = post.coverImage?.trim();
   const warmPost = () => {
     prefetchPost(post.slug);
     preloadMarkdownRenderer();
@@ -22,17 +21,19 @@ export function ArticleCard({ post }: { post: PostMeta }) {
       <article className="relative overflow-hidden rounded-md border border-border/40 bg-card/30 backdrop-blur-sm transition-all duration-300 hover:border-border/70 hover:bg-card/50 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-[2px]">
         <div className="flex flex-col sm:flex-row">
           {/* 封面区 */}
-          <div className="relative shrink-0 overflow-hidden sm:w-[180px] lg:w-[200px]">
-            <div className="aspect-[16/10] sm:h-full sm:aspect-auto sm:min-h-[140px]">
-              <img
-                src={cover}
-                alt={post.title}
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.04]"
-              />
+          {cover && (
+            <div className="relative shrink-0 overflow-hidden sm:w-[180px] lg:w-[200px]">
+              <div className="aspect-[16/10] sm:h-full sm:aspect-auto sm:min-h-[140px]">
+                <img
+                  src={cover}
+                  alt={post.title}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.04]"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* 内容区 */}
           <div className="flex min-w-0 flex-1 flex-col p-[16px] sm:p-[20px] lg:p-[24px]">

@@ -4,7 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 
-const BRAND_ASSET_URL = "https://i.see.you/2026/04/28/jN4b/TimeAmberPNG.png";
+const BRAND_ASSET_URL = "https://i.see.you/2026/04/28/7fmF/TimeAmberSVG.svg";
 
 export default defineConfig({
   plugins: [
@@ -22,12 +22,12 @@ export default defineConfig({
           {
             src: BRAND_ASSET_URL,
             sizes: "any",
-            type: "image/png"
+            type: "image/svg+xml"
           },
           {
             src: BRAND_ASSET_URL,
             sizes: "any",
-            type: "image/png"
+            type: "image/svg+xml"
           }
         ]
       },
