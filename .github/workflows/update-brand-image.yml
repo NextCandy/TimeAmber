@@ -35,6 +35,6 @@ jobs:
         working-directory: server
         run: |
           set -euo pipefail
-          sql="UPDATE posts SET cover_image='${IMAGE_URL}', updated_at=datetime('now') WHERE cover_image IS NULL OR cover_image='' OR cover_image='/og-default.png' OR cover_image LIKE '%gemini-svg-3.svg';"
+          sql="UPDATE posts SET cover_image='${IMAGE_URL}', updated_at=datetime('now') WHERE cover_image IS NULL OR cover_image='' OR cover_image='/og-default.png' OR cover_image LIKE '%gemini-svg-3.svg' OR cover_image LIKE '%ChatGPT-Image-2026428-08_56_28.png';"
           npx wrangler d1 execute timeamber-db --remote --command "$sql" --json
           npx wrangler d1 execute timeamber-db --remote --command "SELECT id, slug, cover_image FROM posts ORDER BY id;" --json

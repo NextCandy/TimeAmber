@@ -211,6 +211,16 @@ if (!options.skipServer) {
       "wrangler", "secret", "put", "JWT_SECRET", "--name", "timeamber-server"
     ], { input: `${process.env.JWT_SECRET}\n`, cwd: `${projectRoot}/server` });
   }
+  if (process.env.CLOUDFLARE_ACCOUNT_ID) {
+    runStep("写入 Backend 的 CLOUDFLARE_ACCOUNT_ID（AE 分析）", "npx", [
+      "wrangler", "secret", "put", "CLOUDFLARE_ACCOUNT_ID", "--name", "timeamber-server"
+    ], { input: `${process.env.CLOUDFLARE_ACCOUNT_ID}\n`, cwd: `${projectRoot}/server` });
+  }
+  if (process.env.CLOUDFLARE_API_TOKEN) {
+    runStep("写入 Backend 的 CLOUDFLARE_API_TOKEN（AE 分析）", "npx", [
+      "wrangler", "secret", "put", "CLOUDFLARE_API_TOKEN", "--name", "timeamber-server"
+    ], { input: `${process.env.CLOUDFLARE_API_TOKEN}\n`, cwd: `${projectRoot}/server` });
+  }
 
   const deployOutput = runCapture("部署 Cloudflare Workers 后端", "npm", ["run", "deploy:server"]);
   if (!options.apiBase) {

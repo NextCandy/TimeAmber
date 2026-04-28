@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useDeferredValue, useRef } from "react";
 import { useParams, useLocation } from "wouter";
-import { fetchPost, createPost, updatePost, uploadImage, localizePostImages, fetchPostVersions, restorePostVersion, type PostVersion } from "@/lib/api";
+import { fetchPost, createPost, updatePost, uploadImage, localizePostImages, fetchPostVersions, restorePostVersion, editPostWithAI, type PostVersion } from "@/lib/api";
 import { renderMarkdownAsync } from "@/lib/markdown-loader";
-import { Save, Eye, EyeOff, Upload, Image, ChevronDown, ChevronUp, Bold, Italic, Heading2, Heading3, Link2, Code, Quote, List, ListOrdered, Minus, Maximize2, Minimize2, Table, CheckSquare, FileCode, ImageDown, History, Check, X, ArrowDownUp, PanelRightClose, PanelRight, ArrowLeft } from "lucide-react";
+import { Save, Eye, EyeOff, Upload, Image, ChevronDown, ChevronUp, Bold, Italic, Heading2, Heading3, Link2, Code, Quote, List, ListOrdered, Minus, Maximize2, Minimize2, Table, CheckSquare, FileCode, ImageDown, History, Check, X, ArrowDownUp, PanelRightClose, PanelRight, ArrowLeft, Wand2 } from "lucide-react";
 import { Link } from "wouter";
 import Editor, { type Monaco } from "@monaco-editor/react";
 import type * as MonacoTypes from "monaco-editor";
@@ -177,6 +177,9 @@ export function AdminEditor() {
   const deferredPreviewContent = useDeferredValue(form.content);
   const [previewHtml, setPreviewHtml] = useState("");
   const [previewPending, setPreviewPending] = useState(false);
+  const [aiMode, setAiMode] = useState<"revise" | "seo" | "continue" | "custom">("revise");
+  const [aiInstruction, setAiInstruction] = useState("");
+  const [aiWorking, setAiWorking] = useState(false);
 
   // 保持 ref 与 state 同步（避免 onMount 闭包陷阱）
   useEffect(() => { syncScrollRef.current = syncScroll; }, [syncScroll]);
@@ -518,6 +521,37 @@ export function AdminEditor() {
     { label: "石板墨", value: "from-slate-600/20 to-gray-700/20" },
   ];
 
+  const handleAIEdit = async () => {
+    if (!form.content.trim()) {
+      showMsg("请先填写文章内容", "error");
+      return;
+    }
+    if (aiMode === "custom" && !aiInstruction.trim()) {
+      showMsg("请填写 AI 修改要求", "error");
+      return;
+    }
+    if (!confirm("AI 会用修改后的内容替换当前正文，继续吗？")) return;
+
+    setAiWorking(true);
+    try {
+      const result = await editPostWithAI({
+        title: form.title,
+        content: form.content,
+        instruction: aiInstruction,
+        mode: aiMode,
+      });
+      setForm((prev) => ({ ...prev, content: result.content }));
+      const editor = editorRef.current;
+      const model = editor?.getModel();
+      if (model) model.setValue(result.content);
+      showMsg("AI 已完成修改，请检查后保存", "success");
+    } catch (err: unknown) {
+      showMsg(err instanceof Error ? err.message : "AI 修改失败", "error");
+    } finally {
+      setAiWorking(false);
+    }
+  };
+
   return (
     <div
       className="mx-auto w-full max-w-[1200px] py-[24px] flex flex-col h-[calc(100vh-56px)]"
@@ -735,6 +769,41 @@ export function AdminEditor() {
       )}
 
       {/* ─── 编辑器 + 预览 ─── */}
+      {!zenMode && (
+        <div className="mb-[8px] shrink-0 rounded-lg border border-border/25 bg-card/10 px-[10px] py-[8px]">
+          <div className="flex flex-col gap-[8px] md:flex-row md:items-center">
+            <div className="flex items-center gap-[6px] text-[12px] text-muted-foreground/85">
+              <Wand2 className="h-[13px] w-[13px] text-amber-400" />
+              <span>AI 编辑</span>
+            </div>
+            <select
+              value={aiMode}
+              onChange={(e) => setAiMode(e.target.value as typeof aiMode)}
+              className="h-[30px] rounded-md border border-border/25 bg-background/30 px-[8px] text-[12px] text-foreground outline-none focus:border-foreground/25"
+            >
+              <option value="revise">润色全文</option>
+              <option value="seo">SEO 优化</option>
+              <option value="continue">续写</option>
+              <option value="custom">按要求修改</option>
+            </select>
+            <input
+              value={aiInstruction}
+              onChange={(e) => setAiInstruction(e.target.value)}
+              placeholder="补充要求，例如：更自然、更口语、保留技术细节"
+              className="h-[30px] min-w-0 flex-1 rounded-md border border-border/25 bg-background/30 px-[10px] text-[12px] text-foreground placeholder:text-muted-foreground/35 outline-none focus:border-foreground/25"
+            />
+            <button
+              onClick={handleAIEdit}
+              disabled={aiWorking}
+              className="inline-flex h-[30px] items-center justify-center gap-[5px] rounded-md bg-foreground px-[12px] text-[12px] font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              <Wand2 className={`h-[12px] w-[12px] ${aiWorking ? "animate-pulse" : ""}`} />
+              {aiWorking ? "修改中" : "应用 AI"}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className={`flex-1 min-h-0 grid ${showPreview ? "grid-cols-2 gap-[1px]" : "grid-cols-1"} rounded-lg border border-border/25 overflow-hidden`}>
         {/* 左侧 Monaco 编辑器 */}
         <div className="flex flex-col min-h-0">

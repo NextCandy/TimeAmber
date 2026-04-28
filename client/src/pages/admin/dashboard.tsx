@@ -115,9 +115,9 @@ export function AdminDashboard() {
     });
   };
 
-  const handleBatchOperate = async (action: "unpublish" | "delete") => {
+  const handleBatchOperate = async (action: "publish" | "unpublish" | "delete") => {
     if (selectedSlugs.size === 0) return;
-    const actionName = action === "unpublish" ? "撤回发布" : "删除";
+    const actionName = action === "publish" ? "发布" : action === "unpublish" ? "撤回发布" : "删除";
     if (!confirm(`确定要批量${actionName}选中的 ${selectedSlugs.size} 篇文章吗？${action === "delete" ? "此操作不可恢复！" : ""}`)) return;
     
     setBatchOperating(true);
@@ -127,7 +127,7 @@ export function AdminDashboard() {
       if (action === "delete") {
         setPosts((prev) => prev.filter((p) => !slugs.includes(p.slug)));
       } else {
-        setPosts((prev) => prev.map((p) => slugs.includes(p.slug) ? { ...p, published: false } : p));
+        setPosts((prev) => prev.map((p) => slugs.includes(p.slug) ? { ...p, published: action === "publish" } : p));
       }
       setSelectedSlugs(new Set());
     } catch (err: any) {
@@ -286,6 +286,9 @@ export function AdminDashboard() {
               
               {selectedSlugs.size > 0 && (
                 <div className="flex items-center gap-[6px] animate-fade-in">
+                  <button onClick={() => handleBatchOperate("publish")} disabled={batchOperating} className="flex items-center gap-[4px] px-[10px] py-[4px] rounded-md border border-border/20 text-[11px] text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-50">
+                    <Eye className="h-[11px] w-[11px]" /> 发布
+                  </button>
                   <button onClick={() => handleBatchOperate("unpublish")} disabled={batchOperating} className="flex items-center gap-[4px] px-[10px] py-[4px] rounded-md border border-border/20 text-[11px] text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-50">
                     <EyeOff className="h-[11px] w-[11px]" /> 撤回
                   </button>

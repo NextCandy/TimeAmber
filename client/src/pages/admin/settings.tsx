@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getToken } from "@/lib/api";
-import { Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, Rss } from "lucide-react";
+import { Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, Rss, Wand2 } from "lucide-react";
 
 type Settings = {
   site_title: string;
@@ -17,6 +17,10 @@ type Settings = {
   rss_enabled: string;
   custom_header: string;
   custom_footer: string;
+  ai_provider: string;
+  ai_api_key: string;
+  ai_model: string;
+  ai_base_url: string;
 };
 
 const defaultSettings: Settings = {
@@ -34,15 +38,20 @@ const defaultSettings: Settings = {
   rss_enabled: "true",
   custom_header: "",
   custom_footer: "",
+  ai_provider: "deepseek",
+  ai_api_key: "",
+  ai_model: "deepseek-chat",
+  ai_base_url: "https://api.deepseek.com",
 };
 
-type TabId = "general" | "profile" | "social" | "advanced";
+type TabId = "general" | "profile" | "social" | "ai" | "advanced";
 type TabDefinition = { id: TabId; label: string; icon: typeof Globe };
 
 const TABS: TabDefinition[] = [
   { id: "general", label: "常规设置", icon: Globe },
   { id: "profile", label: "个人资料", icon: User },
   { id: "social", label: "社交与订阅", icon: Link2 },
+  { id: "ai", label: "AI 编辑", icon: Wand2 },
   { id: "advanced", label: "扩展与注入", icon: Code },
 ];
 
@@ -286,6 +295,44 @@ export function AdminSettings() {
                       </span>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: AI 编辑 */}
+          {activeTab === "ai" && (
+            <div className="space-y-[24px] animate-fade-in" role="tabpanel" id="settings-panel-ai" aria-labelledby="settings-tab-ai">
+              <div>
+                <h2 className="text-[16px] font-semibold mb-[4px] flex items-center gap-[6px]">
+                  <Wand2 className="h-[15px] w-[15px] text-amber-400" /> AI 编辑
+                </h2>
+                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">配置后可在文章编辑页直接润色、续写或按要求修改 Markdown。</p>
+                <div className="rounded-xl border border-border/15 bg-card/5 p-[20px] sm:p-[24px] space-y-[18px]">
+                  <div>
+                    <label className="mb-[6px] block text-[11px] font-medium text-muted-foreground/40 uppercase tracking-wider">Provider</label>
+                    <select
+                      value={settings.ai_provider}
+                      onChange={(e) => {
+                        const provider = e.target.value;
+                        setSettings((prev) => ({
+                          ...prev,
+                          ai_provider: provider,
+                          ai_model: provider === "gemini" ? "gemini-2.0-flash" : provider === "deepseek" ? "deepseek-chat" : prev.ai_model,
+                          ai_base_url: provider === "gemini" ? "https://generativelanguage.googleapis.com/v1beta" : provider === "deepseek" ? "https://api.deepseek.com" : prev.ai_base_url,
+                        }));
+                      }}
+                      className="h-[38px] w-full rounded-lg border border-border/20 bg-background/30 px-[14px] text-[13px] text-foreground outline-none focus:border-foreground/30 focus:bg-background/50 transition-all"
+                    >
+                      <option value="deepseek">DeepSeek</option>
+                      <option value="gemini">Gemini</option>
+                      <option value="openai">OpenAI Compatible</option>
+                    </select>
+                  </div>
+                  <SettingField label="API Key" value={settings.ai_api_key} onChange={(v) => updateSetting("ai_api_key", v)} placeholder="sk-... / AIza..." />
+                  <SettingField label="Model" value={settings.ai_model} onChange={(v) => updateSetting("ai_model", v)} placeholder="deepseek-chat / gemini-2.0-flash" />
+                  <SettingField label="Base URL" value={settings.ai_base_url} onChange={(v) => updateSetting("ai_base_url", v)} placeholder="https://api.deepseek.com" />
+                  <p className="text-[11px] text-muted-foreground/35">API Key 只用于后台服务端调用，不会出现在前台公开设置中。</p>
                 </div>
               </div>
             </div>

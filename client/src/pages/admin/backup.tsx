@@ -309,7 +309,7 @@ export function AdminBackup() {
       if (data.success) {
         showMsg(`已备份到 WebDAV（${formatSize(data.size)}）`, "success");
       } else if (data.code === "webdav_ip_blocked") {
-        showMsg("WebDAV 服务商拦截了服务器出口 IP，请改用 R2/本地备份或更换支持 Cloudflare Worker 的 WebDAV", "error");
+        showMsg("建议使用 R2、本地备份，或自建 Nextcloud / Synology。", "error");
       } else {
         showMsg(data.error || "失败", "error");
       }
@@ -339,7 +339,7 @@ export function AdminBackup() {
         <SectionTitle icon={Shield} title="快速备份" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-[8px]">
           <ActionCard icon={Cloud} color="orange" label="R2 云备份" desc="Cloudflare R2 存储" loading={backing === "r2"} onClick={backupToR2} disabled={!!backing} />
-          <ActionCard icon={Globe} color="blue" label="WebDAV" desc="部分服务商会拦截 Worker" loading={backing === "webdav"} onClick={backupToWebdav} disabled={!!backing} />
+          <ActionCard icon={Globe} color="blue" label="WebDAV" desc="建议自建服务" loading={backing === "webdav"} onClick={backupToWebdav} disabled={!!backing} />
           <ActionCard icon={HardDrive} color="emerald" label="本地下载" desc="JSON 文件" loading={backing === "local"} onClick={downloadLocal} disabled={!!backing} />
         </div>
       </section>
@@ -601,7 +601,7 @@ export function AdminBackup() {
               <input value={webdavConfig.path} onChange={(e) => setWebdavConfig((p) => ({ ...p, path: e.target.value }))} placeholder="/time-amber-backups" className={inputClass} />
             </div>
             <div className="flex items-center justify-between pt-[2px]">
-              <p className="text-[10px] text-muted-foreground/20">坚果云和 Koofr 已知会拦截 Cloudflare Worker 出口 IP，建议使用 R2、本地下载，或自建 Nextcloud / Synology。</p>
+              <p className="text-[10px] text-muted-foreground/20">建议使用 R2、本地下载，或自建 Nextcloud / Synology。</p>
               <button onClick={saveWebdavConfig} className="h-[28px] px-[10px] rounded-md bg-foreground text-background text-[11px] font-medium hover:opacity-90 transition-opacity">保存配置</button>
             </div>
           </div>

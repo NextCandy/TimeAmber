@@ -255,7 +255,7 @@ export async function deletePost(slug: string): Promise<void> {
   if (!res.ok) throw new Error("删除失败");
 }
 
-export async function batchOperatePosts(slugs: string[], action: "unpublish" | "delete"): Promise<{ count: number }> {
+export async function batchOperatePosts(slugs: string[], action: "publish" | "unpublish" | "delete"): Promise<{ count: number }> {
   const res = await fetch(`${API_BASE}/api/admin/posts/batch`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -530,6 +530,24 @@ export async function localizeAllImages(): Promise<LocalizeAllResult> {
 }
 
 /* ── Halo 迁移导入 ─────────────────────────── */
+export async function editPostWithAI(data: {
+  title: string;
+  content: string;
+  instruction?: string;
+  mode?: "revise" | "seo" | "continue" | "custom";
+}): Promise<{ content: string }> {
+  const res = await fetch(`${API_BASE}/api/admin/ai/edit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "AI 修改失败");
+  }
+  return res.json();
+}
+
 export type HaloPreview = {
   success: boolean;
   preview: { postCount: number; tagCount: number; categoryCount: number; commentCount: number };
