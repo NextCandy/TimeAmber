@@ -412,9 +412,9 @@ export function AdminSettings() {
                         </button>
                       </div>
                       <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-3">
-                        <SettingField label="名称" value={link.name} onChange={(v) => updateFriendLink(index, "name", v)} placeholder="大佬论坛" />
-                        <SettingField label="地址" value={link.url} onChange={(v) => updateFriendLink(index, "url", v)} placeholder="https://www.dalao.net" />
-                        <SettingField label="Logo" value={link.logo} onChange={(v) => updateFriendLink(index, "logo", v)} placeholder="https://www.dalao.net/img/dalao-svg.svg" />
+                        <SettingField label="名称" value={link.name} onChange={(v) => updateFriendLink(index, "name", v)} placeholder="时光琥珀" />
+                        <SettingField label="地址" value={link.url} onChange={(v) => updateFriendLink(index, "url", v)} placeholder="https://TimeAmber.com" />
+                        <SettingField label="Logo" value={link.logo} onChange={(v) => updateFriendLink(index, "logo", v)} placeholder="https://i.see.you/2026/04/28/7fmF/TimeAmberSVG.svg" />
                       </div>
                     </div>
                   ))}
