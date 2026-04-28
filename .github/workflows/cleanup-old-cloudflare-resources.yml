@@ -1,0 +1,105 @@
+name: Cleanup Old Cloudflare Resources
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    name: Delete migrated legacy resources
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ACTIVE_PAGES_PROJECT: timeamber-client
+      OLD_D1_NAME: monolith-db
+      OLD_R2_BUCKET: monolith-assets
+      OLD_WORKER_NAME: monolith-server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --include=optional
+
+      - name: Verify active site before cleanup
+        run: |
+          set -euo pipefail
+          curl -fsS https://timeamber.com/api/health
+          curl -fsS https://timeamber.com/sitemap.xml | grep -q 'https://timeamber.com/'
+
+      - name: Delete legacy Pages projects
+        run: |
+          set -euo pipefail
+          pages_json="$(npx wrangler pages project list --json)"
+          printf '%s\n' "$pages_json" | node -e '
+            let data = "";
+            process.stdin.on("data", (chunk) => data += chunk);
+            process.stdin.on("end", () => {
+              const projects = JSON.parse(data);
+              const names = projects
+                .map((project) => project.name)
+                .filter((name) => name !== process.env.ACTIVE_PAGES_PROJECT)
+                .filter((name) => /monolith|legacy/i.test(name));
+              process.stdout.write(names.join("\n"));
+            });
+          ' > /tmp/legacy-pages.txt
+
+          if [ ! -s /tmp/legacy-pages.txt ]; then
+            echo "No legacy Pages projects found."
+            exit 0
+          fi
+
+          while IFS= read -r project; do
+            [ -z "$project" ] && continue
+            echo "Deleting Pages project: $project"
+            npx wrangler pages project delete "$project" --yes
+          done < /tmp/legacy-pages.txt
+
+      - name: Delete old Worker if present
+        run: |
+          set -euo pipefail
+          npx wrangler delete "$OLD_WORKER_NAME" --force || true
+
+      - name: Delete old D1 database
+        working-directory: server
+        run: |
+          set -euo pipefail
+          d1_json="$(npx wrangler d1 list --json)"
+          if node -e 'const dbs=JSON.parse(process.argv[1]); process.exit(dbs.some((db)=>db.name===process.env.OLD_D1_NAME) ? 0 : 1)' "$d1_json"; then
+            echo "Deleting D1 database: $OLD_D1_NAME"
+            npx wrangler d1 delete "$OLD_D1_NAME" --skip-confirmation
+          else
+            echo "D1 database $OLD_D1_NAME not found."
+          fi
+
+      - name: Delete old R2 bucket
+        working-directory: server
+        run: |
+          set -euo pipefail
+          if npx wrangler r2 bucket list | grep -q "^${OLD_R2_BUCKET}\b"; then
+            echo "Deleting R2 bucket: $OLD_R2_BUCKET"
+            printf 'y\n' | npx wrangler r2 bucket delete "$OLD_R2_BUCKET"
+          else
+            echo "R2 bucket $OLD_R2_BUCKET not found."
+          fi
+
+      - name: Verify cleanup result
+        working-directory: server
+        run: |
+          set -euo pipefail
+          echo "Remaining Pages projects:"
+          npx wrangler pages project list
+          echo "Remaining D1 databases:"
+          npx wrangler d1 list
+          echo "Remaining R2 buckets:"
+          npx wrangler r2 bucket list
+          echo "Active site health:"
+          curl -fsS https://timeamber.com/api/health
