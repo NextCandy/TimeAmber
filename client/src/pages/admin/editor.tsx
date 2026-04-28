@@ -179,6 +179,7 @@ export function AdminEditor() {
   const [aiMode, setAiMode] = useState<"revise" | "seo" | "continue" | "custom">("revise");
   const [aiInstruction, setAiInstruction] = useState("");
   const [aiWorking, setAiWorking] = useState(false);
+  const [aiResult, setAiResult] = useState("");
 
   // 保持 ref 与 state 同步（避免 onMount 闭包陷阱）
   useEffect(() => { syncScrollRef.current = syncScroll; }, [syncScroll]);
@@ -529,8 +530,6 @@ export function AdminEditor() {
       showMsg("请填写 AI 修改要求", "error");
       return;
     }
-    if (!confirm("AI 会用修改后的内容替换当前正文，继续吗？")) return;
-
     setAiWorking(true);
     try {
       const result = await editPostWithAI({
@@ -539,16 +538,23 @@ export function AdminEditor() {
         instruction: aiInstruction,
         mode: aiMode,
       });
-      setForm((prev) => ({ ...prev, content: result.content }));
-      const editor = editorRef.current;
-      const model = editor?.getModel();
-      if (model) model.setValue(result.content);
-      showMsg("AI 已完成修改，请检查后保存", "success");
+      setAiResult(result.content);
+      showMsg("AI 已生成修改结果，请预览后应用", "success");
     } catch (err: unknown) {
       showMsg(err instanceof Error ? err.message : "AI 修改失败", "error");
     } finally {
       setAiWorking(false);
     }
+  };
+
+  const applyAIResult = () => {
+    if (!aiResult) return;
+    setForm((prev) => ({ ...prev, content: aiResult }));
+    const editor = editorRef.current;
+    const model = editor?.getModel();
+    if (model) model.setValue(aiResult);
+    setAiResult("");
+    showMsg("AI 修改已应用，请检查后保存", "success");
   };
 
   return (
@@ -800,6 +806,32 @@ export function AdminEditor() {
               {aiWorking ? "修改中" : "应用 AI"}
             </button>
           </div>
+          {aiResult && (
+            <div className="mt-[8px] rounded-md border border-amber-500/20 bg-background/30">
+              <div className="flex items-center justify-between border-b border-border/15 px-[10px] py-[6px]">
+                <span className="text-[11px] text-amber-400/90">AI 修改结果预览</span>
+                <div className="flex items-center gap-[6px]">
+                  <button
+                    onClick={applyAIResult}
+                    className="inline-flex h-[24px] items-center gap-[4px] rounded-md bg-emerald-500/15 px-[8px] text-[11px] text-emerald-400 hover:bg-emerald-500/20"
+                  >
+                    <Check className="h-[11px] w-[11px]" /> 应用到正文
+                  </button>
+                  <button
+                    onClick={() => setAiResult("")}
+                    className="inline-flex h-[24px] items-center gap-[4px] rounded-md bg-card/20 px-[8px] text-[11px] text-muted-foreground/80 hover:text-foreground hover:bg-card/35"
+                  >
+                    <X className="h-[11px] w-[11px]" /> 取消
+                  </button>
+                </div>
+              </div>
+              <textarea
+                value={aiResult}
+                onChange={(e) => setAiResult(e.target.value)}
+                className="h-[180px] w-full resize-y bg-transparent px-[10px] py-[8px] font-mono text-[12px] leading-[1.6] text-foreground outline-none"
+              />
+            </div>
+          )}
         </div>
       )}
 
