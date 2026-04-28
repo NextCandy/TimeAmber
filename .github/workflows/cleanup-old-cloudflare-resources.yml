@@ -38,30 +38,13 @@ jobs:
       - name: Delete legacy Pages projects
         run: |
           set -euo pipefail
-          pages_json="$(npx wrangler pages project list --json)"
-          printf '%s\n' "$pages_json" | node -e '
-            let data = "";
-            process.stdin.on("data", (chunk) => data += chunk);
-            process.stdin.on("end", () => {
-              const projects = JSON.parse(data);
-              const names = projects
-                .map((project) => project.name)
-                .filter((name) => name !== process.env.ACTIVE_PAGES_PROJECT)
-                .filter((name) => /monolith|legacy/i.test(name));
-              process.stdout.write(names.join("\n"));
-            });
-          ' > /tmp/legacy-pages.txt
-
-          if [ ! -s /tmp/legacy-pages.txt ]; then
-            echo "No legacy Pages projects found."
-            exit 0
-          fi
-
-          while IFS= read -r project; do
-            [ -z "$project" ] && continue
+          for project in timeamber-client-legacy monolith-client monolith-client-cil monolith-client-cil-legacy; do
+            if [ "$project" = "$ACTIVE_PAGES_PROJECT" ]; then
+              continue
+            fi
             echo "Deleting Pages project: $project"
-            npx wrangler pages project delete "$project" --yes
-          done < /tmp/legacy-pages.txt
+            npx wrangler pages project delete "$project" --yes || true
+          done
 
       - name: Delete old Worker if present
         run: |
@@ -84,7 +67,7 @@ jobs:
         working-directory: server
         run: |
           set -euo pipefail
-          if npx wrangler r2 bucket list | grep -q "^${OLD_R2_BUCKET}\b"; then
+          if npx wrangler r2 bucket list | grep -q "name:[[:space:]]*${OLD_R2_BUCKET}$"; then
             echo "Deleting R2 bucket: $OLD_R2_BUCKET"
             printf 'y\n' | npx wrangler r2 bucket delete "$OLD_R2_BUCKET"
           else
