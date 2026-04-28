@@ -114,8 +114,22 @@ jobs:
                 exit 1
               fi
 
-              curl -fsS "${cleanup_url}/?token=${cleanup_token}"
+              cleanup_done=0
+              for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+                echo "Calling cleanup Worker, attempt ${attempt}..."
+                if curl -fsS "${cleanup_url}/?token=${cleanup_token}"; then
+                  cleanup_done=1
+                  break
+                fi
+                sleep 5
+              done
+
               npx wrangler delete timeamber-r2-cleanup --force || true
+              if [ "$cleanup_done" != "1" ]; then
+                echo "Cleanup Worker did not become reachable."
+                exit 1
+              fi
+              sleep 5
               printf 'y\n' | npx wrangler r2 bucket delete "$OLD_R2_BUCKET"
             fi
           else
