@@ -13,6 +13,8 @@ import { D1Adapter } from "./db/d1";
 import { R2Adapter } from "./object/r2";
 import { S3Adapter } from "./object/s3";
 
+let d1SchemaReady: Promise<void> | null = null;
+
 /**
  * 创建数据库适配器
  * 支持的 DB_PROVIDER: 'd1' (默认) | 'turso' | 'postgres'
@@ -24,7 +26,8 @@ export async function createDatabase(env: Record<string, unknown>): Promise<IDat
     case "d1": {
       if (!env.DB) throw new Error("缺少 D1 数据库绑定 (env.DB)");
       const d1Adapter = new D1Adapter(env.DB as D1Database);
-      await d1Adapter.ensureSchema();
+      d1SchemaReady ??= d1Adapter.ensureSchema();
+      await d1SchemaReady;
       return d1Adapter;
     }
 
