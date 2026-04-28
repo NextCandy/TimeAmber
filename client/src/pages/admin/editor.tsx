@@ -148,7 +148,7 @@ export function AdminEditor() {
     content: "",
     excerpt: "",
     coverColor: "from-cyan-500/20 to-blue-600/20",
-    coverImage: BRAND_ASSET_URL,
+    coverImage: "",
     tags: "",
     published: true,
     pinned: false,

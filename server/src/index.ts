@@ -37,7 +37,7 @@ type Variables = {
 };
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
-const DEFAULT_COVER_IMAGE = "https://i.see.you/2026/04/28/jN4b/TimeAmberPNG.png";
+const DEFAULT_COVER_IMAGE = "";
 
 /* ── 全局中间件 ────────────────────────────── */
 app.use("*", cors({
