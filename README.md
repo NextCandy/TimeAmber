@@ -39,11 +39,14 @@
 
 ### ✍️ 创作体验
 - **沉浸式编辑器** — Markdown + 实时预览，KaTeX 数学公式，代码高亮一键复制
-- **多平台导入** — 一键迁移 WordPress / Ghost / Hexo / Hugo / Jekyll / Halo
+- **多平台导入** — 一键迁移 WordPress / Ghost / Hexo / Hugo / Jekyll / Halo，支持后台批量导入 Markdown
+- **AI 辅助编辑** — 后台可配置 DeepSeek / Gemini / OpenAI Compatible，在文章编辑页查看并应用 AI 修改结果
 - **内容编排** — 草稿、定时发布、置顶、系列合集、独立页动态导航
 
 ### 🎨 阅读体验
 - **暗/亮双主题** — OKLCH 色值系统，过渡顺滑无闪烁
+- **主题化品牌图** — Logo / favicon / README 图标支持亮色与暗色模式分别展示
+- **稳定文章列表** — 文章卡片固定行高，封面图不会撑破列表布局
 - **文章导航** — 自动 TOC、阅读进度条、IntersectionObserver 章节追踪
 - **⌘K 全站搜索** — 防抖检索、键盘导航、关键词高亮
 - **Reaction 表情** — 文末轻互动，无需登录即可表态
@@ -57,12 +60,37 @@
 ### 🛡️ 安全合规
 - **认证与防护** — JWT + 限流，CSP/HSTS 全套头，SSRF 拦截
 - **隐私优先** — Cookie 同意横幅，第三方脚本门控，GDPR 数据导出
-- **多端备份** — JSON / R2-S3 / WebDAV 自由切换
+- **多端备份** — JSON / R2-S3 / WebDAV 自由切换；生产建议优先使用 R2、本地下载或自建 Nextcloud / Synology
+- **外链图片托管** — 保存文章或批量导入 Markdown 时，可自动将外部图片上传到 S.EE，并用 `https://i.see.you/...` 直连覆盖正文链接
 
 ### 🤖 智能扩展
 - **MCP 工具链** — 配套 [TimeAmber-MCP](https://github.com/NextCandy/TimeAmber-MCP)，让 AI 助手代为写稿、审评、备份
 - **SEO 友好** — sitemap、RSS 2.0、JSON-LD、OG/Twitter Card
 - **数据洞察** — 浏览量、14 日趋势、热门 Top 10
+
+---
+
+## 🧭 当前项目状态
+
+本仓库当前维护的是 **TimeAmber** 线上站点：[timeamber.com](https://timeamber.com)。旧项目名、旧 Pages 域名和前后台可见的原始项目标识已迁移为 TimeAmber。
+
+### 最近变动记录
+
+- 品牌资源：亮色 Logo 使用 `https://i.see.you/2026/04/28/jN4b/TimeAmberPNG.png`，暗色 Logo 使用 `https://i.see.you/2026/04/28/o9fC/TimeAmberPNG-Dark.png`，README 顶部已使用 `<picture>` 自动切换。
+- 默认文章封面：保持空白；没有正文首图时不再自动填入默认配图。
+- 文章列表：文章卡片高度固定，封面图被限制在卡片行高内，避免列表跳动。
+- Markdown 导入：后台支持批量导入 Markdown；导入后默认草稿，可在列表批量发布，也可进入单篇编辑页单独发布。
+- S.EE 图床：后台 `站点设置 -> 图片托管` 可开启自动上传外部图片；已托管的 `i.see.you` / `s.ee` 链接会跳过，S.EE 返回的直连会原样写入文章。
+- AI 编辑：后台 `站点设置 -> AI 编辑` 可配置 DeepSeek、Gemini 或 OpenAI Compatible API Key；文章编辑页可预览 AI 修改内容后再应用。
+- 访客分析：Cloudflare Analytics Engine 增强分析已接入，依赖 `CLOUDFLARE_ACCOUNT_ID` 与具备 `Account Analytics:Read` 权限的 `CLOUDFLARE_API_TOKEN`。
+- SEO 域名：sitemap、robots、RSS 与前后台 SEO 面板使用 `https://timeamber.com`。
+
+### Cloudflare 资源说明
+
+- 生产 Pages 项目：`timeamber-client`
+- 生产 Worker：`timeamber-server`
+- 现有 D1 / R2 内部资源名可能仍保留 `monolith-*`，这是内部绑定名，不影响前台 SEO 或公开品牌；如需改名需迁移数据和存储对象。
+- GitHub Actions `Cloudflare Deploy` 已完成生产验证，会在推送 `main` 后自动部署并清理 SEO 缓存。
 
 ---
 
@@ -152,7 +180,7 @@ npm run deploy:cloudflare   # 远程迁移 → Workers → API_BASE 注入 → P
 | 方案 | 状态 | 适用场景 |
 |------|------|---------|
 | 本机 CLI `npm run deploy:cloudflare` | ✅ 生产验证 | 推荐首选 |
-| GitHub Actions `Cloudflare Deploy` | ⚠️ 待端到端验证 | CI/CD 集成（验收前请慎用） |
+| GitHub Actions `Cloudflare Deploy` | ✅ 生产验证 | CI/CD 集成，推送 `main` 后自动部署 |
 
 ---
 
