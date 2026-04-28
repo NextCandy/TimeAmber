@@ -69,7 +69,62 @@ jobs:
           set -euo pipefail
           if npx wrangler r2 bucket list | grep -q "name:[[:space:]]*${OLD_R2_BUCKET}$"; then
             echo "Deleting R2 bucket: $OLD_R2_BUCKET"
-            printf 'y\n' | npx wrangler r2 bucket delete "$OLD_R2_BUCKET"
+            if ! printf 'y\n' | npx wrangler r2 bucket delete "$OLD_R2_BUCKET"; then
+              echo "Bucket is not empty. Deploying temporary cleanup Worker."
+              cleanup_dir="$(mktemp -d)"
+              cleanup_token="cleanup-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+              cat > "${cleanup_dir}/worker.ts" <<'WORKER'
+export interface Env {
+  BUCKET: R2Bucket;
+  CLEANUP_TOKEN: string;
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.searchParams.get("token") !== env.CLEANUP_TOKEN) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    let deleted = 0;
+    let cursor: string | undefined;
+    do {
+      const listed = await env.BUCKET.list({ cursor, limit: 1000 });
+      await Promise.all(listed.objects.map((object) => env.BUCKET.delete(object.key)));
+      deleted += listed.objects.length;
+      cursor = listed.truncated ? listed.cursor : undefined;
+    } while (cursor);
+
+    return Response.json({ deleted });
+  },
+};
+WORKER
+
+              cat > "${cleanup_dir}/wrangler.toml" <<EOF
+name = "timeamber-r2-cleanup"
+main = "worker.ts"
+compatibility_date = "2024-12-30"
+
+[vars]
+CLEANUP_TOKEN = "${cleanup_token}"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "${OLD_R2_BUCKET}"
+EOF
+
+              deploy_output="$(npx wrangler deploy --config "${cleanup_dir}/wrangler.toml")"
+              printf '%s\n' "$deploy_output"
+              cleanup_url="$(printf '%s\n' "$deploy_output" | grep -Eo 'https://[^[:space:]]+\.workers\.dev' | head -n 1)"
+              if [ -z "$cleanup_url" ]; then
+                echo "Could not find cleanup Worker URL in deploy output."
+                exit 1
+              fi
+
+              curl -fsS "${cleanup_url}/?token=${cleanup_token}"
+              npx wrangler delete timeamber-r2-cleanup --force || true
+              printf 'y\n' | npx wrangler r2 bucket delete "$OLD_R2_BUCKET"
+            fi
           else
             echo "R2 bucket $OLD_R2_BUCKET not found."
           fi
