@@ -1,3 +1,5 @@
+import { BRAND_ASSET_URL } from "@/lib/brand";
+
 type HeroProps = {
   siteTitle?: string;
   siteDescription?: string;
@@ -15,7 +17,12 @@ export function Hero({
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-gradient-radial from-blue-500/[0.07] via-cyan-500/[0.04] to-transparent rounded-full blur-3xl animate-fade-in" />
       </div>
       <div className="relative mb-[24px] animate-scale-in delay-0">
-        <div className="h-[56px] w-[28px] rounded-[4px] bg-gradient-to-b from-foreground/80 to-foreground/40 shadow-[0_0_40px_rgba(255,255,255,0.06)]" />
+        <img
+          src={BRAND_ASSET_URL}
+          alt=""
+          className="h-[64px] w-[64px] object-contain drop-shadow-[0_0_40px_rgba(255,255,255,0.08)]"
+          decoding="async"
+        />
         <div className="absolute -inset-[8px] rounded-[8px] bg-foreground/[0.03] blur-xl" />
       </div>
       <h1 className="text-center text-[36px] font-semibold tracking-[-0.03em] leading-tight lg:text-[44px] animate-blur-in delay-1">{siteTitle}</h1>

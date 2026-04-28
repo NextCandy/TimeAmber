@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { login, checkAuth } from "@/lib/api";
+import { BRAND_ASSET_URL } from "@/lib/brand";
 
 export function AdminLogin() {
   const [password, setPassword] = useState("");
@@ -33,7 +34,12 @@ export function AdminLogin() {
     <div className="flex flex-1 items-center justify-center py-[80px]">
       <div className="w-full max-w-[360px] rounded-lg border border-border/40 bg-card/30 p-[32px]">
         <div className="mb-[24px] text-center">
-          <div className="mx-auto mb-[16px] h-[40px] w-[20px] rounded-[3px] bg-gradient-to-b from-foreground/80 to-foreground/40" />
+          <img
+            src={BRAND_ASSET_URL}
+            alt=""
+            className="mx-auto mb-[16px] h-[48px] w-[48px] object-contain"
+            decoding="async"
+          />
           <h1 className="text-[20px] font-semibold tracking-[-0.01em]">管理后台</h1>
           <p className="mt-[8px] text-[13px] text-muted-foreground">输入密码以进入管理界面</p>
         </div>
