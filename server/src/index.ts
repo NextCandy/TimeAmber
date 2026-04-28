@@ -919,6 +919,20 @@ function filenameFromImageUrl(url: string, contentType: string): string {
   }
 }
 
+function normalizeSeePublicUrl(uploadedUrl: string | undefined, fileId: string | undefined): string | null {
+  if (uploadedUrl) {
+    try {
+      const parsed = new URL(uploadedUrl);
+      if (parsed.hostname.toLowerCase() === "s.ee") return parsed.toString();
+      const path = parsed.pathname.replace(/^\/+/, "");
+      if (path) return `https://s.ee/${path}${parsed.search}`;
+    } catch {
+      // Fall back to file_id below.
+    }
+  }
+  return fileId ? `https://s.ee/${fileId}` : null;
+}
+
 async function uploadImageToSee(url: string, apiToken: string): Promise<string> {
   const abortCtrl = new AbortController();
   const timeoutId = setTimeout(() => abortCtrl.abort(), 15000);
@@ -955,13 +969,14 @@ async function uploadImageToSee(url: string, apiToken: string): Promise<string> 
     const payload = await uploadResp.json<{
       success?: boolean;
       message?: string;
-      data?: { url?: string };
+      data?: { file_id?: string; url?: string };
     }>().catch(() => null);
 
-    if (!uploadResp.ok || !payload?.success || !payload.data?.url) {
+    const publicUrl = normalizeSeePublicUrl(payload?.data?.url, payload?.data?.file_id);
+    if (!uploadResp.ok || !payload?.success || !publicUrl) {
       throw new Error(payload?.message || `S.EE HTTP ${uploadResp.status}`);
     }
-    return payload.data.url;
+    return publicUrl;
   } finally {
     clearTimeout(timeoutId);
   }
