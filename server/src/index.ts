@@ -895,7 +895,7 @@ type SeeRewriteResult = {
 function isSeeHostedUrl(url: string): boolean {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
-    return hostname === "s.ee" || hostname.endsWith(".s.ee");
+    return hostname === "s.ee" || hostname.endsWith(".s.ee") || hostname === "i.see.you";
   } catch {
     return false;
   }
@@ -923,9 +923,10 @@ function normalizeSeePublicUrl(uploadedUrl: string | undefined, fileId: string |
   if (uploadedUrl) {
     try {
       const parsed = new URL(uploadedUrl);
-      if (parsed.hostname.toLowerCase() === "s.ee") return parsed.toString();
-      const path = parsed.pathname.replace(/^\/+/, "");
-      if (path) return `https://s.ee/${path}${parsed.search}`;
+      const hostname = parsed.hostname.toLowerCase();
+      if (hostname === "i.see.you" || hostname === "s.ee" || hostname.endsWith(".s.ee")) {
+        return parsed.toString();
+      }
     } catch {
       // Fall back to file_id below.
     }
