@@ -109,6 +109,7 @@ export type PublicSettings = {
   email: string;
   footer_text: string;
   rss_enabled: string;
+  friend_links: string;
   custom_header: string;
   custom_footer: string;
 };

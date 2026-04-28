@@ -14,6 +14,7 @@ const fixedStart = [{ href: "/", label: "首页" }];
 const fixedEnd = [
   { href: "/archive", label: "归档" },
   { href: "/about", label: "关于" },
+  { href: "/friends", label: "友链" },
 ];
 
 export function Navbar() {

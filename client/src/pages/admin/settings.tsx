@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { getToken } from "@/lib/api";
-import { Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, Rss, Wand2, ImageIcon } from "lucide-react";
+import { Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, Rss, Wand2, ImageIcon, Handshake, Plus, Trash2 } from "lucide-react";
+
+type FriendLink = {
+  name: string;
+  url: string;
+  logo: string;
+};
 
 type Settings = {
   site_title: string;
@@ -13,6 +19,7 @@ type Settings = {
   github_url: string;
   twitter_url: string;
   email: string;
+  friend_links: string;
   footer_text: string;
   rss_enabled: string;
   custom_header: string;
@@ -36,6 +43,7 @@ const defaultSettings: Settings = {
   github_url: "",
   twitter_url: "",
   email: "",
+  friend_links: "[]",
   footer_text: "© 2026 TimeAmber. 使用 Hono + Vite 构建，部署于 Cloudflare 边缘。",
   rss_enabled: "true",
   custom_header: "",
@@ -48,17 +56,46 @@ const defaultSettings: Settings = {
   ai_base_url: "https://api.deepseek.com",
 };
 
-type TabId = "general" | "profile" | "social" | "images" | "ai" | "advanced";
+type TabId = "general" | "profile" | "social" | "friends" | "images" | "ai" | "advanced";
 type TabDefinition = { id: TabId; label: string; icon: typeof Globe };
 
 const TABS: TabDefinition[] = [
   { id: "general", label: "常规设置", icon: Globe },
   { id: "profile", label: "个人资料", icon: User },
   { id: "social", label: "社交与订阅", icon: Link2 },
+  { id: "friends", label: "友链", icon: Handshake },
   { id: "images", label: "图片托管", icon: ImageIcon },
   { id: "ai", label: "AI 编辑", icon: Wand2 },
   { id: "advanced", label: "扩展与注入", icon: Code },
 ];
+
+function parseFriendLinks(raw: string): FriendLink[] {
+  try {
+    const parsed = JSON.parse(raw || "[]") as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item) => {
+      const link = item as Partial<FriendLink>;
+      return {
+        name: String(link.name || ""),
+        url: String(link.url || ""),
+        logo: String(link.logo || ""),
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+function serializeFriendLinks(links: FriendLink[]): string {
+  const normalized = links
+    .map((link) => ({
+      name: link.name.trim(),
+      url: link.url.trim(),
+      logo: link.logo.trim(),
+    }))
+    .filter((link) => link.name || link.url || link.logo);
+  return JSON.stringify(normalized);
+}
 
 export function AdminSettings() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
@@ -131,6 +168,23 @@ export function AdminSettings() {
 
   const rssEnabled = settings.rss_enabled !== "false";
   const seeHostingEnabled = settings.see_image_hosting_enabled === "true";
+  const friendLinks = parseFriendLinks(settings.friend_links);
+
+  const updateFriendLinks = (links: FriendLink[]) => {
+    updateSetting("friend_links", serializeFriendLinks(links));
+  };
+
+  const updateFriendLink = (index: number, key: keyof FriendLink, value: string) => {
+    updateFriendLinks(friendLinks.map((link, i) => i === index ? { ...link, [key]: value } : link));
+  };
+
+  const addFriendLink = () => {
+    updateFriendLinks([...friendLinks, { name: "", url: "", logo: "" }]);
+  };
+
+  const removeFriendLink = (index: number) => {
+    updateFriendLinks(friendLinks.filter((_, i) => i !== index));
+  };
 
   if (loading) return <div className="py-[60px] text-center text-muted-foreground/40">加载中...</div>;
 
@@ -301,6 +355,70 @@ export function AdminSettings() {
                       </span>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: 友链 */}
+          {activeTab === "friends" && (
+            <div className="space-y-[24px] animate-fade-in" role="tabpanel" id="settings-panel-friends" aria-labelledby="settings-tab-friends">
+              <div>
+                <div className="mb-[16px] flex items-start justify-between gap-[16px]">
+                  <div>
+                    <h2 className="text-[16px] font-semibold mb-[4px] flex items-center gap-[6px]">
+                      <Handshake className="h-[15px] w-[15px] text-cyan-400" /> 友链
+                    </h2>
+                    <p className="text-[12px] text-muted-foreground/50">管理前台 /friends 页面展示的网站名称、地址与 Logo。</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addFriendLink}
+                    className="inline-flex h-[34px] shrink-0 items-center gap-[6px] rounded-lg border border-border/20 bg-card/10 px-[12px] text-[12px] text-foreground transition-colors hover:bg-card/30"
+                  >
+                    <Plus className="h-[13px] w-[13px]" /> 添加
+                  </button>
+                </div>
+
+                <div className="space-y-[12px]">
+                  {friendLinks.length === 0 && (
+                    <div className="rounded-lg border border-border/15 bg-card/5 px-[16px] py-[22px] text-[13px] text-muted-foreground/45">
+                      暂未添加友链，点击“添加”创建第一条。
+                    </div>
+                  )}
+
+                  {friendLinks.map((link, index) => (
+                    <div key={index} className="rounded-lg border border-border/15 bg-card/5 p-[16px]">
+                      <div className="mb-[12px] flex items-center justify-between gap-[12px]">
+                        <div className="flex min-w-0 items-center gap-[10px]">
+                          <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/15 bg-background/40">
+                            {link.logo ? (
+                              <img src={link.logo} alt="" className="h-full w-full object-contain p-[4px]" />
+                            ) : (
+                              <span className="text-[13px] text-muted-foreground/40">{link.name?.charAt(0) || "#"}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-[13px] font-medium text-foreground">{link.name || `友链 ${index + 1}`}</p>
+                            <p className="truncate text-[11px] text-muted-foreground/35">{link.url || "未填写地址"}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFriendLink(index)}
+                          className="inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md text-muted-foreground/45 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                          aria-label="删除友链"
+                        >
+                          <Trash2 className="h-[14px] w-[14px]" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-3">
+                        <SettingField label="名称" value={link.name} onChange={(v) => updateFriendLink(index, "name", v)} placeholder="大佬论坛" />
+                        <SettingField label="地址" value={link.url} onChange={(v) => updateFriendLink(index, "url", v)} placeholder="https://www.dalao.net" />
+                        <SettingField label="Logo" value={link.logo} onChange={(v) => updateFriendLink(index, "logo", v)} placeholder="https://www.dalao.net/img/dalao-svg.svg" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

@@ -358,6 +358,7 @@ app.get("/api/settings/public", async (c) => {
     twitter_url: all.twitter_url || "",
     email: all.email || "",
     rss_enabled: all.rss_enabled || "true",
+    friend_links: all.friend_links || "[]",
     custom_header: all.custom_header || "",
     custom_footer: all.custom_footer || "",
   });

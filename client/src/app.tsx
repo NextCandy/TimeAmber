@@ -15,6 +15,7 @@ const HomePage = lazy(() => import("@/pages/home").then((m) => ({ default: m.Hom
 const PostPage = lazy(() => import("@/pages/post").then((m) => ({ default: m.PostPage })));
 const ArchivePage = lazy(() => import("@/pages/archive").then((m) => ({ default: m.ArchivePage })));
 const AboutPage = lazy(() => import("@/pages/about").then((m) => ({ default: m.AboutPage })));
+const FriendsPage = lazy(() => import("@/pages/friends").then((m) => ({ default: m.FriendsPage })));
 const AdminLogin = lazy(() => import("@/pages/admin/login").then((m) => ({ default: m.AdminLogin })));
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard").then((m) => ({ default: m.AdminDashboard })));
 const AdminEditor = lazy(() => import("@/pages/admin/editor").then((m) => ({ default: m.AdminEditor })));
@@ -122,6 +123,7 @@ export function App() {
                 <Route path="/posts/:slug" component={PostPage} />
                 <Route path="/archive" component={ArchivePage} />
                 <Route path="/about" component={AboutPage} />
+                <Route path="/friends" component={FriendsPage} />
                 <Route path="/privacy" component={PrivacyPage} />
                 <Route path="/page/:slug" component={DynamicPage} />
                 <Route>

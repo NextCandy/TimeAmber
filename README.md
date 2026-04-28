@@ -42,6 +42,7 @@
 - **多平台导入** — 一键迁移 WordPress / Ghost / Hexo / Hugo / Jekyll / Halo，支持后台批量导入 Markdown
 - **AI 辅助编辑** — 后台可配置 DeepSeek / Gemini / OpenAI Compatible，在文章编辑页查看并应用 AI 修改结果
 - **内容编排** — 草稿、定时发布、置顶、系列合集、独立页动态导航
+- **友链管理** — 前台独立友链页，后台可维护名称、地址与 Logo
 
 ### 🎨 阅读体验
 - **暗/亮双主题** — OKLCH 色值系统，过渡顺滑无闪烁
@@ -80,6 +81,7 @@
 - 默认文章封面：保持空白；没有正文首图时不再自动填入默认配图。
 - 文章列表：文章卡片高度固定，封面图被限制在卡片行高内，避免列表跳动。
 - Markdown 导入：后台支持批量导入 Markdown；导入后默认草稿，可在列表批量发布，也可进入单篇编辑页单独发布。
+- 友链：导航栏新增 `/friends` 友链入口，后台 `站点设置 -> 友链` 可自定义名称、地址与 Logo。
 - S.EE 图床：后台 `站点设置 -> 图片托管` 可开启自动上传外部图片；已托管的 `i.see.you` / `s.ee` 链接会跳过，S.EE 返回的直连会原样写入文章。
 - AI 编辑：后台 `站点设置 -> AI 编辑` 可配置 DeepSeek、Gemini 或 OpenAI Compatible API Key；文章编辑页可预览 AI 修改内容后再应用。
 - 访客分析：Cloudflare Analytics Engine 增强分析已接入，依赖 `CLOUDFLARE_ACCOUNT_ID` 与具备 `Account Analytics:Read` 权限的 `CLOUDFLARE_API_TOKEN`。
