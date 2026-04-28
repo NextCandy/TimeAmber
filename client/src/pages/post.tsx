@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { fetchPost, type Post } from "@/lib/api";
-import { renderMarkdownAsync, extractHeadingsAsync } from "@/lib/markdown-loader";
+import { renderMarkdownAsync, extractHeadingsAsync, preloadMarkdownRenderer } from "@/lib/markdown-loader";
 import { ArrowLeft, Eye, BookOpen, X } from "lucide-react";
 import { ReadingControls, useReadingPreferences } from "@/components/reading-controls";
 import { TableOfContents, ReadingProgressBar } from "@/components/toc";
@@ -71,6 +71,7 @@ export function PostPage() {
   useEffect(() => {
     if (!params.slug) return;
     let stale = false;
+    preloadMarkdownRenderer();
 
     if (!window.location.hash) {
       window.scrollTo({ top: 0, left: 0, behavior: "instant" });

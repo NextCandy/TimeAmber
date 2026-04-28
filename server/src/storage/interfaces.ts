@@ -80,6 +80,8 @@ export type CreatePostInput = {
   seriesSlug?: string | null;
   seriesOrder?: number;
   category?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type UpdatePostInput = {

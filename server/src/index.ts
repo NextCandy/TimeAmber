@@ -672,6 +672,30 @@ function extractFirstImage(markdown: string): string {
 }
 
 // 创建文章
+function normalizeSlug(input: string): string {
+  return (input || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^\w\u4e00-\u9fa5-]/g, "")
+    .replace(/[\u4e00-\u9fa5]+/g, (m) => m.split("").map((char) => char.charCodeAt(0).toString(36)).join(""))
+    .replace(/--+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80) || `post-${Date.now().toString(36)}`;
+}
+
+async function uniqueSlug(db: IDatabase, baseSlug: string, reserved: Set<string>): Promise<string> {
+  const base = normalizeSlug(baseSlug);
+  let next = base;
+  let index = 2;
+  while (reserved.has(next) || await db.getPostBySlug(next)) {
+    next = `${base}-${index}`;
+    index++;
+  }
+  reserved.add(next);
+  return next;
+}
+
 app.post("/api/admin/posts", async (c) => {
   const body = await c.req.json();
   const db = c.get("db");
@@ -684,6 +708,67 @@ app.post("/api/admin/posts", async (c) => {
 });
 
 // 更新文章（同时创建版本快照如果是自动保存外的核心提交，不过我们可以简化，在每次保存时如果内容变更较大则创建版本，或者直接在保存时暴露保存新版本的选项。这里我们在更新接口本身提供一个 saveVersion 参数，或者每次 updatePost 之后根据是否新建版本保存）
+app.post("/api/admin/import/markdown", async (c) => {
+  const body = await c.req.json<{
+    posts?: {
+      slug?: string;
+      title?: string;
+      content?: string;
+      excerpt?: string;
+      coverColor?: string;
+      coverImage?: string;
+      tags?: string[];
+      category?: string;
+    }[];
+  }>();
+
+  if (!Array.isArray(body.posts) || body.posts.length === 0) {
+    return c.json({ error: "没有可导入的 Markdown 文章" }, 400);
+  }
+  if (body.posts.length > 100) {
+    return c.json({ error: "一次最多导入 100 篇 Markdown 文章" }, 400);
+  }
+
+  const db = c.get("db");
+  const reserved = new Set<string>();
+  const imported = [];
+  const baseTime = Date.now();
+
+  for (let i = 0; i < body.posts.length; i++) {
+    const item = body.posts[i];
+    const title = (item.title || "").trim();
+    const content = item.content || "";
+    if (!title || !content.trim()) continue;
+
+    const createdAt = new Date(baseTime - i * 1000).toISOString();
+    const slug = await uniqueSlug(db, item.slug || title, reserved);
+    const tags = Array.isArray(item.tags)
+      ? Array.from(new Set(item.tags.map((tag) => String(tag).trim()).filter(Boolean))).slice(0, 20)
+      : [];
+
+    const post = await db.createPost({
+      slug,
+      title: title.slice(0, 160),
+      content,
+      excerpt: (item.excerpt || "").trim().slice(0, 300),
+      coverColor: item.coverColor || "from-cyan-500/20 to-blue-600/20",
+      coverImage: item.coverImage || extractFirstImage(content) || DEFAULT_COVER_IMAGE,
+      tags,
+      category: (item.category || "").trim().slice(0, 60),
+      published: false,
+      listed: true,
+      pinned: false,
+      publishAt: null,
+      createdAt,
+      updatedAt: createdAt,
+    });
+    imported.push(post);
+  }
+
+  await triggerWebhook(c, "markdown_imported", { count: imported.length, slugs: imported.map((post) => post.slug) });
+  return c.json({ success: true, imported: imported.length, posts: imported }, 201);
+});
+
 app.put("/api/admin/posts/:slug", async (c) => {
   const slug = c.req.param("slug");
   const body = await c.req.json();
@@ -730,7 +815,7 @@ app.post("/api/admin/posts/:slug/versions/:id/restore", async (c) => {
 // 批量操作文章：发布 / 撤回发布 / 删除
 app.post("/api/admin/posts/batch", async (c) => {
   const { slugs, action } = await c.req.json<{ slugs: string[]; action: "publish" | "unpublish" | "delete" }>();
-  if (!["publish", "unpublish", "delete"].includes(action)) {
+  if (!["unpublish", "delete"].includes(action)) {
     return c.json({ error: "非法的批处理操作" }, 400);
   }
   if (!slugs || !Array.isArray(slugs) || slugs.length === 0) {

@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "wouter";
-import { fetchAdminPosts, deletePost, batchOperatePosts, fetchViewStats, type Post, type ViewStats } from "@/lib/api";
-import { Plus, Edit, Trash2, Eye, FileText, Clock, Search, ExternalLink, Globe, CheckCircle2, AlertTriangle, XCircle, CheckSquare, Square, EyeOff, TrendingUp, ArrowRight, BarChart3 } from "lucide-react";
+import { fetchAdminPosts, deletePost, batchOperatePosts, fetchViewStats, importMarkdownPosts, type MarkdownImportPost, type Post, type ViewStats } from "@/lib/api";
+import { Plus, Edit, Trash2, Eye, FileText, Clock, Search, ExternalLink, Globe, CheckCircle2, AlertTriangle, XCircle, CheckSquare, Square, EyeOff, TrendingUp, ArrowRight, BarChart3, FileUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { parseMarkdownFile } from "@/lib/importers/frontmatter";
 
 function timeAgo(d: string): string {
   const diff = Date.now() - new Date(d).getTime();
@@ -18,6 +19,31 @@ function timeAgo(d: string): string {
 
 type FilterType = "all" | "published" | "draft";
 
+function slugFromText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^\w\u4e00-\u9fa5-]/g, "")
+    .replace(/[\u4e00-\u9fa5]+/g, (m) => m.split("").map((c) => c.charCodeAt(0).toString(36)).join(""))
+    .replace(/--+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
+}
+
+function titleFromMarkdown(content: string, fallback: string): string {
+  const heading = content.match(/^#\s+(.+)$/m)?.[1]?.trim();
+  return heading || fallback.replace(/\.(md|markdown)$/i, "");
+}
+
+function excerptFromMarkdown(content: string): string {
+  return content
+    .replace(/^---[\s\S]*?---\s*/m, "")
+    .split(/\n{2,}/)
+    .map((part) => part.replace(/[#>*_`[\]()!-]/g, "").trim())
+    .find(Boolean)
+    ?.slice(0, 180) || "";
+}
+
 export function AdminDashboard() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +53,8 @@ export function AdminDashboard() {
   const [selectedTag, setSelectedTag] = useState<string>("");
   const [tagExpanded, setTagExpanded] = useState(false);
   const [viewStats, setViewStats] = useState<ViewStats | null>(null);
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.title = "管理后台 | TimeAmber";
@@ -87,9 +115,9 @@ export function AdminDashboard() {
     });
   };
 
-  const handleBatchOperate = async (action: "publish" | "unpublish" | "delete") => {
+  const handleBatchOperate = async (action: "unpublish" | "delete") => {
     if (selectedSlugs.size === 0) return;
-    const actionName = action === "publish" ? "发布" : action === "unpublish" ? "撤回发布" : "删除";
+    const actionName = action === "unpublish" ? "撤回发布" : "删除";
     if (!confirm(`确定要批量${actionName}选中的 ${selectedSlugs.size} 篇文章吗？${action === "delete" ? "此操作不可恢复！" : ""}`)) return;
     
     setBatchOperating(true);
@@ -99,13 +127,57 @@ export function AdminDashboard() {
       if (action === "delete") {
         setPosts((prev) => prev.filter((p) => !slugs.includes(p.slug)));
       } else {
-        setPosts((prev) => prev.map((p) => slugs.includes(p.slug) ? { ...p, published: action === "publish" } : p));
+        setPosts((prev) => prev.map((p) => slugs.includes(p.slug) ? { ...p, published: false } : p));
       }
       setSelectedSlugs(new Set());
     } catch (err: any) {
       alert(err.message || "批量操作失败");
     } finally {
       setBatchOperating(false);
+    }
+  };
+
+  const handleMarkdownImport = async (files: FileList | null) => {
+    const markdownFiles = Array.from(files || []).filter((file) => /\.(md|markdown)$/i.test(file.name));
+    if (markdownFiles.length === 0) return;
+
+    setImporting(true);
+    try {
+      const baseTime = Date.now();
+      const payload: MarkdownImportPost[] = [];
+
+      for (let i = 0; i < markdownFiles.length; i++) {
+        const file = markdownFiles[i];
+        const raw = await file.text();
+        const parsed = parseMarkdownFile(raw, file.name);
+        const title = parsed.frontmatter.title || titleFromMarkdown(parsed.content, file.name);
+        const category = parsed.frontmatter.categories[0] || "";
+        const tags = Array.from(new Set([...parsed.frontmatter.tags, ...parsed.frontmatter.categories].filter(Boolean)));
+        const createdAt = new Date(baseTime - i * 1000).toISOString();
+
+        payload.push({
+          slug: slugFromText(parsed.frontmatter.slug || title || file.name),
+          title,
+          content: parsed.content,
+          excerpt: parsed.frontmatter.excerpt || excerptFromMarkdown(parsed.content),
+          tags,
+          category,
+          createdAt,
+        });
+      }
+
+      const result = await importMarkdownPosts(payload);
+      const refreshed = await fetchAdminPosts();
+      setPosts(refreshed);
+      setFilter("draft");
+      setSelectedTag("");
+      setSelectedSlugs(new Set());
+      alert(`已导入 ${result.imported} 篇 Markdown，均为草稿。发布请进入单篇编辑页单独发布。`);
+    } catch (err: any) {
+      alert(err.message || "Markdown 导入失败");
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) importInputRef.current.value = "";
     }
   };
 
@@ -127,6 +199,23 @@ export function AdminDashboard() {
         <div className="flex items-center justify-between">
           <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-[-0.02em]">控制台</h1>
           <div className="flex items-center gap-[6px]">
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".md,.markdown,text/markdown,text/plain"
+              multiple
+              className="hidden"
+              onChange={(e) => handleMarkdownImport(e.target.files)}
+            />
+            <button
+              onClick={() => importInputRef.current?.click()}
+              disabled={importing}
+              className="inline-flex h-[34px] items-center gap-[5px] rounded-lg border border-border/20 bg-card/20 px-[12px] text-[13px] font-medium text-foreground/75 transition-colors hover:border-border/40 hover:bg-card/35 disabled:cursor-not-allowed disabled:opacity-50"
+              title="批量导入 Markdown 草稿"
+            >
+              <FileUp className={`h-[14px] w-[14px] ${importing ? "animate-pulse" : ""}`} />
+              {importing ? "导入中" : "导入 Markdown"}
+            </button>
             <Link href="/admin/editor" className="inline-flex items-center gap-[5px] h-[34px] px-[14px] rounded-lg bg-foreground text-background text-[13px] font-medium hover:opacity-90 transition-opacity">
               <Plus className="h-[14px] w-[14px]" />写文章
             </Link>
@@ -197,9 +286,6 @@ export function AdminDashboard() {
               
               {selectedSlugs.size > 0 && (
                 <div className="flex items-center gap-[6px] animate-fade-in">
-                  <button onClick={() => handleBatchOperate("publish")} disabled={batchOperating} className="flex items-center gap-[4px] px-[10px] py-[4px] rounded-md border border-border/20 text-[11px] text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-50">
-                    <Eye className="h-[11px] w-[11px]" /> 发布
-                  </button>
                   <button onClick={() => handleBatchOperate("unpublish")} disabled={batchOperating} className="flex items-center gap-[4px] px-[10px] py-[4px] rounded-md border border-border/20 text-[11px] text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-50">
                     <EyeOff className="h-[11px] w-[11px]" /> 撤回
                   </button>

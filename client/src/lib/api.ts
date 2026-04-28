@@ -74,6 +74,10 @@ export async function fetchPost(slug: string): Promise<Post> {
   return fetchJsonWithCache<Post>(`/api/posts/${slug}`, 60_000);
 }
 
+export function prefetchPost(slug: string): void {
+  void fetchPost(slug).catch(() => {});
+}
+
 export async function fetchTags(): Promise<{ id: number; name: string }[]> {
   const res = await fetch(`${API_BASE}/api/tags`);
   if (!res.ok) throw new Error("获取标签失败");
@@ -251,13 +255,42 @@ export async function deletePost(slug: string): Promise<void> {
   if (!res.ok) throw new Error("删除失败");
 }
 
-export async function batchOperatePosts(slugs: string[], action: "publish" | "unpublish" | "delete"): Promise<{ count: number }> {
+export async function batchOperatePosts(slugs: string[], action: "unpublish" | "delete"): Promise<{ count: number }> {
   const res = await fetch(`${API_BASE}/api/admin/posts/batch`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ slugs, action }),
   });
   if (!res.ok) throw new Error("批量操作失败");
+  return res.json();
+}
+
+export type MarkdownImportPost = {
+  slug: string;
+  title: string;
+  content: string;
+  excerpt?: string;
+  coverColor?: string;
+  coverImage?: string;
+  tags?: string[];
+  category?: string;
+  createdAt?: string;
+};
+
+export async function importMarkdownPosts(posts: MarkdownImportPost[]): Promise<{
+  success: boolean;
+  imported: number;
+  posts: Post[];
+}> {
+  const res = await fetch(`${API_BASE}/api/admin/import/markdown`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ posts }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || "Markdown 瀵煎叆澶辫触");
+  }
   return res.json();
 }
 

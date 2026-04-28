@@ -16,3 +16,7 @@ export async function extractHeadingsAsync(md: string) {
   const { extractHeadings } = await loadMarkdownModule();
   return extractHeadings(md);
 }
+
+export function preloadMarkdownRenderer() {
+  void loadMarkdownModule();
+}

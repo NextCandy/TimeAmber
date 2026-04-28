@@ -287,6 +287,8 @@ export class D1Adapter implements IDatabase {
         seriesSlug: data.seriesSlug || null,
         category: data.category || "",
         seriesOrder: data.seriesOrder ?? 0,
+        ...(data.createdAt && { createdAt: data.createdAt }),
+        ...(data.updatedAt && { updatedAt: data.updatedAt }),
       })
       .returning();
 
