@@ -75,7 +75,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const description = post.excerpt || (post.content ? stripHtml(post.content).slice(0, 160) : "");
     const siteOrigin = url.origin;
     const articleUrl = `${siteOrigin}/posts/${post.slug}`;
-    const ogImage = "https://i.see.you/2026/04/27/Wfo7/gemini-svg-3.svg";
+    const ogImage = "https://i.see.you/2026/04/28/3ctU/ChatGPT-Image-2026428-08_56_28.png";
 
     // 转义 HTML 特殊字符
     const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

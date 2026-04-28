@@ -37,7 +37,7 @@ type Variables = {
 };
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
-const DEFAULT_COVER_IMAGE = "https://i.see.you/2026/04/27/Wfo7/gemini-svg-3.svg";
+const DEFAULT_COVER_IMAGE = "https://i.see.you/2026/04/28/3ctU/ChatGPT-Image-2026428-08_56_28.png";
 
 /* ── 全局中间件 ────────────────────────────── */
 app.use("*", cors({
