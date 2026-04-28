@@ -15,7 +15,7 @@ import {
   Menu,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { BRAND_ASSET_URL } from "@/lib/brand";
+import { BrandImage } from "@/components/brand-image";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -94,7 +94,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     <div className="flex flex-col h-full">
       <div className="p-[20px]">
         <Link href="/admin" className="flex items-center gap-[10px]" onClick={() => setMobileMenuOpen(false)}>
-          <img src={BRAND_ASSET_URL} alt="" className="h-[32px] w-[32px] object-contain" decoding="async" />
+          <BrandImage alt="" className="h-[32px] w-[32px] object-contain" decoding="async" />
           <span className="font-semibold text-[18px] tracking-[-0.02em]">TimeAmber</span>
         </Link>
       </div>
@@ -160,7 +160,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <main className="md:ml-[240px] min-h-screen overflow-y-auto">
         <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-[16px] h-[52px] border-b border-border/40 bg-background/80 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-[8px] font-semibold text-[14px]">
-            <img src={BRAND_ASSET_URL} alt="" className="h-[24px] w-[24px] object-contain" decoding="async" />
+            <BrandImage alt="" className="h-[24px] w-[24px] object-contain" decoding="async" />
             <span>TimeAmber</span>
           </div>
           <div className="flex items-center gap-[4px]">

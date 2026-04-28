@@ -1,6 +1,9 @@
 <div align="center">
 
-<img src="https://i.see.you/2026/04/28/7fmF/TimeAmberSVG.svg" width="96" height="96" alt="TimeAmber" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://i.see.you/2026/04/28/o9fC/TimeAmberPNG-Dark.png">
+  <img src="https://i.see.you/2026/04/28/jN4b/TimeAmberPNG.png" width="96" height="96" alt="TimeAmber" />
+</picture>
 
 # TimeAmber
 

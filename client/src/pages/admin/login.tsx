@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { login, checkAuth } from "@/lib/api";
-import { BRAND_ASSET_URL } from "@/lib/brand";
+import { BrandImage } from "@/components/brand-image";
 
 export function AdminLogin() {
   const [password, setPassword] = useState("");
@@ -34,8 +34,7 @@ export function AdminLogin() {
     <div className="flex flex-1 items-center justify-center py-[80px]">
       <div className="w-full max-w-[360px] rounded-lg border border-border/40 bg-card/30 p-[32px]">
         <div className="mb-[24px] text-center">
-          <img
-            src={BRAND_ASSET_URL}
+          <BrandImage
             alt=""
             className="mx-auto mb-[16px] h-[48px] w-[48px] object-contain"
             decoding="async"

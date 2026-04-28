@@ -1,4 +1,4 @@
-import { BRAND_ASSET_URL } from "@/lib/brand";
+import { BrandImage } from "@/components/brand-image";
 
 type HeroProps = {
   siteTitle?: string;
@@ -17,8 +17,7 @@ export function Hero({
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-gradient-radial from-blue-500/[0.07] via-cyan-500/[0.04] to-transparent rounded-full blur-3xl animate-fade-in" />
       </div>
       <div className="relative mb-[24px] animate-scale-in delay-0">
-        <img
-          src={BRAND_ASSET_URL}
+        <BrandImage
           alt=""
           className="h-[64px] w-[64px] object-contain drop-shadow-[0_0_40px_rgba(255,255,255,0.08)]"
           decoding="async"

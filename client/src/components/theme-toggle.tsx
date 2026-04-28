@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Moon, Sun, Monitor } from "lucide-react";
+import { getBrandAssetForTheme } from "@/lib/brand";
 
 type Theme = "dark" | "light" | "system";
 
@@ -19,6 +20,8 @@ function applyTheme(theme: Theme) {
   const themeColor = effective === "light" ? "#ffffff" : "#0a0a0f";
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", themeColor);
+  const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+  if (favicon) favicon.href = getBrandAssetForTheme(effective);
 }
 
 export function ThemeToggle() {

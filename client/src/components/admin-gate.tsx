@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { checkAuth, login } from "@/lib/api";
-import { BRAND_ASSET_URL } from "@/lib/brand";
+import { BrandImage } from "@/components/brand-image";
 
 /**
  * 管理后台暗门组件
@@ -96,8 +96,7 @@ export function AdminGate({
           ) : (
             <form onSubmit={handleSubmit} aria-label="管理员登录">
               <div className="mb-[16px] text-center">
-                <img
-                  src={BRAND_ASSET_URL}
+                <BrandImage
                   alt=""
                   className="mx-auto mb-[10px] h-[36px] w-[36px] object-contain"
                   decoding="async"
