@@ -1293,6 +1293,84 @@ app.post("/api/admin/ai/edit", async (c) => {
   }
 });
 
+app.post("/api/admin/ai/batch-optimize", async (c) => {
+  const body = await c.req.json<{
+    slugs?: string[];
+    instruction?: string;
+    mode?: AIEditMode;
+  }>();
+  const slugs = Array.from(new Set((body.slugs || []).map((slug) => String(slug).trim()).filter(Boolean)));
+  const mode = body.mode || "seo";
+  const instruction = (body.instruction || "").trim();
+
+  if (slugs.length === 0) return c.json({ error: "请选择要优化的文章" }, 400);
+  if (slugs.length > 5) return c.json({ error: "单次批量 AI 优化最多支持 5 篇文章，请分批执行" }, 400);
+  if (mode === "custom" && !instruction) return c.json({ error: "请填写自定义优化要求" }, 400);
+
+  const db = c.get("db");
+  const settings = await db.getSettings();
+  const provider = (settings.ai_provider || "deepseek").toLowerCase();
+  const apiKey = (settings.ai_api_key || "").trim();
+  if (!apiKey) return c.json({ error: "请先在后台设置中配置 AI API Key" }, 400);
+
+  const results: {
+    slug: string;
+    title: string;
+    status: "updated" | "skipped" | "failed";
+    error?: string;
+  }[] = [];
+  let updated = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (const slug of slugs) {
+    const post = await db.getPostBySlug(slug);
+    if (!post) {
+      failed++;
+      results.push({ slug, title: slug, status: "failed", error: "文章不存在" });
+      continue;
+    }
+
+    const content = (post.content || "").trim();
+    if (!content) {
+      skipped++;
+      results.push({ slug, title: post.title, status: "skipped", error: "正文为空" });
+      continue;
+    }
+    if (content.length > 80_000) {
+      skipped++;
+      results.push({ slug, title: post.title, status: "skipped", error: "正文过长，请进入编辑页单独优化" });
+      continue;
+    }
+
+    try {
+      const aiContent = await editMarkdownWithAI({
+        provider,
+        apiKey,
+        model: settings.ai_model,
+        baseUrl: settings.ai_base_url,
+        title: post.title,
+        content,
+        instruction,
+        mode,
+      });
+      const rewritten = await rewriteExternalImagesToSee(aiContent, settings);
+      await db.createPostVersion(slug);
+      await db.updatePost(slug, {
+        content: rewritten.content,
+        coverImage: extractFirstImage(rewritten.content) || post.coverImage || DEFAULT_COVER_IMAGE,
+      });
+      updated++;
+      results.push({ slug, title: post.title, status: "updated" });
+    } catch (err) {
+      failed++;
+      results.push({ slug, title: post.title, status: "failed", error: err instanceof Error ? err.message : "AI 优化失败" });
+    }
+  }
+
+  return c.json({ success: failed === 0, updated, skipped, failed, posts: results }, failed === slugs.length ? 502 : 200);
+});
+
 /* ── 数据备份 ──────────────────────────────── */
 
 // 导出备份 JSON

@@ -549,6 +549,31 @@ export async function editPostWithAI(data: {
   return res.json();
 }
 
+export type BatchAIOptimizeResult = {
+  success: boolean;
+  updated: number;
+  skipped: number;
+  failed: number;
+  posts: { slug: string; title: string; status: "updated" | "skipped" | "failed"; error?: string }[];
+};
+
+export async function batchOptimizePostsWithAI(data: {
+  slugs: string[];
+  instruction?: string;
+  mode?: "revise" | "seo" | "continue" | "custom";
+}): Promise<BatchAIOptimizeResult> {
+  const res = await fetch(`${API_BASE}/api/admin/ai/batch-optimize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "批量 AI 优化失败");
+  }
+  return res.json();
+}
+
 export type HaloPreview = {
   success: boolean;
   preview: { postCount: number; tagCount: number; categoryCount: number; commentCount: number };

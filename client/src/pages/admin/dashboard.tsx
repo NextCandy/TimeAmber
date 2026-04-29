@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "wouter";
-import { fetchAdminPosts, deletePost, batchOperatePosts, fetchViewStats, importMarkdownPosts, type MarkdownImportPost, type Post, type ViewStats } from "@/lib/api";
-import { Plus, Edit, Trash2, Eye, FileText, Clock, Search, ExternalLink, Globe, CheckCircle2, AlertTriangle, XCircle, CheckSquare, Square, EyeOff, TrendingUp, ArrowRight, BarChart3, FileUp } from "lucide-react";
+import { fetchAdminPosts, deletePost, batchOperatePosts, fetchViewStats, importMarkdownPosts, batchOptimizePostsWithAI, type MarkdownImportPost, type Post, type ViewStats } from "@/lib/api";
+import { Plus, Edit, Trash2, Eye, FileText, Clock, Search, ExternalLink, Globe, CheckCircle2, AlertTriangle, XCircle, CheckSquare, Square, EyeOff, TrendingUp, ArrowRight, BarChart3, FileUp, Wand2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { parseMarkdownFile } from "@/lib/importers/frontmatter";
 
@@ -76,6 +76,7 @@ export function AdminDashboard() {
 
   const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(new Set());
   const [batchOperating, setBatchOperating] = useState(false);
+  const [batchAiOperating, setBatchAiOperating] = useState(false);
 
   const filteredPosts = useMemo(() => {
     let result = posts;
@@ -134,6 +135,33 @@ export function AdminDashboard() {
       alert(err.message || "批量操作失败");
     } finally {
       setBatchOperating(false);
+    }
+  };
+
+  const handleBatchAIOptimize = async () => {
+    if (selectedSlugs.size === 0) return;
+    if (selectedSlugs.size > 5) {
+      alert("单次最多批量 AI 优化 5 篇文章，请少选几篇分批执行。");
+      return;
+    }
+    if (!confirm(`确定要使用 AI 优化选中的 ${selectedSlugs.size} 篇文章吗？系统会先保存版本快照，优化后直接覆盖正文。`)) return;
+
+    setBatchAiOperating(true);
+    try {
+      const slugs = Array.from(selectedSlugs);
+      const result = await batchOptimizePostsWithAI({ slugs, mode: "seo" });
+      const refreshed = await fetchAdminPosts();
+      setPosts(refreshed);
+      setSelectedSlugs(new Set());
+      const failedItems = result.posts.filter((item) => item.status === "failed" || item.status === "skipped");
+      const detail = failedItems.length > 0
+        ? `\n\n未处理：\n${failedItems.slice(0, 5).map((item) => `- ${item.title}: ${item.error || item.status}`).join("\n")}`
+        : "";
+      alert(`AI 优化完成：更新 ${result.updated} 篇，跳过 ${result.skipped} 篇，失败 ${result.failed} 篇。${detail}`);
+    } catch (err: any) {
+      alert(err.message || "批量 AI 优化失败");
+    } finally {
+      setBatchAiOperating(false);
     }
   };
 
@@ -276,7 +304,7 @@ export function AdminDashboard() {
 
           {/* 批量操作工具栏 */}
           {filteredPosts.length > 0 && (
-            <div className={`mb-[10px] flex items-center justify-between rounded-lg border border-border/15 bg-card/10 px-[14px] py-[8px] transition-all shrink-0 ${selectedSlugs.size > 0 ? "border-cyan-500/30 bg-cyan-500/5" : ""}`}>
+            <div className={`mb-[10px] flex flex-wrap items-center justify-between gap-[8px] rounded-lg border border-border/15 bg-card/10 px-[14px] py-[8px] transition-all shrink-0 ${selectedSlugs.size > 0 ? "border-cyan-500/30 bg-cyan-500/5" : ""}`}>
               <div className="flex items-center gap-[10px]">
                 <button onClick={toggleSelectAll} className="text-muted-foreground/40 hover:text-cyan-400 transition-colors flex items-center gap-[6px]">
                   {selectedSlugs.size === filteredPosts.length ? <CheckSquare className="h-[14px] w-[14px] text-cyan-400" /> : <Square className="h-[14px] w-[14px]" />}
@@ -285,14 +313,17 @@ export function AdminDashboard() {
               </div>
               
               {selectedSlugs.size > 0 && (
-                <div className="flex items-center gap-[6px] animate-fade-in">
-                  <button onClick={() => handleBatchOperate("publish")} disabled={batchOperating} className="flex items-center gap-[4px] px-[10px] py-[4px] rounded-md border border-border/20 text-[11px] text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-50">
+                <div className="flex flex-wrap items-center gap-[6px] animate-fade-in">
+                  <button onClick={handleBatchAIOptimize} disabled={batchOperating || batchAiOperating} className="flex items-center gap-[4px] px-[10px] py-[4px] rounded-md border border-cyan-500/30 text-[11px] text-cyan-400 hover:bg-cyan-400/10 transition-colors disabled:opacity-50" title="最多一次优化 5 篇">
+                    <Wand2 className={`h-[11px] w-[11px] ${batchAiOperating ? "animate-pulse" : ""}`} /> AI 优化
+                  </button>
+                  <button onClick={() => handleBatchOperate("publish")} disabled={batchOperating || batchAiOperating} className="flex items-center gap-[4px] px-[10px] py-[4px] rounded-md border border-border/20 text-[11px] text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-50">
                     <Eye className="h-[11px] w-[11px]" /> 发布
                   </button>
-                  <button onClick={() => handleBatchOperate("unpublish")} disabled={batchOperating} className="flex items-center gap-[4px] px-[10px] py-[4px] rounded-md border border-border/20 text-[11px] text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-50">
+                  <button onClick={() => handleBatchOperate("unpublish")} disabled={batchOperating || batchAiOperating} className="flex items-center gap-[4px] px-[10px] py-[4px] rounded-md border border-border/20 text-[11px] text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-50">
                     <EyeOff className="h-[11px] w-[11px]" /> 撤回
                   </button>
-                  <button onClick={() => handleBatchOperate("delete")} disabled={batchOperating} className="flex items-center gap-[4px] px-[10px] py-[4px] rounded-md border border-red-500/30 text-[11px] text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50">
+                  <button onClick={() => handleBatchOperate("delete")} disabled={batchOperating || batchAiOperating} className="flex items-center gap-[4px] px-[10px] py-[4px] rounded-md border border-red-500/30 text-[11px] text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50">
                     <Trash2 className="h-[11px] w-[11px]" /> 删除
                   </button>
                 </div>
