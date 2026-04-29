@@ -18,11 +18,11 @@
     "db:migrate:remote": "npm -w timeamber-server run db:migrate:remote",
     "db:seed:local": "npm -w timeamber-server run db:seed:local",
     "db:seed:test-posts:local": "npm -w timeamber-server run db:seed:test-posts:local",
-    "check": "npm -ws run check",
-    "lint": "npm -ws run lint"
+    "check": "npm --workspaces run check",
+    "lint": "npm --workspaces run lint"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "devDependencies": {
     "concurrently": "^9.0.0"
