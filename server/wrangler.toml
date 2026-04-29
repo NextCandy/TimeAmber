@@ -31,4 +31,4 @@ dataset = "timeamber_analytics"
 
 # 定时触发器 (每 1 分钟执行一次)
 [triggers]
-crons = ["* * * * *", "*/10 * * * *"]
+crons = ["* * * * *"]

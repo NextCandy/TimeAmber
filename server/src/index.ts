@@ -1897,17 +1897,15 @@ export default {
   fetch: app.fetch,
   async scheduled(event: any, env: Bindings) {
     const db = await createDatabase(env as unknown as Record<string, unknown>);
-    if (event.cron === "*/10 * * * *") {
-      const result = await runNotionSync(db, env);
-      console.log(`[Cron] Notion sync finished: created=${result.created}, updated=${result.updated}, failed=${result.failed}`);
-      return;
+    const count = await db.publishScheduledPosts();
+    if (count > 0) {
+      console.log(`[Cron] Published ${count} scheduled posts.`);
     }
 
-    if (event.cron === "* * * * *") {
-      const count = await db.publishScheduledPosts();
-      if (count > 0) {
-        console.log(`[Cron] Published ${count} scheduled posts.`);
-      }
+    const scheduledAt = new Date(event.scheduledTime || Date.now());
+    if (scheduledAt.getUTCMinutes() % 10 === 0) {
+      const result = await runNotionSync(db, env);
+      console.log(`[Cron] Notion sync finished: created=${result.created}, updated=${result.updated}, failed=${result.failed}`);
     }
   }
 };
