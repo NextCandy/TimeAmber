@@ -3,6 +3,7 @@ import type { IDatabase } from "./storage/interfaces";
 const NOTION_API_BASE = "https://api.notion.com/v1";
 const NOTION_VERSION = "2026-03-11";
 const DEFAULT_DATA_SOURCE_ID = "22837041-b78c-81d8-9670-000b9d50c21b";
+const DEFAULT_NOTION_CATEGORY = "剪藏";
 
 type NotionEnv = {
   NOTION_TOKEN?: string;
@@ -52,6 +53,7 @@ type NotionSyncPost = {
   content: string;
   excerpt: string;
   tags: string[];
+  category: string;
   createdAt: string;
 };
 
@@ -137,7 +139,7 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
     for (const page of pages) {
       try {
         const post = await notionPageToPost(client, page, tagTitleCache);
-        if (!post.title || !post.content.trim()) {
+        if (!post.title) {
           resultBase.skipped++;
           continue;
         }
@@ -151,6 +153,7 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
             content: post.content,
             excerpt: post.excerpt,
             tags: post.tags,
+            category: post.category,
             coverImage: extractFirstImage(post.content) || existing.coverImage || "",
           });
           resultBase.updated++;
@@ -167,7 +170,7 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
             listed: true,
             pinned: false,
             publishAt: null,
-            category: "",
+            category: post.category,
             createdAt: post.createdAt,
             updatedAt: page.last_edited_time || new Date().toISOString(),
           });
@@ -201,16 +204,29 @@ async function notionPageToPost(client: NotionClient, page: NotionPage, tagTitle
     .filter((name): name is string => Boolean(name));
   const blocks = await client.listBlockChildren(page.id);
   const markdown = await blocksToMarkdown(client, blocks, 0);
-  const content = [markdown.trim(), sourceUrl ? `\n\n> 原文地址: [${sourceUrl}](${sourceUrl})` : ""].join("").trim();
+  const fallbackContent = buildClippingFallback(title, excerpt, sourceUrl);
+  const content = [
+    markdown.trim() || fallbackContent,
+    sourceUrl && markdown.trim() ? `\n\n> 原文地址: [${sourceUrl}](${sourceUrl})` : "",
+  ].join("").trim();
+  const normalizedTags = Array.from(new Set([DEFAULT_NOTION_CATEGORY, ...tags, ...authorTags])).slice(0, 20);
 
   return {
     slug: `notion-${page.id.replace(/-/g, "").slice(0, 12)}`,
     title,
     content,
     excerpt: excerpt || truncate(stripMarkdown(content), 220),
-    tags: Array.from(new Set([...tags, ...authorTags])).slice(0, 20),
+    tags: normalizedTags,
+    category: DEFAULT_NOTION_CATEGORY,
     createdAt,
   };
+}
+
+function buildClippingFallback(title: string, excerpt: string, sourceUrl: string): string {
+  const lines = [`# ${title}`];
+  if (excerpt) lines.push(excerpt);
+  if (sourceUrl) lines.push(`> 原文地址: [${sourceUrl}](${sourceUrl})`);
+  return lines.join("\n\n");
 }
 
 async function resolveTags(client: NotionClient, property: NotionProperty | undefined, cache: Map<string, string>): Promise<string[]> {
@@ -429,7 +445,7 @@ class NotionClient {
       );
       pages.push(...(data.results || []));
       cursor = data.has_more ? data.next_cursor || undefined : undefined;
-    } while (cursor && pages.length < 100);
+    } while (cursor && pages.length < 2000);
     return pages;
   }
 
