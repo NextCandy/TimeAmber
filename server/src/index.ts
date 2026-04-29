@@ -12,6 +12,7 @@ import type { IDatabase } from "./storage/interfaces";
 import type { IObjectStorage } from "./storage/interfaces";
 import { writeAnalyticsPoint, isWebsiteAllowed } from "./analytics/ae-tracker";
 import { queryAEAnalytics } from "./analytics/ae-query";
+import { getNotionSyncStatus, syncNotionPosts } from "./notion-sync";
 
 /* ── 类型定义 ──────────────────────────────── */
 type Bindings = {
@@ -28,6 +29,8 @@ type Bindings = {
   CLOUDFLARE_ACCOUNT_ID?: string; // AE GraphQL 查询用
   CLOUDFLARE_API_TOKEN?: string; // AE GraphQL 查询用（需要 Account Analytics:Read 权限）
   ANALYTICS_WEBSITE_WHITELIST?: string; // 站点白名单，格式: domain1|domain2 (空=放行所有)
+  NOTION_TOKEN?: string;
+  NOTION_DATA_SOURCE_ID?: string;
 };
 
 type Variables = {
@@ -1226,6 +1229,28 @@ app.put("/api/admin/settings", async (c) => {
   return c.json({ success: true });
 });
 
+async function runNotionSync(db: IDatabase, env: Bindings) {
+  const settings = await db.getSettings();
+  return syncNotionPosts({
+    db,
+    env,
+    settings,
+    rewriteImages: async (content) => (await rewriteExternalImagesToSee(content, settings)).content,
+  });
+}
+
+app.get("/api/admin/notion-sync/status", async (c) => {
+  const db = c.get("db");
+  const settings = await db.getSettings();
+  return c.json(getNotionSyncStatus(settings, c.env));
+});
+
+app.post("/api/admin/notion-sync/run", async (c) => {
+  const db = c.get("db");
+  const result = await runNotionSync(db, c.env);
+  return c.json(result, result.success ? 200 : 502);
+});
+
 app.post("/api/admin/ai/edit", async (c) => {
   const body = await c.req.json<{
     title?: string;
@@ -1870,11 +1895,19 @@ async function callGemini(req: AIEditRequest, prompt: string): Promise<string> {
 
 export default {
   fetch: app.fetch,
-  async scheduled(event: any, env: Bindings, ctx: any) {
+  async scheduled(event: any, env: Bindings) {
     const db = await createDatabase(env as unknown as Record<string, unknown>);
-    const count = await db.publishScheduledPosts();
-    if (count > 0) {
-      console.log(`[Cron] Published ${count} scheduled posts.`);
+    if (event.cron === "*/10 * * * *") {
+      const result = await runNotionSync(db, env);
+      console.log(`[Cron] Notion sync finished: created=${result.created}, updated=${result.updated}, failed=${result.failed}`);
+      return;
+    }
+
+    if (event.cron === "* * * * *") {
+      const count = await db.publishScheduledPosts();
+      if (count > 0) {
+        console.log(`[Cron] Published ${count} scheduled posts.`);
+      }
     }
   }
 };

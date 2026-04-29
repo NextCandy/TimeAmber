@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getToken } from "@/lib/api";
-import { Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, Rss, Wand2, ImageIcon, Handshake, Plus, Trash2 } from "lucide-react";
+import { Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, Rss, Wand2, ImageIcon, Handshake, Plus, Trash2, Database, RefreshCw } from "lucide-react";
 
 type FriendLink = {
   name: string;
@@ -30,6 +30,20 @@ type Settings = {
   ai_api_key: string;
   ai_model: string;
   ai_base_url: string;
+  notion_data_source_id: string;
+};
+
+type NotionSyncStatus = {
+  configured: boolean;
+  dataSourceId: string;
+  lastRunAt: string;
+  lastStatus: string;
+  lastError: string;
+  lastCreated: number;
+  lastUpdated: number;
+  lastSkipped: number;
+  lastFailed: number;
+  lastDurationMs: number;
 };
 
 const defaultSettings: Settings = {
@@ -54,9 +68,10 @@ const defaultSettings: Settings = {
   ai_api_key: "",
   ai_model: "deepseek-chat",
   ai_base_url: "https://api.deepseek.com",
+  notion_data_source_id: "22837041-b78c-81d8-9670-000b9d50c21b",
 };
 
-type TabId = "general" | "profile" | "social" | "friends" | "images" | "ai" | "advanced";
+type TabId = "general" | "profile" | "social" | "friends" | "images" | "notion" | "ai" | "advanced";
 type TabDefinition = { id: TabId; label: string; icon: typeof Globe };
 
 const TABS: TabDefinition[] = [
@@ -65,6 +80,7 @@ const TABS: TabDefinition[] = [
   { id: "social", label: "社交与订阅", icon: Link2 },
   { id: "friends", label: "友链", icon: Handshake },
   { id: "images", label: "图片托管", icon: ImageIcon },
+  { id: "notion", label: "Notion 同步", icon: Database },
   { id: "ai", label: "AI 编辑", icon: Wand2 },
   { id: "advanced", label: "扩展与注入", icon: Code },
 ];
@@ -104,6 +120,8 @@ export function AdminSettings() {
   const [activeTab, setActiveTab] = useState<TabId>("general");
   const [loadError, setLoadError] = useState("");
   const [avatarError, setAvatarError] = useState(false);
+  const [notionStatus, setNotionStatus] = useState<NotionSyncStatus | null>(null);
+  const [notionSyncing, setNotionSyncing] = useState(false);
 
   useEffect(() => {
     document.title = "站点设置 | TimeAmber";
@@ -123,6 +141,7 @@ export function AdminSettings() {
       if (data && Object.keys(data).length > 0) {
         setSettings((prev) => ({ ...prev, ...data }));
       }
+      fetchNotionStatus();
       setLoadError("");
     } catch {
       setSettings(defaultSettings);
@@ -171,6 +190,39 @@ export function AdminSettings() {
 
   const updateFriendLinks = (links: FriendLink[]) => {
     updateSetting("friend_links", serializeFriendLinks(links));
+  };
+
+  const fetchNotionStatus = async () => {
+    try {
+      const res = await fetch("/api/admin/notion-sync/status", {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (res.ok) {
+        setNotionStatus(await res.json());
+      }
+    } catch {
+      setNotionStatus(null);
+    }
+  };
+
+  const runNotionSync = async () => {
+    setNotionSyncing(true);
+    try {
+      const res = await fetch("/api/admin/notion-sync/run", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await res.json().catch(() => null);
+      await fetchNotionStatus();
+      if (!res.ok) {
+        throw new Error(data?.errors?.[0] || "Notion 同步失败");
+      }
+      showMsg(`Notion 同步完成：新增 ${data.created || 0}，更新 ${data.updated || 0}`, "success");
+    } catch (error) {
+      showMsg(error instanceof Error ? error.message : "Notion 同步失败", "error");
+    } finally {
+      setNotionSyncing(false);
+    }
   };
 
   const updateFriendLink = (index: number, key: keyof FriendLink, value: string) => {
@@ -458,6 +510,50 @@ export function AdminSettings() {
             </div>
           )}
 
+          {/* TAB: Notion 同步 */}
+          {activeTab === "notion" && (
+            <div className="space-y-[24px] animate-fade-in" role="tabpanel" id="settings-panel-notion" aria-labelledby="settings-tab-notion">
+              <div>
+                <h2 className="text-[16px] font-semibold mb-[4px] flex items-center gap-[6px]">
+                  <Database className="h-[15px] w-[15px] text-violet-400" /> Notion 文章同步
+                </h2>
+                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">每 10 分钟从指定 Notion 数据库同步文章。首次同步进入草稿，发布仍由后台单独控制。</p>
+                <div className="rounded-xl border border-border/15 bg-card/5 p-[20px] sm:p-[24px] space-y-[18px]">
+                  <SettingField label="Data Source ID" value={settings.notion_data_source_id} onChange={(v) => updateSetting("notion_data_source_id", v)} placeholder="22837041-b78c-81d8-9670-000b9d50c21b" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-[12px]">
+                    <StatusPill label="Token" value={notionStatus?.configured ? "已配置" : "未配置"} tone={notionStatus?.configured ? "success" : "error"} />
+                    <StatusPill label="最近状态" value={notionStatus?.lastStatus || "never"} tone={notionStatus?.lastStatus === "success" ? "success" : notionStatus?.lastStatus === "error" ? "error" : "neutral"} />
+                    <StatusPill label="最近同步" value={formatDateTime(notionStatus?.lastRunAt)} tone="neutral" />
+                    <StatusPill label="耗时" value={notionStatus?.lastDurationMs ? `${notionStatus.lastDurationMs} ms` : "-"} tone="neutral" />
+                  </div>
+                  <div className="rounded-lg border border-border/10 bg-background/20 px-[14px] py-[12px]">
+                    <div className="grid grid-cols-4 gap-[8px] text-center">
+                      <SyncMetric label="新增" value={notionStatus?.lastCreated || 0} />
+                      <SyncMetric label="更新" value={notionStatus?.lastUpdated || 0} />
+                      <SyncMetric label="跳过" value={notionStatus?.lastSkipped || 0} />
+                      <SyncMetric label="失败" value={notionStatus?.lastFailed || 0} />
+                    </div>
+                    {notionStatus?.lastError && (
+                      <pre className="mt-[12px] max-h-[120px] overflow-auto whitespace-pre-wrap rounded-md bg-red-500/5 px-[10px] py-[8px] text-[11px] leading-[1.5] text-red-400">{notionStatus.lastError}</pre>
+                    )}
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[12px]">
+                    <p className="text-[11px] text-muted-foreground/35">需要在 Cloudflare Worker secret 中配置 NOTION_TOKEN，并把 Notion 数据库分享给对应 Integration。</p>
+                    <button
+                      type="button"
+                      onClick={runNotionSync}
+                      disabled={notionSyncing}
+                      className="inline-flex h-[36px] shrink-0 items-center justify-center gap-[6px] rounded-lg border border-border/20 px-[14px] text-[12px] font-medium text-foreground transition-colors hover:bg-card/60 disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-[14px] w-[14px] ${notionSyncing ? "animate-spin" : ""}`} />
+                      {notionSyncing ? "同步中" : "立即同步"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* TAB: AI 编辑 */}
           {activeTab === "ai" && (
             <div className="space-y-[24px] animate-fade-in" role="tabpanel" id="settings-panel-ai" aria-labelledby="settings-tab-ai">
@@ -556,4 +652,35 @@ function SettingField({ label, value, onChange, placeholder, multiline }: {
       )}
     </div>
   );
+}
+
+function StatusPill({ label, value, tone }: { label: string; value: string; tone: "success" | "error" | "neutral" }) {
+  const toneClass = tone === "success"
+    ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400"
+    : tone === "error"
+      ? "border-red-500/20 bg-red-500/5 text-red-400"
+      : "border-border/15 bg-background/20 text-muted-foreground/60";
+
+  return (
+    <div className={`rounded-lg border px-[12px] py-[10px] ${toneClass}`}>
+      <p className="text-[10px] uppercase tracking-wider opacity-55">{label}</p>
+      <p className="mt-[4px] truncate text-[12px] font-medium">{value || "-"}</p>
+    </div>
+  );
+}
+
+function SyncMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="text-[18px] font-semibold text-foreground">{value}</p>
+      <p className="mt-[2px] text-[11px] text-muted-foreground/40">{label}</p>
+    </div>
+  );
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("zh-CN", { hour12: false });
 }
