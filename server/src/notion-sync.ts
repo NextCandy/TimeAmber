@@ -5,6 +5,8 @@ const NOTION_VERSION = "2026-03-11";
 const DEFAULT_DATA_SOURCE_ID = "22837041-b78c-81d8-9670-000b9d50c21b";
 const DEFAULT_NOTION_CATEGORY = "剪藏";
 const DEFAULT_SYNC_BATCH_SIZE = 3;
+const NOTION_DELETED_SLUGS_KEY = "notion_sync_deleted_slugs";
+const MAX_DELETED_NOTION_SLUGS = 5000;
 
 type NotionEnv = {
   NOTION_TOKEN?: string;
@@ -103,6 +105,25 @@ export function getNotionSyncStatus(settings: Record<string, string>, env: Notio
   };
 }
 
+export function isNotionSyncedSlug(slug: string): boolean {
+  return /^notion-[a-f0-9]{12}$/i.test(slug);
+}
+
+export async function rememberDeletedNotionSlugs(db: IDatabase, slugs: string[]): Promise<void> {
+  const notionSlugs = slugs.map(String).filter(isNotionSyncedSlug);
+  if (notionSlugs.length === 0) return;
+
+  const settings = await db.getSettings();
+  const deletedSlugs = parseDeletedNotionSlugs(settings);
+  for (const slug of notionSlugs) {
+    deletedSlugs.add(slug);
+  }
+
+  await db.saveSettings({
+    [NOTION_DELETED_SLUGS_KEY]: JSON.stringify(Array.from(deletedSlugs).slice(-MAX_DELETED_NOTION_SLUGS)),
+  });
+}
+
 export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncResult> {
   const startedAt = new Date().toISOString();
   const startedMs = Date.now();
@@ -143,6 +164,7 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
 
   const client = new NotionClient(token);
   const startCursor = options.settings.notion_sync_next_cursor || undefined;
+  const deletedNotionSlugs = parseDeletedNotionSlugs(options.settings);
   const resultBase = {
     success: true,
     created: 0,
@@ -174,9 +196,13 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
           continue;
         }
 
-        post.content = await options.rewriteImages(post.content);
         const existing = await options.db.getPostBySlug(post.slug);
+        if (!existing && deletedNotionSlugs.has(post.slug)) {
+          resultBase.skipped++;
+          continue;
+        }
 
+        post.content = await options.rewriteImages(post.content);
         if (existing) {
           await options.db.updatePost(post.slug, {
             title: post.title,
@@ -220,6 +246,16 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   const result = finishResult(startedAt, startedMs, resultBase);
   await saveSyncStatus(options.db, result);
   return result;
+}
+
+function parseDeletedNotionSlugs(settings: Record<string, string>): Set<string> {
+  try {
+    const parsed = JSON.parse(settings[NOTION_DELETED_SLUGS_KEY] || "[]");
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.map(String).filter(isNotionSyncedSlug));
+  } catch {
+    return new Set();
+  }
 }
 
 async function notionPageToPost(client: NotionClient, page: NotionPage, options: { includePageBody: boolean }): Promise<NotionSyncPost> {

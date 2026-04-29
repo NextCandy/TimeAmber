@@ -12,7 +12,7 @@ import type { IDatabase } from "./storage/interfaces";
 import type { IObjectStorage } from "./storage/interfaces";
 import { writeAnalyticsPoint, isWebsiteAllowed } from "./analytics/ae-tracker";
 import { queryAEAnalytics } from "./analytics/ae-query";
-import { getNotionSyncStatus, syncNotionPosts } from "./notion-sync";
+import { getNotionSyncStatus, rememberDeletedNotionSlugs, syncNotionPosts } from "./notion-sync";
 
 /* ── 类型定义 ──────────────────────────────── */
 type Bindings = {
@@ -839,6 +839,9 @@ app.post("/api/admin/posts/batch", async (c) => {
   }
   const db = c.get("db");
   const count = await db.batchOperatePosts(slugs, action);
+  if (action === "delete" && count > 0) {
+    await rememberDeletedNotionSlugs(db, slugs);
+  }
   await triggerWebhook(c, "post_batch_operated", { action, slugs, count });
   return c.json({ success: true, count, message: `成功处理 ${count} 篇文章` });
 });
@@ -849,6 +852,7 @@ app.delete("/api/admin/posts/:slug", async (c) => {
   const db = c.get("db");
   const deleted = await db.deletePost(slug);
   if (!deleted) return c.json({ error: "文章未找到" }, 404);
+  await rememberDeletedNotionSlugs(db, [slug]);
   await triggerWebhook(c, "post_deleted", { slug });
   return c.json({ success: true });
 });
