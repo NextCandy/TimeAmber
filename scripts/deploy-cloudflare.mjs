@@ -201,6 +201,11 @@ if (!options.skipMigrate) {
 }
 
 if (!options.skipServer) {
+  if (process.env.NOTION_TOKEN) {
+    runStep("写入 Backend 的 NOTION_TOKEN（Notion 同步）", "npx", [
+      "wrangler", "secret", "put", "NOTION_TOKEN", "--name", "timeamber-server"
+    ], { input: `${process.env.NOTION_TOKEN}\n`, cwd: `${projectRoot}/server` });
+  }
   if (process.env.ADMIN_PASSWORD) {
     runStep("写入 Backend 的 ADMIN_PASSWORD", "npx", [
       "wrangler", "secret", "put", "ADMIN_PASSWORD", "--name", "timeamber-server"
