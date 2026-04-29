@@ -4,6 +4,7 @@ const NOTION_API_BASE = "https://api.notion.com/v1";
 const NOTION_VERSION = "2026-03-11";
 const DEFAULT_DATA_SOURCE_ID = "22837041-b78c-81d8-9670-000b9d50c21b";
 const DEFAULT_NOTION_CATEGORY = "剪藏";
+const DEFAULT_SYNC_BATCH_SIZE = 10;
 
 type NotionEnv = {
   NOTION_TOKEN?: string;
@@ -63,6 +64,9 @@ export type NotionSyncResult = {
   updated: number;
   skipped: number;
   failed: number;
+  processed: number;
+  hasMore: boolean;
+  nextCursor: string;
   errors: string[];
   startedAt: string;
   finishedAt: string;
@@ -93,6 +97,8 @@ export function getNotionSyncStatus(settings: Record<string, string>, env: Notio
     lastUpdated: Number(settings.notion_sync_last_updated || 0),
     lastSkipped: Number(settings.notion_sync_last_skipped || 0),
     lastFailed: Number(settings.notion_sync_last_failed || 0),
+    lastProcessed: Number(settings.notion_sync_last_processed || 0),
+    hasMore: settings.notion_sync_has_more === "true",
     lastDurationMs: Number(settings.notion_sync_last_duration_ms || 0),
   };
 }
@@ -110,6 +116,9 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
       updated: 0,
       skipped: 0,
       failed: 1,
+      processed: 0,
+      hasMore: false,
+      nextCursor: options.settings.notion_sync_next_cursor || "",
       errors: ["NOTION_TOKEN is not configured."],
     });
     await saveSyncStatus(options.db, result);
@@ -123,6 +132,9 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
       updated: 0,
       skipped: 0,
       failed: 1,
+      processed: 0,
+      hasMore: false,
+      nextCursor: "",
       errors: ["NOTION_DATA_SOURCE_ID is not configured."],
     });
     await saveSyncStatus(options.db, result);
@@ -130,15 +142,31 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   }
 
   const client = new NotionClient(token);
-  const resultBase = { success: true, created: 0, updated: 0, skipped: 0, failed: 0, errors: [] as string[] };
+  const startCursor = options.settings.notion_sync_next_cursor || undefined;
+  const resultBase = {
+    success: true,
+    created: 0,
+    updated: 0,
+    skipped: 0,
+    failed: 0,
+    processed: 0,
+    hasMore: false,
+    nextCursor: "",
+    errors: [] as string[],
+  };
 
   try {
-    const pages = await client.queryDataSource(dataSourceId);
-    const tagTitleCache = new Map<string, string>();
+    const pageBatch = await client.queryDataSource(dataSourceId, {
+      startCursor,
+      pageSize: DEFAULT_SYNC_BATCH_SIZE,
+    });
+    resultBase.hasMore = pageBatch.hasMore;
+    resultBase.nextCursor = pageBatch.nextCursor || "";
 
-    for (const page of pages) {
+    for (const page of pageBatch.pages) {
       try {
-        const post = await notionPageToPost(client, page, tagTitleCache);
+        const post = await notionPageToPost(client, page);
+        resultBase.processed++;
         if (!post.title) {
           resultBase.skipped++;
           continue;
@@ -192,13 +220,12 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   return result;
 }
 
-async function notionPageToPost(client: NotionClient, page: NotionPage, tagTitleCache: Map<string, string>): Promise<NotionSyncPost> {
+async function notionPageToPost(client: NotionClient, page: NotionPage): Promise<NotionSyncPost> {
   const properties = page.properties || {};
   const title = truncate(getTitle(properties["标题"]) || "未命名文章", 160);
   const excerpt = truncate(getRichText(properties["摘要"]), 300);
   const sourceUrl = properties["原文地址"]?.url || "";
   const createdAt = properties["发布日期"]?.date?.start || properties["创建时间"]?.date?.start || page.created_time || new Date().toISOString();
-  const tags = await resolveTags(client, properties["标签"], tagTitleCache);
   const authorTags = (properties["作者"]?.multi_select || [])
     .map((item) => item.name?.trim())
     .filter((name): name is string => Boolean(name));
@@ -209,7 +236,7 @@ async function notionPageToPost(client: NotionClient, page: NotionPage, tagTitle
     markdown.trim() || fallbackContent,
     sourceUrl && markdown.trim() ? `\n\n> 原文地址: [${sourceUrl}](${sourceUrl})` : "",
   ].join("").trim();
-  const normalizedTags = Array.from(new Set([DEFAULT_NOTION_CATEGORY, ...tags, ...authorTags])).slice(0, 20);
+  const normalizedTags = Array.from(new Set([DEFAULT_NOTION_CATEGORY, ...authorTags])).slice(0, 20);
 
   return {
     slug: `notion-${page.id.replace(/-/g, "").slice(0, 12)}`,
@@ -227,28 +254,6 @@ function buildClippingFallback(title: string, excerpt: string, sourceUrl: string
   if (excerpt) lines.push(excerpt);
   if (sourceUrl) lines.push(`> 原文地址: [${sourceUrl}](${sourceUrl})`);
   return lines.join("\n\n");
-}
-
-async function resolveTags(client: NotionClient, property: NotionProperty | undefined, cache: Map<string, string>): Promise<string[]> {
-  const relations = property?.relation || [];
-  const tags: string[] = [];
-  for (const relation of relations.slice(0, 20)) {
-    if (cache.has(relation.id)) {
-      const cached = cache.get(relation.id);
-      if (cached) tags.push(cached);
-      continue;
-    }
-    try {
-      const page = await client.retrievePage(relation.id);
-      const titleProperty = Object.values(page.properties || {}).find((item) => item.type === "title");
-      const title = truncate(getTitle(titleProperty), 40);
-      cache.set(relation.id, title);
-      if (title) tags.push(title);
-    } catch {
-      cache.set(relation.id, "");
-    }
-  }
-  return tags;
 }
 
 async function blocksToMarkdown(client: NotionClient, blocks: NotionBlock[], depth: number): Promise<string> {
@@ -419,6 +424,9 @@ async function saveSyncStatus(db: IDatabase, result: NotionSyncResult): Promise<
     notion_sync_last_updated: String(result.updated),
     notion_sync_last_skipped: String(result.skipped),
     notion_sync_last_failed: String(result.failed),
+    notion_sync_last_processed: String(result.processed),
+    notion_sync_has_more: String(result.hasMore),
+    notion_sync_next_cursor: result.nextCursor,
     notion_sync_last_duration_ms: String(result.durationMs),
   });
 }
@@ -430,27 +438,27 @@ function errorToMessage(error: unknown): string {
 class NotionClient {
   constructor(private readonly token: string) {}
 
-  async queryDataSource(dataSourceId: string): Promise<NotionPage[]> {
-    const pages: NotionPage[] = [];
-    let cursor: string | undefined;
-    do {
-      const body: Record<string, unknown> = {
-        page_size: 50,
-        sorts: [{ timestamp: "last_edited_time", direction: "descending" }],
-      };
-      if (cursor) body.start_cursor = cursor;
-      const data = await this.request<{ results?: NotionPage[]; has_more?: boolean; next_cursor?: string | null }>(
-        `/data_sources/${encodeURIComponent(dataSourceId)}/query`,
-        { method: "POST", body: JSON.stringify(body) },
-      );
-      pages.push(...(data.results || []));
-      cursor = data.has_more ? data.next_cursor || undefined : undefined;
-    } while (cursor && pages.length < 2000);
-    return pages;
-  }
+  async queryDataSource(dataSourceId: string, options: { startCursor?: string; pageSize: number }): Promise<{
+    pages: NotionPage[];
+    hasMore: boolean;
+    nextCursor: string;
+  }> {
+    const body: Record<string, unknown> = {
+      page_size: Math.max(1, Math.min(options.pageSize, 20)),
+      sorts: [{ timestamp: "last_edited_time", direction: "descending" }],
+    };
+    if (options.startCursor) body.start_cursor = options.startCursor;
 
-  async retrievePage(pageId: string): Promise<NotionPage> {
-    return this.request<NotionPage>(`/pages/${encodeURIComponent(pageId)}`);
+    const data = await this.request<{ results?: NotionPage[]; has_more?: boolean; next_cursor?: string | null }>(
+      `/data_sources/${encodeURIComponent(dataSourceId)}/query`,
+      { method: "POST", body: JSON.stringify(body) },
+    );
+
+    return {
+      pages: data.results || [],
+      hasMore: Boolean(data.has_more),
+      nextCursor: data.has_more ? data.next_cursor || "" : "",
+    };
   }
 
   async listBlockChildren(blockId: string): Promise<NotionBlock[]> {
