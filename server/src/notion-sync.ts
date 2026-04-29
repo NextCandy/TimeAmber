@@ -4,7 +4,7 @@ const NOTION_API_BASE = "https://api.notion.com/v1";
 const NOTION_VERSION = "2026-03-11";
 const DEFAULT_DATA_SOURCE_ID = "22837041-b78c-81d8-9670-000b9d50c21b";
 const DEFAULT_NOTION_CATEGORY = "剪藏";
-const DEFAULT_SYNC_BATCH_SIZE = 10;
+const DEFAULT_SYNC_BATCH_SIZE = 3;
 
 type NotionEnv = {
   NOTION_TOKEN?: string;
@@ -165,7 +165,9 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
 
     for (const page of pageBatch.pages) {
       try {
-        const post = await notionPageToPost(client, page);
+        const post = await notionPageToPost(client, page, {
+          includePageBody: options.settings.notion_sync_include_page_body === "true",
+        });
         resultBase.processed++;
         if (!post.title) {
           resultBase.skipped++;
@@ -220,7 +222,7 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   return result;
 }
 
-async function notionPageToPost(client: NotionClient, page: NotionPage): Promise<NotionSyncPost> {
+async function notionPageToPost(client: NotionClient, page: NotionPage, options: { includePageBody: boolean }): Promise<NotionSyncPost> {
   const properties = page.properties || {};
   const title = truncate(getTitle(properties["标题"]) || "未命名文章", 160);
   const excerpt = truncate(getRichText(properties["摘要"]), 300);
@@ -229,8 +231,8 @@ async function notionPageToPost(client: NotionClient, page: NotionPage): Promise
   const authorTags = (properties["作者"]?.multi_select || [])
     .map((item) => item.name?.trim())
     .filter((name): name is string => Boolean(name));
-  const blocks = await client.listBlockChildren(page.id);
-  const markdown = await blocksToMarkdown(client, blocks, 0);
+  const blocks = options.includePageBody ? await client.listBlockChildren(page.id) : [];
+  const markdown = blocks.length > 0 ? await blocksToMarkdown(client, blocks, 0) : "";
   const fallbackContent = buildClippingFallback(title, excerpt, sourceUrl);
   const content = [
     markdown.trim() || fallbackContent,
