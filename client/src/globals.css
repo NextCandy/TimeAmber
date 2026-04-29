@@ -297,6 +297,15 @@
   letter-spacing: 0.012em;
   color: oklch(0.85 0 0);
   word-spacing: 0.02em;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.prose-timeamber :where(p, li, blockquote, td, th, figcaption, details, summary) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* 标题 */
@@ -341,6 +350,8 @@
   text-decoration-color: oklch(0.7 0.12 220 / 30%);
   text-underline-offset: 3px;
   transition: all 0.2s ease;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .prose-timeamber a:hover {
@@ -387,6 +398,8 @@
   background: oklch(1 0 0 / 4%);
   border-radius: 0 8px 8px 0;
   font-style: normal;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .prose-timeamber blockquote p {
