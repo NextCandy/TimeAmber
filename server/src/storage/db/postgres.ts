@@ -179,16 +179,19 @@ export class PostgresAdapter implements IDatabase {
     const tagMap = new Map<number, string[]>();
     if (postIds.length === 0) return tagMap;
 
-    const rows = await this.db
-      .select({ postId: pgPostTags.postId, name: pgTags.name })
-      .from(pgPostTags)
-      .innerJoin(pgTags, eq(pgPostTags.tagId, pgTags.id))
-      .where(inArray(pgPostTags.postId, postIds));
+    for (let i = 0; i < postIds.length; i += 80) {
+      const batch = postIds.slice(i, i + 80);
+      const rows = await this.db
+        .select({ postId: pgPostTags.postId, name: pgTags.name })
+        .from(pgPostTags)
+        .innerJoin(pgTags, eq(pgPostTags.tagId, pgTags.id))
+        .where(inArray(pgPostTags.postId, batch));
 
-    for (const row of rows) {
-      const list = tagMap.get(row.postId) || [];
-      list.push(row.name);
-      tagMap.set(row.postId, list);
+      for (const row of rows) {
+        const list = tagMap.get(row.postId) || [];
+        list.push(row.name);
+        tagMap.set(row.postId, list);
+      }
     }
 
     return tagMap;

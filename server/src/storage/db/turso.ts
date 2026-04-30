@@ -42,16 +42,19 @@ export class TursoAdapter implements IDatabase {
     const tagMap = new Map<number, string[]>();
     if (postIds.length === 0) return tagMap;
 
-    const rows = await this.db
-      .select({ postId: postTags.postId, name: tags.name })
-      .from(postTags)
-      .innerJoin(tags, eq(postTags.tagId, tags.id))
-      .where(inArray(postTags.postId, postIds));
+    for (let i = 0; i < postIds.length; i += 80) {
+      const batch = postIds.slice(i, i + 80);
+      const rows = await this.db
+        .select({ postId: postTags.postId, name: tags.name })
+        .from(postTags)
+        .innerJoin(tags, eq(postTags.tagId, tags.id))
+        .where(inArray(postTags.postId, batch));
 
-    for (const row of rows) {
-      const list = tagMap.get(row.postId) || [];
-      list.push(row.name);
-      tagMap.set(row.postId, list);
+      for (const row of rows) {
+        const list = tagMap.get(row.postId) || [];
+        list.push(row.name);
+        tagMap.set(row.postId, list);
+      }
     }
 
     return tagMap;
