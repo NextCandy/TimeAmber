@@ -16,8 +16,8 @@ export function ArticleCard({ post }: { post: PostMeta }) {
   };
 
   return (
-    <Link href={`/posts/${post.slug}`} className="group block" onMouseEnter={warmPost} onFocus={warmPost} onTouchStart={warmPost}>
-      <article className="relative h-[190px] overflow-hidden rounded-md border border-border/40 bg-card/30 backdrop-blur-sm transition-all duration-300 hover:border-border/70 hover:bg-card/50 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-[2px] sm:h-[172px] lg:h-[184px]">
+    <Link href={`/posts/${post.slug}`} className="group block min-w-0 max-w-full" onMouseEnter={warmPost} onFocus={warmPost} onTouchStart={warmPost}>
+      <article className="relative h-[190px] min-w-0 max-w-full overflow-hidden rounded-md border border-border/40 bg-card/30 backdrop-blur-sm transition-all duration-300 hover:border-border/70 hover:bg-card/50 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-[2px] sm:h-[172px] lg:h-[184px]">
         <div className="flex h-full min-h-0 flex-col sm:flex-row">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-[16px] sm:p-[20px] lg:p-[24px]">
             <div className="mb-[8px] flex min-h-[22px] max-w-full flex-nowrap items-center gap-[8px] overflow-hidden">

@@ -198,9 +198,9 @@ export function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col gap-[16px]">
+            <div className="flex min-w-0 flex-col gap-[16px]">
               {posts.map((post, i) => (
-                <AnimateIn key={post.slug} delay={`delay-${Math.min(i, 6)}`}>
+                <AnimateIn key={post.slug} delay={`delay-${Math.min(i, 6)}`} className="min-w-0 max-w-full">
                   <ArticleCard post={post} />
                 </AnimateIn>
               ))}
@@ -237,7 +237,7 @@ export function HomePage() {
 
                 {/* 社交链接图标行 */}
                 {socialLinks.length > 0 && (
-                  <div className="mt-[14px] flex items-center gap-[12px] border-t border-border/20 pt-[14px]">
+                  <div className="mt-[14px] flex min-w-0 items-center gap-[12px] border-t border-border/20 pt-[14px]">
                     {socialLinks.map((link) => (
                       <a
                         key={link.label}
