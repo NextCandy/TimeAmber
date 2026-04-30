@@ -186,8 +186,8 @@ export function HomePage() {
         siteTagline={siteTagline}
       />
       <Separator className="bg-border/30" />
-      <div className="grid grid-cols-1 gap-[32px] py-[40px] lg:grid-cols-[1fr_280px] lg:gap-[40px]">
-        <section>
+      <div className="grid grid-cols-1 gap-[32px] py-[40px] lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-[40px]">
+        <section className="min-w-0">
           <AnimateIn>
             <h2 className="mb-[24px] text-[14px] font-medium uppercase tracking-[0.08em] text-muted-foreground/60">最新文章</h2>
           </AnimateIn>
@@ -208,7 +208,7 @@ export function HomePage() {
           )}
         </section>
 
-        <aside className="hidden lg:block">
+        <aside className="hidden min-w-0 lg:block">
           <div className="sticky top-[72px] flex flex-col gap-[24px] mt-[42px]">
             {/* ── 博主名片 ── */}
             <AnimateIn animation="animate-fade-in" delay="delay-2">
@@ -228,9 +228,9 @@ export function HomePage() {
                       {authorName.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div>
-                    <p className="text-[14px] font-semibold text-foreground">{authorName}</p>
-                    <p className="text-[12px] text-muted-foreground/60">{authorTitle}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-[14px] font-semibold text-foreground">{authorName}</p>
+                    <p className="truncate text-[12px] text-muted-foreground/60">{authorTitle}</p>
                   </div>
                 </div>
                 <p className="text-[13px] leading-[1.7] text-muted-foreground">{authorBio}</p>
