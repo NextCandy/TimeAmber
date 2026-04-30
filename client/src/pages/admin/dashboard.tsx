@@ -230,7 +230,7 @@ export function AdminDashboard() {
 
 
   return (
-    <div className="mx-auto w-full max-w-[960px] py-[24px] sm:py-[36px] px-[16px] sm:px-[20px]">
+    <div className="mx-auto w-full max-w-[1560px] py-[24px] sm:py-[36px] px-[16px] sm:px-[20px]">
 
       {/* ═══════════ 顶栏：标题 + 操作 ═══════════ */}
       <div className="mb-[24px] sm:mb-[32px]">
@@ -300,10 +300,10 @@ export function AdminDashboard() {
       </div>
 
       {/* ═══════════ 两栏主布局 ═══════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-[20px]">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_280px] gap-[20px]">
 
         {/* ─── 文章列表 ─── */}
-        <div className="flex flex-col min-h-0 lg:max-h-[calc(100vh-260px)]">
+        <div className="flex min-w-0 flex-col min-h-0 xl:max-h-[calc(100vh-260px)]">
           <div className="mb-[10px] flex items-center justify-between shrink-0">
             <h2 className="text-[12px] font-medium text-muted-foreground/40 uppercase tracking-wider flex items-center gap-[5px]">
               {filter === "all" ? "所有文章" : filter === "published" ? "已发布" : "草稿箱"}
@@ -413,7 +413,7 @@ export function AdminDashboard() {
         </div>
 
         {/* ─── 右侧边栏：标签 + 热门 + SEO ─── */}
-        <div className="space-y-[14px] lg:sticky lg:top-[24px] lg:self-start">
+        <div className="min-w-0 space-y-[14px] xl:sticky xl:top-[24px] xl:self-start">
 
           {/* SEO 健康状态 */}
           {posts.length > 0 && (() => {
@@ -452,9 +452,9 @@ export function AdminDashboard() {
                     const Icon = pct === 100 ? CheckCircle2 : pct >= 70 ? AlertTriangle : XCircle;
                     const color = pct === 100 ? "text-emerald-400/70" : pct >= 70 ? "text-amber-400/70" : "text-red-400/60";
                     return (
-                      <div key={c.label} className="flex items-center gap-[6px]">
+                      <div key={c.label} className="flex min-w-0 items-center gap-[6px]">
                         <Icon className={`h-[11px] w-[11px] shrink-0 ${color}`} />
-                        <span className="flex-1 text-[11px] text-foreground/50">{c.label}</span>
+                        <span className="min-w-0 flex-1 truncate text-[11px] text-foreground/50">{c.label}</span>
                         <span className="text-[10px] text-muted-foreground/30">{c.ok}/{c.total}</span>
                       </div>
                     );
@@ -468,9 +468,9 @@ export function AdminDashboard() {
                     { label: "JSON-LD 结构化", ok: true },
                     { label: "OG 社交标签", ok: true },
                   ].map(item => (
-                    <div key={item.label} className="flex items-center gap-[6px]">
+                    <div key={item.label} className="flex min-w-0 items-center gap-[6px]">
                       <CheckCircle2 className="h-[11px] w-[11px] shrink-0 text-emerald-400/50" />
-                      <span className="text-[11px] text-foreground/40">{item.label}</span>
+                      <span className="min-w-0 truncate text-[11px] text-foreground/40">{item.label}</span>
                     </div>
                   ))}
                 </div>

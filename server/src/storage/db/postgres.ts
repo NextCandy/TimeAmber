@@ -412,17 +412,27 @@ export class PostgresAdapter implements IDatabase {
 
   async batchOperatePosts(slugs: string[], action: "publish" | "unpublish" | "delete"): Promise<number> {
     if (!slugs || slugs.length === 0) return 0;
+    let count = 0;
+
     if (action === "delete") {
-      const result = await this.db.delete(pgPosts).where(inArray(pgPosts.slug, slugs)).returning();
-      return result.length;
-    } else {
-      const published = action === "publish";
+      for (let i = 0; i < slugs.length; i += 80) {
+        const batch = slugs.slice(i, i + 80);
+        const result = await this.db.delete(pgPosts).where(inArray(pgPosts.slug, batch)).returning();
+        count += result.length;
+      }
+      return count;
+    }
+
+    const published = action === "publish";
+    for (let i = 0; i < slugs.length; i += 80) {
+      const batch = slugs.slice(i, i + 80);
       const result = await this.db.update(pgPosts)
         .set({ published, updatedAt: new Date() })
-        .where(inArray(pgPosts.slug, slugs))
+        .where(inArray(pgPosts.slug, batch))
         .returning();
-      return result.length;
+      count += result.length;
     }
+    return count;
   }
 
   async publishScheduledPosts(): Promise<number> {

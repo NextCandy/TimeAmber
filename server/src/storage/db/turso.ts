@@ -393,17 +393,27 @@ export class TursoAdapter implements IDatabase {
 
   async batchOperatePosts(slugs: string[], action: "publish" | "unpublish" | "delete"): Promise<number> {
     if (!slugs || slugs.length === 0) return 0;
+    let count = 0;
+
     if (action === "delete") {
-      const result = await this.db.delete(posts).where(inArray(posts.slug, slugs)).returning();
-      return result.length;
-    } else {
-      const published = action === "publish";
+      for (let i = 0; i < slugs.length; i += 80) {
+        const batch = slugs.slice(i, i + 80);
+        const result = await this.db.delete(posts).where(inArray(posts.slug, batch)).returning();
+        count += result.length;
+      }
+      return count;
+    }
+
+    const published = action === "publish";
+    for (let i = 0; i < slugs.length; i += 80) {
+      const batch = slugs.slice(i, i + 80);
       const result = await this.db.update(posts)
         .set({ published, updatedAt: new Date().toISOString() })
-        .where(inArray(posts.slug, slugs))
+        .where(inArray(posts.slug, batch))
         .returning();
-      return result.length;
+      count += result.length;
     }
+    return count;
   }
 
   async publishScheduledPosts(): Promise<number> {
