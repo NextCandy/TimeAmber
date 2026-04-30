@@ -26,7 +26,10 @@ export async function createDatabase(env: Record<string, unknown>): Promise<IDat
     case "d1": {
       if (!env.DB) throw new Error("缺少 D1 数据库绑定 (env.DB)");
       const d1Adapter = new D1Adapter(env.DB as D1Database);
-      d1SchemaReady ??= d1Adapter.ensureSchema();
+      d1SchemaReady ??= d1Adapter.ensureSchema().catch((err) => {
+        d1SchemaReady = null;
+        throw err;
+      });
       await d1SchemaReady;
       return d1Adapter;
     }

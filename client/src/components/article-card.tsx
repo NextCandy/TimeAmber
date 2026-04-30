@@ -9,7 +9,6 @@ function formatDate(dateStr: string): string {
 }
 
 export function ArticleCard({ post }: { post: PostMeta }) {
-  const cover = post.coverImage?.trim();
   const warmPost = () => {
     prefetchPost(post.slug);
     preloadMarkdownRenderer();
@@ -18,20 +17,8 @@ export function ArticleCard({ post }: { post: PostMeta }) {
 
   return (
     <Link href={`/posts/${post.slug}`} className="group block" onMouseEnter={warmPost} onFocus={warmPost} onTouchStart={warmPost}>
-      <article className="relative h-[260px] overflow-hidden rounded-md border border-border/40 bg-card/30 backdrop-blur-sm transition-all duration-300 hover:border-border/70 hover:bg-card/50 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-[2px] sm:h-[172px] lg:h-[184px]">
+      <article className="relative h-[190px] overflow-hidden rounded-md border border-border/40 bg-card/30 backdrop-blur-sm transition-all duration-300 hover:border-border/70 hover:bg-card/50 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-[2px] sm:h-[172px] lg:h-[184px]">
         <div className="flex h-full min-h-0 flex-col sm:flex-row">
-          {cover && (
-            <div className="relative h-[104px] shrink-0 overflow-hidden sm:h-full sm:w-[180px] lg:w-[200px]">
-              <img
-                src={cover}
-                alt={post.title}
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.04]"
-              />
-            </div>
-          )}
-
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-[16px] sm:p-[20px] lg:p-[24px]">
             <div className="mb-[8px] flex min-h-[22px] max-w-full flex-nowrap items-center gap-[8px] overflow-hidden">
               {post.pinned && (

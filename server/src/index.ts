@@ -40,7 +40,6 @@ type Variables = {
 };
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
-const DEFAULT_COVER_IMAGE = "";
 
 /* ── 全局中间件 ────────────────────────────── */
 app.use("*", cors({
@@ -347,6 +346,7 @@ app.post("/api/posts/:slug/reactions", async (c) => {
 // 公开：获取前台需要的设置（不含敏感信息）
 app.get("/api/settings/public", async (c) => {
   const db = c.get("db");
+  c.header("Cache-Control", "public, max-age=300, s-maxage=1800, stale-while-revalidate=3600");
   const all = await db.getSettings();
   return c.json({
     site_title: all.site_title || "TimeAmber",
@@ -370,6 +370,7 @@ app.get("/api/settings/public", async (c) => {
 // 公开流量统计（侧边栏折线图）
 app.get("/api/stats/traffic", async (c) => {
   const db = c.get("db");
+  c.header("Cache-Control", "public, max-age=120, s-maxage=600, stale-while-revalidate=1800");
   const [chart, stats] = await Promise.all([
     db.getDailyViews(14),
     db.getViewStats(1),   // 只取 top1 即可，主要用 totalViews
@@ -584,6 +585,7 @@ app.use("/api/admin/*", async (c, next) => {
 // 获取所有文章（含未发布，管理后台用）
 app.get("/api/admin/posts", async (c) => {
   const db = c.get("db");
+  c.header("Cache-Control", "no-store");
   const result = await db.getAllPosts();
   return c.json(result);
 });
@@ -675,6 +677,10 @@ function extractFirstImage(markdown: string): string {
   return "";
 }
 
+function normalizeCoverImage(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 // 创建文章
 function normalizeSlug(input: string): string {
   return (input || "")
@@ -708,9 +714,7 @@ app.post("/api/admin/posts", async (c) => {
     const seeResult = await rewriteExternalImagesToSee(body.content, settings);
     body.content = seeResult.content;
   }
-  if (!body.coverImage) {
-    body.coverImage = extractFirstImage(body.content || "") || DEFAULT_COVER_IMAGE;
-  }
+  body.coverImage = normalizeCoverImage(body.coverImage);
   const newPost = await db.createPost(body);
   await triggerWebhook(c, "post_created", newPost);
   return c.json(newPost, 201);
@@ -763,7 +767,7 @@ app.post("/api/admin/import/markdown", async (c) => {
       content,
       excerpt: (item.excerpt || "").trim().slice(0, 300),
       coverColor: item.coverColor || "from-cyan-500/20 to-blue-600/20",
-      coverImage: item.coverImage || extractFirstImage(content) || DEFAULT_COVER_IMAGE,
+      coverImage: normalizeCoverImage(item.coverImage),
       tags,
       category: (item.category || "").trim().slice(0, 60),
       published: false,
@@ -789,9 +793,9 @@ app.put("/api/admin/posts/:slug", async (c) => {
     const seeResult = await rewriteExternalImagesToSee(body.content, settings);
     body.content = seeResult.content;
   }
-  // 若用户清空了封面但正文有图，自动回填首图
-  if (body.content !== undefined && (body.coverImage === undefined || body.coverImage === "")) {
-    body.coverImage = extractFirstImage(body.content) || DEFAULT_COVER_IMAGE;
+  // 封面图默认保持为空；只有用户显式设置时才保存。
+  if (body.coverImage !== undefined) {
+    body.coverImage = normalizeCoverImage(body.coverImage);
   }
   const updated = await db.updatePost(slug, body);
   if (!updated) return c.json({ error: "文章未找到" }, 404);
@@ -1358,7 +1362,7 @@ app.post("/api/admin/ai/batch-optimize", async (c) => {
       await db.createPostVersion(slug);
       await db.updatePost(slug, {
         content: rewritten.content,
-        coverImage: extractFirstImage(rewritten.content) || post.coverImage || DEFAULT_COVER_IMAGE,
+        coverImage: "",
       });
       updated++;
       results.push({ slug, title: post.title, status: "updated" });

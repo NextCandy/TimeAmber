@@ -7,12 +7,28 @@ import { fetchPosts, fetchCategories, fetchPublicSettings, type PostMeta, type C
 import { AnimateIn } from "@/hooks/use-animate";
 import { SeoHead } from "@/components/seo-head";
 import { ExternalLink, Mail, Rss, Eye, FolderOpen, Hash, ChevronDown } from "lucide-react";
+import { preloadMarkdownRenderer } from "@/lib/markdown-loader";
 
 type TrafficData = {
   totalViews: number;
   totalPosts: number;
   chart: { date: string; count: number }[];
 };
+
+function preconnectToMedia(url: string) {
+  try {
+    const origin = new URL(url).origin;
+    if (origin === window.location.origin || document.head.querySelector(`link[data-media-origin="${origin}"]`)) return;
+    const link = document.createElement("link");
+    link.rel = "preconnect";
+    link.href = origin;
+    link.crossOrigin = "anonymous";
+    link.dataset.mediaOrigin = origin;
+    document.head.appendChild(link);
+  } catch {
+    // Ignore relative or invalid URLs.
+  }
+}
 
 /* ── 紧凑标签云 ── */
 const TAG_VISIBLE = 15;
@@ -114,6 +130,25 @@ export function HomePage() {
     fetchCategories().then(setCategories).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const urls = [settings?.author_avatar].filter((url): url is string => Boolean(url));
+    urls.forEach(preconnectToMedia);
+  }, [settings?.author_avatar]);
+
+  useEffect(() => {
+    if (posts.length === 0) return;
+    const warmArticleRoute = () => {
+      preloadMarkdownRenderer();
+      void import("@/pages/post");
+    };
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(warmArticleRoute, { timeout: 2500 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = globalThis.setTimeout(warmArticleRoute, 1200);
+    return () => globalThis.clearTimeout(id);
+  }, [posts.length]);
+
   // 计算标签频次并按热度排序
   const tagCounts = new Map<string, number>();
   for (const p of posts) {
@@ -183,6 +218,9 @@ export function HomePage() {
                     <img
                       src={authorAvatar}
                       alt={authorName}
+                      loading="eager"
+                      decoding="async"
+                      fetchPriority="high"
                       className="h-[40px] w-[40px] rounded-full object-cover border border-border/30"
                     />
                   ) : (

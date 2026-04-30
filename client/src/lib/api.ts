@@ -210,6 +210,7 @@ export async function checkAuth(): Promise<boolean> {
 export async function fetchAdminPosts(): Promise<Post[]> {
   const res = await fetch(`${API_BASE}/api/admin/posts`, {
     headers: authHeaders(),
+    cache: "no-store",
   });
   if (!res.ok) throw new Error("获取文章列表失败");
   return res.json();

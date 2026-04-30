@@ -47,6 +47,7 @@ function excerptFromMarkdown(content: string): string {
 export function AdminDashboard() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [deleting, setDeleting] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
@@ -58,7 +59,16 @@ export function AdminDashboard() {
 
   useEffect(() => {
     document.title = "管理后台 | TimeAmber";
-    fetchAdminPosts().then(setPosts).finally(() => setLoading(false));
+    fetchAdminPosts()
+      .then((data) => {
+        setPosts(data);
+        setLoadError("");
+      })
+      .catch((err) => {
+        setPosts([]);
+        setLoadError(err instanceof Error ? err.message : "文章列表加载失败");
+      })
+      .finally(() => setLoading(false));
     fetchViewStats().then(setViewStats).catch(() => {});
   }, []);
 
@@ -333,6 +343,18 @@ export function AdminDashboard() {
 
           {loading ? (
             <div className="space-y-[6px] shrink-0">{[1, 2, 3].map((i) => <div key={i} className="h-[72px] animate-pulse rounded-lg border border-border/10 bg-card/5" />)}</div>
+          ) : loadError ? (
+            <div className="rounded-lg border border-red-500/20 bg-red-500/8 py-[40px] px-[20px] text-center shrink-0">
+              <XCircle className="mx-auto mb-[12px] h-[24px] w-[24px] text-red-400/70" />
+              <p className="text-[13px] text-red-300 mb-[8px]">文章列表加载失败</p>
+              <p className="mx-auto max-w-[520px] text-[12px] leading-[1.7] text-muted-foreground/55 break-words">{loadError}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-[16px] inline-flex h-[30px] items-center rounded-md border border-border/20 bg-card/20 px-[12px] text-[12px] text-foreground/70 transition-colors hover:bg-card/35"
+              >
+                重新加载
+              </button>
+            </div>
           ) : filteredPosts.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border/20 py-[52px] text-center shrink-0">
               <FileText className="mx-auto mb-[12px] h-[24px] w-[24px] text-muted-foreground/10" />
