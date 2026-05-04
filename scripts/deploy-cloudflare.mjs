@@ -226,7 +226,7 @@ if (!options.skipMigrate) {
   runStep(
     "补齐远程 D1 schema 兼容列",
     "node",
-    ["scripts/reconcile-d1-schema.mjs", "--remote"],
+    ["scripts/reconcile-d1-schema.mjs", "--remote", "--database", "timeamber-db"],
   );
 }
 

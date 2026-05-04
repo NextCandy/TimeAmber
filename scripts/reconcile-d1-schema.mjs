@@ -9,7 +9,7 @@ const SHELL = IS_WIN;
 function parseArgs(argv) {
   const options = {
     mode: "local",
-    database: "monolith-db",
+    database: process.env.TIMEAMBER_D1_DATABASE || process.env.MONOLITH_D1_DATABASE || "timeamber-db",
   };
 
   for (let i = 0; i < argv.length; i += 1) {
