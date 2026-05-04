@@ -31,8 +31,8 @@ export function AdminLogin() {
   };
 
   return (
-    <div className="flex flex-1 items-center justify-center py-[80px]">
-      <div className="w-full max-w-[360px] rounded-lg border border-border/40 bg-card/30 p-[32px]">
+    <div className="flex flex-1 items-center justify-center px-[16px] py-[64px] sm:py-[80px]">
+      <div className="w-full max-w-[280px] rounded-md border border-border/30 bg-background/35 p-[24px] sm:max-w-[360px] sm:p-[32px]">
         <div className="mb-[24px] text-center">
           <BrandImage
             alt=""
@@ -64,7 +64,7 @@ export function AdminLogin() {
             autoComplete="current-password"
             aria-label="管理员密码"
             autoFocus
-            className="h-[40px] rounded-md border border-border/60 bg-background/50 px-[12px] text-[14px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-foreground/30 transition-colors"
+            className="h-[44px] w-full min-w-0 rounded-md border border-border/60 bg-background/50 px-[12px] pr-[48px] text-[14px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-foreground/30"
           />
           {error && <p className="text-[13px] text-destructive">{error}</p>}
           <button

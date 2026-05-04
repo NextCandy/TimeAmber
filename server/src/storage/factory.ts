@@ -21,16 +21,21 @@ let d1SchemaReady: Promise<void> | null = null;
  */
 export async function createDatabase(env: Record<string, unknown>): Promise<IDatabase> {
   const provider = (env.DB_PROVIDER as string) || "d1";
+  const autoSchemaMigration = env.AUTO_SCHEMA_MIGRATION === "true";
 
   switch (provider) {
     case "d1": {
       if (!env.DB) throw new Error("缺少 D1 数据库绑定 (env.DB)");
       const d1Adapter = new D1Adapter(env.DB as D1Database);
-      d1SchemaReady ??= d1Adapter.ensureSchema().catch((err) => {
-        d1SchemaReady = null;
-        throw err;
-      });
-      await d1SchemaReady;
+      if (autoSchemaMigration) {
+        d1SchemaReady ??= d1Adapter.ensureSchema().catch((err) => {
+          d1SchemaReady = null;
+          throw err;
+        });
+        await d1SchemaReady;
+      } else {
+        await d1Adapter.ensureSchemaBaseline();
+      }
       return d1Adapter;
     }
 
@@ -112,4 +117,3 @@ export function createObjectStorage(env: Record<string, unknown>): IObjectStorag
       throw new Error(`不支持的存储提供者: ${provider}。可选值: r2, s3`);
   }
 }
-

@@ -23,6 +23,7 @@ type Bindings = {
   JWT_SECRET: string;
   REACTION_SALT?: string;
   DB_PROVIDER?: string;
+  AUTO_SCHEMA_MIGRATION?: string;
   STORAGE_PROVIDER?: string;
   WEBHOOK_URLS?: string; // 逗号分隔的 Webhook 目标地址
   SITE_ORIGIN?: string; // 对外公开域名（如 https://timeamber.com），用于 sitemap/robots/RSS
@@ -360,6 +361,7 @@ app.get("/api/settings/public", async (c) => {
     github_url: all.github_url || "",
     twitter_url: all.twitter_url || "",
     email: all.email || "",
+    social_links: all.social_links || "",
     rss_enabled: all.rss_enabled || "true",
     friend_links: all.friend_links || "[]",
     custom_header: all.custom_header || "",

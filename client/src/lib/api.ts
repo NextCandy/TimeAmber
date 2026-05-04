@@ -107,6 +107,7 @@ export type PublicSettings = {
   github_url: string;
   twitter_url: string;
   email: string;
+  social_links: string;
   footer_text: string;
   rss_enabled: string;
   friend_links: string;

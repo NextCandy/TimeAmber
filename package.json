@@ -1,6 +1,6 @@
 {
   "name": "timeamber",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "private": true,
   "workspaces": [
     "client",
@@ -14,12 +14,14 @@
     "deploy:server": "npm -w timeamber-server run deploy",
     "deploy:client": "node -e \"const {spawnSync}=require('node:child_process'); const result=spawnSync('npx',['wrangler','pages','deploy','dist','--project-name','timeamber-client','--branch','main','--commit-dirty=true'],{cwd:'client',stdio:'inherit',shell:process.platform==='win32'}); process.exit(result.status ?? 1);\"",
     "deploy:cloudflare": "node scripts/deploy-cloudflare.mjs",
+    "db:reconcile:d1:local": "node scripts/reconcile-d1-schema.mjs --local",
+    "db:reconcile:d1:remote": "node scripts/reconcile-d1-schema.mjs --remote",
     "db:migrate:local": "npm -w timeamber-server run db:migrate:local",
     "db:migrate:remote": "npm -w timeamber-server run db:migrate:remote",
     "db:seed:local": "npm -w timeamber-server run db:seed:local",
     "db:seed:test-posts:local": "npm -w timeamber-server run db:seed:test-posts:local",
-    "check": "npm --workspaces run check",
-    "lint": "npm --workspaces run lint"
+    "check": "npm -ws run check",
+    "lint": "npm -ws run lint"
   },
   "engines": {
     "node": ">=24"
