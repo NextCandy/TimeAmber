@@ -1259,7 +1259,7 @@ app.get("/api/admin/notion-sync/status", async (c) => {
 
 app.post("/api/admin/notion-sync/run", async (c) => {
   const db = c.get("db");
-  const result = await runNotionSync(db, c.env, { resetCursor: true, maxPages: 4 });
+  const result = await runNotionSync(db, c.env, { resetCursor: true, maxPages: 3 });
   return c.json(result, result.success ? 200 : 502);
 });
 
