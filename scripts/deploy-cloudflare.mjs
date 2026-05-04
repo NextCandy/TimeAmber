@@ -3,6 +3,7 @@ import process from "node:process";
 
 const projectRoot = process.cwd();
 const clientRoot = `${projectRoot}/client`;
+const serverRoot = `${projectRoot}/server`;
 // Windows 下 npm/npx 实际是 .cmd 脚本，必须 shell:true 才能找到
 const IS_WIN = process.platform === "win32";
 const SHELL = IS_WIN;
@@ -105,6 +106,22 @@ function runCapture(title, command, args) {
   return `${result.stdout || ""}\n${result.stderr || ""}`;
 }
 
+function runWranglerResult(args, extra = {}) {
+  return runResult("npx", ["wrangler", ...args], {
+    ...extra,
+    cwd: extra.cwd || serverRoot,
+  });
+}
+
+function runWranglerStep(title, args, extra = {}) {
+  console.log(`\n==> ${title}`);
+  const result = runWranglerResult(args, extra);
+
+  if (result.error || result.status !== 0) {
+    failStep(title, "npx", result);
+  }
+}
+
 function checkPrerequisites() {
   const errors = [];
   // wrangler 登录态检测：API_TOKEN 或本机 oauth 二选一
@@ -176,11 +193,9 @@ function resolvePagesEnv(branch) {
 
 function ensurePagesProject(projectName, branch) {
   console.log(`[info] 未发现 Pages 项目 "${projectName}"，将自动创建（生产分支：${branch}）。`);
-  runStep(
+  runWranglerStep(
     `创建 Cloudflare Pages 项目 "${projectName}"`,
-    "npx",
     [
-      "wrangler",
       "pages",
       "project",
       "create",
@@ -272,7 +287,6 @@ if (!options.skipClient) {
   const pagesEnv = resolvePagesEnv(options.branch);
 
   const pagesSecretArgs = [
-    "wrangler",
     "pages",
     "secret",
     "put",
@@ -283,7 +297,7 @@ if (!options.skipClient) {
     pagesEnv,
   ];
   console.log(`\n==> 写入 Cloudflare Pages 的 API_BASE`);
-  let pagesSecret = runResult("npx", pagesSecretArgs, { input: `${options.apiBase}\n`, stdio: "pipe" });
+  let pagesSecret = runWranglerResult(pagesSecretArgs, { input: `${options.apiBase}\n`, stdio: "pipe" });
   printResultOutput(pagesSecret);
 
   if (pagesSecret.error || pagesSecret.status !== 0) {
@@ -293,7 +307,7 @@ if (!options.skipClient) {
     console.warn("[warn] Pages 项目不存在，创建后重试 API_BASE 写入。");
     ensurePagesProject(options.pagesProject, options.branch);
     console.log(`\n==> 重试写入 Cloudflare Pages 的 API_BASE`);
-    pagesSecret = runResult("npx", pagesSecretArgs, { input: `${options.apiBase}\n`, stdio: "pipe" });
+    pagesSecret = runWranglerResult(pagesSecretArgs, { input: `${options.apiBase}\n`, stdio: "pipe" });
     printResultOutput(pagesSecret);
   }
 
@@ -302,11 +316,10 @@ if (!options.skipClient) {
   }
 
   runStep("构建前端", "npm", ["run", "build"]);
-  runStep("部署 Cloudflare Pages 前端", "npx", [
-    "wrangler",
+  runWranglerStep("部署 Cloudflare Pages 前端", [
     "pages",
     "deploy",
-    "dist",
+    `${clientRoot}/dist`,
     "--project-name",
     options.pagesProject,
     "--branch",
@@ -314,7 +327,7 @@ if (!options.skipClient) {
     "--commit-dirty=true",
     "--commit-message",
     "timeamber deploy",
-  ], { cwd: clientRoot });
+  ]);
 }
 
 console.log("\n部署流程完成。");
