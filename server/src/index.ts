@@ -1239,13 +1239,15 @@ app.put("/api/admin/settings", async (c) => {
   return c.json({ success: true });
 });
 
-async function runNotionSync(db: IDatabase, env: Bindings) {
+async function runNotionSync(db: IDatabase, env: Bindings, options: { resetCursor?: boolean; maxPages?: number } = {}) {
   const settings = await db.getSettings();
   return syncNotionPosts({
     db,
     env,
     settings,
     rewriteImages: async (content) => (await rewriteExternalImagesToSee(content, settings)).content,
+    maxPages: options.maxPages,
+    resetCursor: options.resetCursor,
   });
 }
 
@@ -1257,7 +1259,7 @@ app.get("/api/admin/notion-sync/status", async (c) => {
 
 app.post("/api/admin/notion-sync/run", async (c) => {
   const db = c.get("db");
-  const result = await runNotionSync(db, c.env);
+  const result = await runNotionSync(db, c.env, { resetCursor: true, maxPages: 20 });
   return c.json(result, result.success ? 200 : 502);
 });
 
@@ -1992,7 +1994,7 @@ export default {
 
     const scheduledAt = new Date(event.scheduledTime || Date.now());
     if (scheduledAt.getUTCMinutes() % 10 === 0) {
-      const result = await runNotionSync(db, env);
+      const result = await runNotionSync(db, env, { maxPages: 4 });
       console.log(`[Cron] Notion sync finished: created=${result.created}, updated=${result.updated}, failed=${result.failed}`);
     }
   }

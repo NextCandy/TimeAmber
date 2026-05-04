@@ -4,7 +4,8 @@ const NOTION_API_BASE = "https://api.notion.com/v1";
 const NOTION_VERSION = "2026-03-11";
 const DEFAULT_DATA_SOURCE_ID = "22837041-b78c-81d8-9670-000b9d50c21b";
 const DEFAULT_NOTION_CATEGORY = "剪藏";
-const DEFAULT_SYNC_BATCH_SIZE = 3;
+const DEFAULT_SYNC_PAGE_SIZE = 10;
+const DEFAULT_SYNC_MAX_PAGES = 3;
 const NOTION_DELETED_SLUGS_KEY = "notion_sync_deleted_slugs";
 const MAX_DELETED_NOTION_SLUGS = 5000;
 
@@ -82,6 +83,9 @@ type SyncOptions = {
   env: NotionEnv;
   settings: Record<string, string>;
   rewriteImages: RewriteImages;
+  pageSize?: number;
+  maxPages?: number;
+  resetCursor?: boolean;
 };
 
 export function getNotionDataSourceId(env: NotionEnv, settings: Record<string, string>): string {
@@ -163,7 +167,9 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   }
 
   const client = new NotionClient(token);
-  const startCursor = options.settings.notion_sync_next_cursor || undefined;
+  const pageSize = clampInt(options.pageSize, 1, 20, DEFAULT_SYNC_PAGE_SIZE);
+  const maxPages = clampInt(options.maxPages, 1, 25, DEFAULT_SYNC_MAX_PAGES);
+  let cursor = options.resetCursor ? undefined : options.settings.notion_sync_next_cursor || undefined;
   const deletedNotionSlugs = parseDeletedNotionSlugs(options.settings);
   const resultBase = {
     success: true,
@@ -178,64 +184,69 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   };
 
   try {
-    const pageBatch = await client.queryDataSource(dataSourceId, {
-      startCursor,
-      pageSize: DEFAULT_SYNC_BATCH_SIZE,
-    });
-    resultBase.hasMore = pageBatch.hasMore;
-    resultBase.nextCursor = pageBatch.nextCursor || "";
+    for (let pageIndex = 0; pageIndex < maxPages; pageIndex++) {
+      const pageBatch = await client.queryDataSource(dataSourceId, {
+        startCursor: cursor,
+        pageSize,
+      });
+      resultBase.hasMore = pageBatch.hasMore;
+      resultBase.nextCursor = pageBatch.nextCursor || "";
 
-    for (const page of pageBatch.pages) {
-      try {
-        const post = await notionPageToPost(client, page, {
-          includePageBody: options.settings.notion_sync_include_page_body === "true",
-        });
-        resultBase.processed++;
-        if (!post.title) {
-          resultBase.skipped++;
-          continue;
-        }
-
-        const existing = await options.db.getPostBySlug(post.slug);
-        if (!existing && deletedNotionSlugs.has(post.slug)) {
-          resultBase.skipped++;
-          continue;
-        }
-
-        post.content = await options.rewriteImages(post.content);
-        if (existing) {
-          await options.db.updatePost(post.slug, {
-            title: post.title,
-            content: post.content,
-            excerpt: post.excerpt,
-            tags: post.tags,
-            category: post.category,
-            coverImage: extractFirstImage(post.content) || existing.coverImage || "",
+      for (const page of pageBatch.pages) {
+        try {
+          const post = await notionPageToPost(client, page, {
+            includePageBody: options.settings.notion_sync_include_page_body === "true",
           });
-          resultBase.updated++;
-        } else {
-          await options.db.createPost({
-            slug: post.slug,
-            title: post.title,
-            content: post.content,
-            excerpt: post.excerpt,
-            tags: post.tags,
-            coverImage: extractFirstImage(post.content) || "",
-            coverColor: "from-cyan-500/20 to-blue-600/20",
-            published: false,
-            listed: true,
-            pinned: false,
-            publishAt: null,
-            category: post.category,
-            createdAt: post.createdAt,
-            updatedAt: page.last_edited_time || new Date().toISOString(),
-          });
-          resultBase.created++;
+          resultBase.processed++;
+          if (!post.title) {
+            resultBase.skipped++;
+            continue;
+          }
+
+          const existing = await options.db.getPostBySlug(post.slug);
+          if (!existing && deletedNotionSlugs.has(post.slug)) {
+            resultBase.skipped++;
+            continue;
+          }
+
+          post.content = await options.rewriteImages(post.content);
+          if (existing) {
+            await options.db.updatePost(post.slug, {
+              title: post.title,
+              content: post.content,
+              excerpt: post.excerpt,
+              tags: post.tags,
+              category: post.category,
+              coverImage: extractFirstImage(post.content) || existing.coverImage || "",
+            });
+            resultBase.updated++;
+          } else {
+            await options.db.createPost({
+              slug: post.slug,
+              title: post.title,
+              content: post.content,
+              excerpt: post.excerpt,
+              tags: post.tags,
+              coverImage: extractFirstImage(post.content) || "",
+              coverColor: "from-cyan-500/20 to-blue-600/20",
+              published: false,
+              listed: true,
+              pinned: false,
+              publishAt: null,
+              category: post.category,
+              createdAt: post.createdAt,
+              updatedAt: page.last_edited_time || new Date().toISOString(),
+            });
+            resultBase.created++;
+          }
+        } catch (error) {
+          resultBase.failed++;
+          resultBase.errors.push(`${page.id}: ${errorToMessage(error)}`);
         }
-      } catch (error) {
-        resultBase.failed++;
-        resultBase.errors.push(`${page.id}: ${errorToMessage(error)}`);
       }
+
+      if (!pageBatch.hasMore || !pageBatch.nextCursor || pageBatch.pages.length === 0) break;
+      cursor = pageBatch.nextCursor;
     }
   } catch (error) {
     resultBase.success = false;
@@ -256,6 +267,11 @@ function parseDeletedNotionSlugs(settings: Record<string, string>): Set<string> 
   } catch {
     return new Set();
   }
+}
+
+function clampInt(value: number | undefined, min: number, max: number, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(min, Math.min(max, Math.floor(value as number)));
 }
 
 async function notionPageToPost(client: NotionClient, page: NotionPage, options: { includePageBody: boolean }): Promise<NotionSyncPost> {
