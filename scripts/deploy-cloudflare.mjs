@@ -7,6 +7,7 @@ const serverRoot = `${projectRoot}/server`;
 // Windows 下 npm/npx 实际是 .cmd 脚本，必须 shell:true 才能找到
 const IS_WIN = process.platform === "win32";
 const SHELL = IS_WIN;
+const WRANGLER_BIN = `${serverRoot}/node_modules/.bin/wrangler${IS_WIN ? ".cmd" : ""}`;
 
 function parseArgs(argv) {
   const options = {
@@ -107,7 +108,7 @@ function runCapture(title, command, args) {
 }
 
 function runWranglerResult(args, extra = {}) {
-  return runResult("npx", ["wrangler", ...args], {
+  return runResult(WRANGLER_BIN, args, {
     ...extra,
     cwd: extra.cwd || serverRoot,
   });
@@ -316,10 +317,11 @@ if (!options.skipClient) {
   }
 
   runStep("构建前端", "npm", ["run", "build"]);
+  // Pages Functions are discovered relative to the deploy cwd, so this must run from clientRoot.
   runWranglerStep("部署 Cloudflare Pages 前端", [
     "pages",
     "deploy",
-    `${clientRoot}/dist`,
+    "dist",
     "--project-name",
     options.pagesProject,
     "--branch",
@@ -327,7 +329,7 @@ if (!options.skipClient) {
     "--commit-dirty=true",
     "--commit-message",
     "timeamber deploy",
-  ]);
+  ], { cwd: clientRoot });
 }
 
 console.log("\n部署流程完成。");

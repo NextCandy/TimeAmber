@@ -12,7 +12,7 @@
     "dev:server": "npm -w timeamber-server run dev",
     "build": "npm -w timeamber-client run build",
     "deploy:server": "npm -w timeamber-server run deploy",
-    "deploy:client": "node -e \"const {spawnSync}=require('node:child_process'); const result=spawnSync('npx',['wrangler','pages','deploy','../client/dist','--project-name','timeamber-client','--branch','main','--commit-dirty=true'],{cwd:'server',stdio:'inherit',shell:process.platform==='win32'}); process.exit(result.status ?? 1);\"",
+    "deploy:client": "node -e \"const {spawnSync}=require('node:child_process'); const wrangler='../server/node_modules/.bin/wrangler'+(process.platform==='win32'?'.cmd':''); const result=spawnSync(wrangler,['pages','deploy','dist','--project-name','timeamber-client','--branch','main','--commit-dirty=true'],{cwd:'client',stdio:'inherit',shell:process.platform==='win32'}); process.exit(result.status ?? 1);\"",
     "deploy:cloudflare": "node scripts/deploy-cloudflare.mjs",
     "db:reconcile:d1:local": "node scripts/reconcile-d1-schema.mjs --local",
     "db:reconcile:d1:remote": "node scripts/reconcile-d1-schema.mjs --remote",
