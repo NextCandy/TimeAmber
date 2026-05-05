@@ -6,10 +6,10 @@
 
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { eq, desc, sql, inArray } from "drizzle-orm";
+import { and, eq, desc, sql, inArray, ilike, or } from "drizzle-orm";
 import { pgPosts, pgTags, pgPostTags, pgPages, pgSettings, pgComments, pgReactions, pgVisits, pgPostVersions } from "../../db/schema-pg";
 import type {
-  IDatabase, Post, PostSummary, AdminPostSummary, Tag, Page, PageSummary,
+  IDatabase, Post, PostSummary, AdminPostSummary, AdminPostListOptions, AdminPostListPage, Tag, Page, PageSummary,
   CreatePostInput, UpdatePostInput, UpsertPageInput,
   BackupData, ImportResult, ViewStats, Comment, CreateCommentInput, PostVersion
 } from "../interfaces";
@@ -321,6 +321,115 @@ export class PostgresAdapter implements IDatabase {
       seriesOrder: post.seriesOrder ?? 0,
       tags: tagMap.get(post.id) || [],
     }));
+  }
+
+  async getAdminPostSummariesPage(options: AdminPostListOptions): Promise<AdminPostListPage> {
+    const pageSize = Math.min(Math.max(options.pageSize || 30, 10), 100);
+    const requestedPage = Math.max(options.page || 1, 1);
+    const status = options.status || "all";
+    const q = options.q?.trim();
+    const tag = options.tag?.trim();
+
+    const tagPostIds = tag
+      ? (await this.db
+        .select({ postId: pgPostTags.postId })
+        .from(pgPostTags)
+        .innerJoin(pgTags, eq(pgPostTags.tagId, pgTags.id))
+        .where(eq(pgTags.name, tag))).map((row) => row.postId)
+      : null;
+
+    const countsPromise = this.getAdminPostCounts();
+    const tagsPromise = this.getAdminTagCounts();
+
+    if (tagPostIds && tagPostIds.length === 0) {
+      return { items: [], page: 1, pageSize, total: 0, totalPages: 1, counts: await countsPromise, tags: await tagsPromise };
+    }
+
+    const filters = [];
+    if (status === "published") filters.push(eq(pgPosts.published, true));
+    if (status === "draft") filters.push(eq(pgPosts.published, false));
+    if (q) {
+      const pattern = `%${q}%`;
+      filters.push(or(ilike(pgPosts.title, pattern), ilike(pgPosts.slug, pattern), ilike(pgPosts.excerpt, pattern), ilike(pgPosts.category, pattern))!);
+    }
+    if (tagPostIds) filters.push(inArray(pgPosts.id, tagPostIds));
+    const where = filters.length > 0 ? and(...filters) : undefined;
+
+    const countRows = where
+      ? await this.db.select({ count: sql<number>`COUNT(*)::int` }).from(pgPosts).where(where)
+      : await this.db.select({ count: sql<number>`COUNT(*)::int` }).from(pgPosts);
+    const total = Number(countRows[0]?.count || 0);
+    const totalPages = Math.max(Math.ceil(total / pageSize), 1);
+    const page = Math.min(requestedPage, totalPages);
+    const offset = (page - 1) * pageSize;
+    const selection = {
+      id: pgPosts.id,
+      slug: pgPosts.slug,
+      title: pgPosts.title,
+      excerpt: pgPosts.excerpt,
+      coverColor: pgPosts.coverColor,
+      coverImage: pgPosts.coverImage,
+      published: pgPosts.published,
+      listed: pgPosts.listed,
+      createdAt: pgPosts.createdAt,
+      updatedAt: pgPosts.updatedAt,
+      viewCount: pgPosts.viewCount,
+      pinned: pgPosts.pinned,
+      publishAt: pgPosts.publishAt,
+      seriesSlug: pgPosts.seriesSlug,
+      category: pgPosts.category,
+      seriesOrder: pgPosts.seriesOrder,
+    };
+    const rows = where
+      ? await this.db.select(selection).from(pgPosts).where(where).orderBy(desc(pgPosts.createdAt)).limit(pageSize).offset(offset)
+      : await this.db.select(selection).from(pgPosts).orderBy(desc(pgPosts.createdAt)).limit(pageSize).offset(offset);
+
+    const tagMap = await this.getPostTagsMap(rows.map((post) => post.id));
+    const items = rows.map((post) => ({
+      id: post.id,
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt || "",
+      coverColor: post.coverColor || "",
+      coverImage: post.coverImage || "",
+      published: post.published,
+      listed: post.listed,
+      createdAt: this.ts(post.createdAt),
+      updatedAt: this.ts(post.updatedAt),
+      viewCount: post.viewCount ?? 0,
+      pinned: post.pinned,
+      publishAt: this.ts(post.publishAt),
+      seriesSlug: post.seriesSlug || null,
+      category: post.category || "",
+      seriesOrder: post.seriesOrder ?? 0,
+      tags: tagMap.get(post.id) || [],
+    }));
+
+    return { items, page, pageSize, total, totalPages, counts: await countsPromise, tags: await tagsPromise };
+  }
+
+  private async getAdminPostCounts(): Promise<{ all: number; published: number; draft: number }> {
+    const rows = await this.db
+      .select({ published: pgPosts.published, count: sql<number>`COUNT(*)::int` })
+      .from(pgPosts)
+      .groupBy(pgPosts.published);
+    let published = 0;
+    let draft = 0;
+    for (const row of rows) {
+      if (row.published) published = Number(row.count || 0);
+      else draft = Number(row.count || 0);
+    }
+    return { all: published + draft, published, draft };
+  }
+
+  private async getAdminTagCounts(): Promise<{ name: string; count: number }[]> {
+    const rows = await this.db
+      .select({ name: pgTags.name, count: sql<number>`COUNT(*)::int` })
+      .from(pgTags)
+      .innerJoin(pgPostTags, eq(pgTags.id, pgPostTags.tagId))
+      .groupBy(pgTags.name)
+      .orderBy(pgTags.name);
+    return rows.map((row) => ({ name: row.name, count: Number(row.count || 0) }));
   }
 
   async getPostBySlug(slug: string): Promise<(Post & { tags: string[] }) | null> {

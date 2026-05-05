@@ -49,6 +49,24 @@ export type AdminPostSummary = PostSummary & {
   seriesOrder: number;
 };
 
+export type AdminPostListOptions = {
+  page: number;
+  pageSize: number;
+  status?: "all" | "published" | "draft";
+  q?: string;
+  tag?: string;
+};
+
+export type AdminPostListPage = {
+  items: AdminPostSummary[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  counts: { all: number; published: number; draft: number };
+  tags: { name: string; count: number }[];
+};
+
 export type Tag = {
   id: number;
   name: string;
@@ -174,6 +192,7 @@ export interface IDatabase {
   /* 文章 */
   getPublishedPosts(limit?: number): Promise<PostSummary[]>;
   getAllPostSummaries(): Promise<AdminPostSummary[]>;
+  getAdminPostSummariesPage(options: AdminPostListOptions): Promise<AdminPostListPage>;
   getAllPosts(): Promise<(Post & { tags: string[] })[]>;
   getPostBySlug(slug: string): Promise<(Post & { tags: string[] }) | null>;
   createPost(data: CreatePostInput): Promise<Post>;

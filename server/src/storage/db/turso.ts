@@ -6,10 +6,10 @@
 
 import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
-import { eq, desc, sql, inArray } from "drizzle-orm";
+import { and, eq, desc, sql, inArray, like, or } from "drizzle-orm";
 import { posts, tags, postTags, pages, comments, reactions, visits, postVersions } from "../../db/schema";
 import type {
-  IDatabase, Post, PostSummary, AdminPostSummary, Tag, Page, PageSummary,
+  IDatabase, Post, PostSummary, AdminPostSummary, AdminPostListOptions, AdminPostListPage, Tag, Page, PageSummary,
   CreatePostInput, UpdatePostInput, UpsertPageInput,
   BackupData, ImportResult, ViewStats, Comment, CreateCommentInput, PostVersion
 } from "../interfaces";
@@ -302,6 +302,115 @@ export class TursoAdapter implements IDatabase {
       seriesOrder: post.seriesOrder ?? 0,
       tags: tagMap.get(post.id) || [],
     }));
+  }
+
+  async getAdminPostSummariesPage(options: AdminPostListOptions): Promise<AdminPostListPage> {
+    const pageSize = Math.min(Math.max(options.pageSize || 30, 10), 100);
+    const requestedPage = Math.max(options.page || 1, 1);
+    const status = options.status || "all";
+    const q = options.q?.trim();
+    const tag = options.tag?.trim();
+
+    const tagPostIds = tag
+      ? (await this.db
+        .select({ postId: postTags.postId })
+        .from(postTags)
+        .innerJoin(tags, eq(postTags.tagId, tags.id))
+        .where(eq(tags.name, tag))).map((row) => row.postId)
+      : null;
+
+    const countsPromise = this.getAdminPostCounts();
+    const tagsPromise = this.getAdminTagCounts();
+
+    if (tagPostIds && tagPostIds.length === 0) {
+      return { items: [], page: 1, pageSize, total: 0, totalPages: 1, counts: await countsPromise, tags: await tagsPromise };
+    }
+
+    const filters = [];
+    if (status === "published") filters.push(eq(posts.published, true));
+    if (status === "draft") filters.push(eq(posts.published, false));
+    if (q) {
+      const pattern = `%${q}%`;
+      filters.push(or(like(posts.title, pattern), like(posts.slug, pattern), like(posts.excerpt, pattern), like(posts.category, pattern))!);
+    }
+    if (tagPostIds) filters.push(inArray(posts.id, tagPostIds));
+    const where = filters.length > 0 ? and(...filters) : undefined;
+
+    const countRows = where
+      ? await this.db.select({ count: sql<number>`COUNT(*)` }).from(posts).where(where)
+      : await this.db.select({ count: sql<number>`COUNT(*)` }).from(posts);
+    const total = Number(countRows[0]?.count || 0);
+    const totalPages = Math.max(Math.ceil(total / pageSize), 1);
+    const page = Math.min(requestedPage, totalPages);
+    const offset = (page - 1) * pageSize;
+    const selection = {
+      id: posts.id,
+      slug: posts.slug,
+      title: posts.title,
+      excerpt: posts.excerpt,
+      coverColor: posts.coverColor,
+      coverImage: posts.coverImage,
+      published: posts.published,
+      listed: posts.listed,
+      createdAt: posts.createdAt,
+      updatedAt: posts.updatedAt,
+      viewCount: posts.viewCount,
+      pinned: posts.pinned,
+      publishAt: posts.publishAt,
+      seriesSlug: posts.seriesSlug,
+      category: posts.category,
+      seriesOrder: posts.seriesOrder,
+    };
+    const rows = where
+      ? await this.db.select(selection).from(posts).where(where).orderBy(desc(posts.createdAt)).limit(pageSize).offset(offset)
+      : await this.db.select(selection).from(posts).orderBy(desc(posts.createdAt)).limit(pageSize).offset(offset);
+
+    const tagMap = await this.getPostTagsMap(rows.map((post) => post.id));
+    const items = rows.map((post) => ({
+      id: post.id,
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt || "",
+      coverColor: post.coverColor || "",
+      coverImage: post.coverImage || "",
+      published: post.published,
+      listed: post.listed,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      viewCount: post.viewCount ?? 0,
+      pinned: post.pinned,
+      publishAt: post.publishAt,
+      seriesSlug: post.seriesSlug || null,
+      category: post.category || "",
+      seriesOrder: post.seriesOrder ?? 0,
+      tags: tagMap.get(post.id) || [],
+    }));
+
+    return { items, page, pageSize, total, totalPages, counts: await countsPromise, tags: await tagsPromise };
+  }
+
+  private async getAdminPostCounts(): Promise<{ all: number; published: number; draft: number }> {
+    const rows = await this.db
+      .select({ published: posts.published, count: sql<number>`COUNT(*)` })
+      .from(posts)
+      .groupBy(posts.published);
+    let published = 0;
+    let draft = 0;
+    for (const row of rows) {
+      if (row.published) published = Number(row.count || 0);
+      else draft = Number(row.count || 0);
+    }
+    return { all: published + draft, published, draft };
+  }
+
+  private async getAdminTagCounts(): Promise<{ name: string; count: number }[]> {
+    const rows = await this.db
+      .select({ name: tags.name, count: sql<number>`COUNT(*)` })
+      .from(tags)
+      .innerJoin(postTags, eq(tags.id, postTags.tagId))
+      .groupBy(tags.name)
+      .orderBy(tags.name);
+    return rows.map((row) => ({ name: row.name, count: Number(row.count || 0) }));
   }
 
   async getPostBySlug(slug: string): Promise<(Post & { tags: string[] }) | null> {
