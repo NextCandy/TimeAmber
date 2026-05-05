@@ -71,12 +71,14 @@ export function AdminDashboard() {
   const loadPosts = async (targetPage = page) => {
     setLoading(true);
     try {
+      const includeMeta = pagination.tags.length === 0;
       const data = await fetchAdminPostsPage({
         page: targetPage,
         pageSize,
         status: filter,
         q: deferredSearch,
         tag: selectedTag,
+        includeMeta,
       });
       setPosts(data.items);
       setPagination({
@@ -84,8 +86,8 @@ export function AdminDashboard() {
         pageSize: data.pageSize,
         total: data.total,
         totalPages: data.totalPages,
-        counts: data.counts,
-        tags: data.tags,
+        counts: includeMeta ? data.counts : pagination.counts,
+        tags: includeMeta ? data.tags : pagination.tags,
       });
       setPage(data.page);
       setLoadError("");
@@ -108,6 +110,7 @@ export function AdminDashboard() {
 
   useEffect(() => {
     let cancelled = false;
+    const includeMeta = pagination.tags.length === 0;
     setLoading(true);
     fetchAdminPostsPage({
       page,
@@ -115,18 +118,19 @@ export function AdminDashboard() {
       status: filter,
       q: deferredSearch,
       tag: selectedTag,
+      includeMeta,
     })
       .then((data) => {
         if (cancelled) return;
         setPosts(data.items);
-        setPagination({
+        setPagination((prev) => ({
           page: data.page,
           pageSize: data.pageSize,
           total: data.total,
           totalPages: data.totalPages,
-          counts: data.counts,
-          tags: data.tags,
-        });
+          counts: includeMeta ? data.counts : prev.counts,
+          tags: includeMeta ? data.tags : prev.tags,
+        }));
         if (data.page !== page) setPage(data.page);
         setLoadError("");
       })
@@ -270,6 +274,7 @@ export function AdminDashboard() {
 
       const result = await importMarkdownPosts(payload);
       setFilter("draft");
+      setPagination((prev) => ({ ...prev, tags: [] }));
       setPage(1);
       setSelectedTag("");
       setSelectedSlugs(new Set());

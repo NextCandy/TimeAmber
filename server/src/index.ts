@@ -628,8 +628,9 @@ app.get("/api/admin/posts", async (c) => {
   const q = (c.req.query("q") || "").trim().toLowerCase();
   const tag = (c.req.query("tag") || "").trim();
   const normalizedStatus = status === "published" || status === "draft" ? status : "all";
+  const includeMeta = c.req.query("meta") !== "0";
 
-  return c.json(await db.getAdminPostSummariesPage({ page, pageSize, status: normalizedStatus, q, tag }));
+  return c.json(await db.getAdminPostSummariesPage({ page, pageSize, status: normalizedStatus, q, tag, includeMeta }));
 });
 
 // 阅读统计数据

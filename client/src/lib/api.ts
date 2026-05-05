@@ -261,6 +261,7 @@ export async function fetchAdminPostsPage(options: {
   status?: "all" | "published" | "draft";
   q?: string;
   tag?: string;
+  includeMeta?: boolean;
 } = {}): Promise<AdminPostsPage> {
   const params = new URLSearchParams();
   params.set("page", String(options.page || 1));
@@ -268,6 +269,7 @@ export async function fetchAdminPostsPage(options: {
   if (options.status && options.status !== "all") params.set("status", options.status);
   if (options.q?.trim()) params.set("q", options.q.trim());
   if (options.tag?.trim()) params.set("tag", options.tag.trim());
+  if (options.includeMeta === false) params.set("meta", "0");
 
   const res = await fetch(`${API_BASE}/api/admin/posts?${params.toString()}`, {
     headers: authHeaders(),

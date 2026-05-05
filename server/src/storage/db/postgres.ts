@@ -338,8 +338,9 @@ export class PostgresAdapter implements IDatabase {
         .where(eq(pgTags.name, tag))).map((row) => row.postId)
       : null;
 
-    const countsPromise = this.getAdminPostCounts();
-    const tagsPromise = this.getAdminTagCounts();
+    const includeMeta = options.includeMeta !== false;
+    const countsPromise = includeMeta ? this.getAdminPostCounts() : Promise.resolve({ all: 0, published: 0, draft: 0 });
+    const tagsPromise = includeMeta ? this.getAdminTagCounts() : Promise.resolve([]);
 
     if (tagPostIds && tagPostIds.length === 0) {
       return { items: [], page: 1, pageSize, total: 0, totalPages: 1, counts: await countsPromise, tags: await tagsPromise };

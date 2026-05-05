@@ -55,6 +55,7 @@ export type AdminPostListOptions = {
   status?: "all" | "published" | "draft";
   q?: string;
   tag?: string;
+  includeMeta?: boolean;
 };
 
 export type AdminPostListPage = {
