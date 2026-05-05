@@ -41,6 +41,14 @@ export type PostSummary = {
   category: string;
 };
 
+export type AdminPostSummary = PostSummary & {
+  published: boolean;
+  listed: boolean;
+  updatedAt: string;
+  viewCount: number;
+  seriesOrder: number;
+};
+
 export type Tag = {
   id: number;
   name: string;
@@ -165,6 +173,7 @@ export type PostVersion = {
 export interface IDatabase {
   /* 文章 */
   getPublishedPosts(): Promise<PostSummary[]>;
+  getAllPostSummaries(): Promise<AdminPostSummary[]>;
   getAllPosts(): Promise<(Post & { tags: string[] })[]>;
   getPostBySlug(slug: string): Promise<(Post & { tags: string[] }) | null>;
   createPost(data: CreatePostInput): Promise<Post>;

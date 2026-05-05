@@ -9,7 +9,7 @@ import postgres from "postgres";
 import { eq, desc, sql, inArray } from "drizzle-orm";
 import { pgPosts, pgTags, pgPostTags, pgPages, pgSettings, pgComments, pgReactions, pgVisits, pgPostVersions } from "../../db/schema-pg";
 import type {
-  IDatabase, Post, PostSummary, Tag, Page, PageSummary,
+  IDatabase, Post, PostSummary, AdminPostSummary, Tag, Page, PageSummary,
   CreatePostInput, UpdatePostInput, UpsertPageInput,
   BackupData, ImportResult, ViewStats, Comment, CreateCommentInput, PostVersion
 } from "../interfaces";
@@ -259,6 +259,52 @@ export class PostgresAdapter implements IDatabase {
       slug: post.slug,
       title: post.title,
       content: post.content,
+      excerpt: post.excerpt || "",
+      coverColor: post.coverColor || "",
+      coverImage: post.coverImage || "",
+      published: post.published,
+      listed: post.listed,
+      createdAt: this.ts(post.createdAt),
+      updatedAt: this.ts(post.updatedAt),
+      viewCount: post.viewCount ?? 0,
+      pinned: post.pinned,
+      publishAt: this.ts(post.publishAt),
+      seriesSlug: post.seriesSlug || null,
+      category: post.category || "",
+      seriesOrder: post.seriesOrder ?? 0,
+      tags: tagMap.get(post.id) || [],
+    }));
+  }
+
+  async getAllPostSummaries(): Promise<AdminPostSummary[]> {
+    const allPosts = await this.db
+      .select({
+        id: pgPosts.id,
+        slug: pgPosts.slug,
+        title: pgPosts.title,
+        excerpt: pgPosts.excerpt,
+        coverColor: pgPosts.coverColor,
+        coverImage: pgPosts.coverImage,
+        published: pgPosts.published,
+        listed: pgPosts.listed,
+        createdAt: pgPosts.createdAt,
+        updatedAt: pgPosts.updatedAt,
+        viewCount: pgPosts.viewCount,
+        pinned: pgPosts.pinned,
+        publishAt: pgPosts.publishAt,
+        seriesSlug: pgPosts.seriesSlug,
+        category: pgPosts.category,
+        seriesOrder: pgPosts.seriesOrder,
+      })
+      .from(pgPosts)
+      .orderBy(desc(pgPosts.createdAt));
+
+    const tagMap = await this.getPostTagsMap(allPosts.map((post) => post.id));
+
+    return allPosts.map((post) => ({
+      id: post.id,
+      slug: post.slug,
+      title: post.title,
       excerpt: post.excerpt || "",
       coverColor: post.coverColor || "",
       coverImage: post.coverImage || "",

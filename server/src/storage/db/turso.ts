@@ -9,7 +9,7 @@ import { createClient } from "@libsql/client";
 import { eq, desc, sql, inArray } from "drizzle-orm";
 import { posts, tags, postTags, pages, comments, reactions, visits, postVersions } from "../../db/schema";
 import type {
-  IDatabase, Post, PostSummary, Tag, Page, PageSummary,
+  IDatabase, Post, PostSummary, AdminPostSummary, Tag, Page, PageSummary,
   CreatePostInput, UpdatePostInput, UpsertPageInput,
   BackupData, ImportResult, ViewStats, Comment, CreateCommentInput, PostVersion
 } from "../interfaces";
@@ -240,6 +240,52 @@ export class TursoAdapter implements IDatabase {
       slug: post.slug,
       title: post.title,
       content: post.content,
+      excerpt: post.excerpt || "",
+      coverColor: post.coverColor || "",
+      coverImage: post.coverImage || "",
+      published: post.published,
+      listed: post.listed,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      viewCount: post.viewCount ?? 0,
+      pinned: post.pinned,
+      publishAt: post.publishAt,
+      seriesSlug: post.seriesSlug || null,
+      category: post.category || "",
+      seriesOrder: post.seriesOrder ?? 0,
+      tags: tagMap.get(post.id) || [],
+    }));
+  }
+
+  async getAllPostSummaries(): Promise<AdminPostSummary[]> {
+    const allPosts = await this.db
+      .select({
+        id: posts.id,
+        slug: posts.slug,
+        title: posts.title,
+        excerpt: posts.excerpt,
+        coverColor: posts.coverColor,
+        coverImage: posts.coverImage,
+        published: posts.published,
+        listed: posts.listed,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+        viewCount: posts.viewCount,
+        pinned: posts.pinned,
+        publishAt: posts.publishAt,
+        seriesSlug: posts.seriesSlug,
+        category: posts.category,
+        seriesOrder: posts.seriesOrder,
+      })
+      .from(posts)
+      .orderBy(desc(posts.createdAt));
+
+    const tagMap = await this.getPostTagsMap(allPosts.map((post) => post.id));
+
+    return allPosts.map((post) => ({
+      id: post.id,
+      slug: post.slug,
+      title: post.title,
       excerpt: post.excerpt || "",
       coverColor: post.coverColor || "",
       coverImage: post.coverImage || "",

@@ -154,7 +154,7 @@ app.post("/api/track", async (c) => {
 // 获取文章列表（仅已发布）
 app.get("/api/posts", async (c) => {
   const db = c.get("db");
-  c.header("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+  c.header("Cache-Control", "public, max-age=300, s-maxage=1800, stale-while-revalidate=3600");
   const result = await db.getPublishedPosts();
   return c.json(result);
 });
@@ -588,7 +588,9 @@ app.use("/api/admin/*", async (c, next) => {
 app.get("/api/admin/posts", async (c) => {
   const db = c.get("db");
   c.header("Cache-Control", "no-store");
-  const result = await db.getAllPosts();
+  const result = c.req.query("include") === "content"
+    ? await db.getAllPosts()
+    : await db.getAllPostSummaries();
   return c.json(result);
 });
 

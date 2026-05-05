@@ -54,7 +54,7 @@ export function AdminSeo() {
     const bust = `v=${Date.now()}`;
     const noStore: RequestInit = { cache: "no-store" };
     const [postsResult, smResult, rbResult, rssResult] = await Promise.allSettled([
-      fetchAdminPosts(),
+      fetchAdminPosts({ includeContent: true }),
       fetch(`/sitemap.xml?${bust}`, noStore).then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)))),
       fetch(`/robots.txt?${bust}`, noStore).then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)))),
       fetch(`/rss.xml?${bust}`, { method: "HEAD", cache: "no-store" }).then((r) => (r.ok ? true : Promise.reject(new Error(`HTTP ${r.status}`)))),

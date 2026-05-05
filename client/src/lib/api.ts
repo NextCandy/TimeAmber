@@ -208,8 +208,9 @@ export async function checkAuth(): Promise<boolean> {
 }
 
 /* ── 管理 API ──────────────────────────────── */
-export async function fetchAdminPosts(): Promise<Post[]> {
-  const res = await fetch(`${API_BASE}/api/admin/posts`, {
+export async function fetchAdminPosts(options: { includeContent?: boolean } = {}): Promise<Post[]> {
+  const query = options.includeContent ? "?include=content" : "";
+  const res = await fetch(`${API_BASE}/api/admin/posts${query}`, {
     headers: authHeaders(),
     cache: "no-store",
   });
