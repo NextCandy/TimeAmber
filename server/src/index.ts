@@ -2094,6 +2094,10 @@ export default {
       const result = await runNotionSync(db, env, { maxPages: 1 });
       console.log(`[Cron] Notion sync finished: created=${result.created}, updated=${result.updated}, failed=${result.failed}`);
     }
+    if (scheduledAt.getUTCMinutes() % 10 === 5) {
+      const result = await runNotionSync(db, env, { maxPages: 1, repairOnly: true, maxBodyPages: 1 });
+      console.log(`[Cron] Notion repair finished: updated=${result.updated}, skipped=${result.skipped}, failed=${result.failed}`);
+    }
     if (scheduledAt.getUTCMinutes() % 20 === 5) {
       const result = await syncArchiveSources(db, env, { maxPages: 10, advanceCursor: true });
       const changed = result.reduce((sum, item) => sum + item.created + item.updated, 0);
