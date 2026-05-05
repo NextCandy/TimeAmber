@@ -175,7 +175,7 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   const client = new NotionClient(token);
   client.setRequestBudget(clampInt(Number(options.env.NOTION_SYNC_MAX_SUBREQUESTS), 10, 45, DEFAULT_MAX_NOTION_SUBREQUESTS));
   const includePageBody = options.settings.notion_sync_include_page_body !== "false";
-  const defaultPageSize = includePageBody ? DEFAULT_BODY_SYNC_PAGE_SIZE : DEFAULT_METADATA_SYNC_PAGE_SIZE;
+  const defaultPageSize = options.repairOnly ? DEFAULT_METADATA_SYNC_PAGE_SIZE : includePageBody ? DEFAULT_BODY_SYNC_PAGE_SIZE : DEFAULT_METADATA_SYNC_PAGE_SIZE;
   const pageSize = clampInt(options.pageSize, 1, 20, defaultPageSize);
   const maxPages = clampInt(options.maxPages, 1, 25, DEFAULT_SYNC_MAX_PAGES);
   const cursorKey = options.repairOnly ? "notion_repair_next_cursor" : "notion_sync_next_cursor";
