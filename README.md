@@ -97,6 +97,7 @@
 - 现有 D1 / R2 内部资源名可能仍保留 `monolith-*`，这是内部绑定名，不影响前台 SEO 或公开品牌；如需改名需迁移数据和存储对象。
 - GitHub Actions `Cloudflare Deploy` 已完成生产验证，会在推送 `main` 后自动部署并清理 SEO 缓存。
 - Notion 同步需要 GitHub/Worker secret `NOTION_TOKEN`，并要求 Notion 数据库已分享给对应 Integration；默认 data source ID 为 `22837041-b78c-81d8-9670-000b9d50c21b`，也可在后台设置中覆盖。
+- 剪藏同步会从 `shudong.org` 与 `mearchive.com` 拉取最近文章并写入站内 `剪藏` 分类；需要配置 Worker/GitHub secrets：`SHUDONG_TOKEN`、`MEARCHIVE_EMAIL`、`MEARCHIVE_PASSWORD`。同步使用稳定 slug（`archive-{source}-{id}`），源站删除不会删除已同步到 TimeAmber 的文章。
 
 ---
 
