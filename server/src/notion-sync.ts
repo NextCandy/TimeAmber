@@ -90,6 +90,8 @@ type SyncOptions = {
   pageSize?: number;
   maxPages?: number;
   resetCursor?: boolean;
+  repairOnly?: boolean;
+  maxBodyPages?: number;
 };
 
 export function getNotionDataSourceId(env: NotionEnv, settings: Record<string, string>): string {
@@ -176,8 +178,11 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   const defaultPageSize = includePageBody ? DEFAULT_BODY_SYNC_PAGE_SIZE : DEFAULT_METADATA_SYNC_PAGE_SIZE;
   const pageSize = clampInt(options.pageSize, 1, 20, defaultPageSize);
   const maxPages = clampInt(options.maxPages, 1, 25, DEFAULT_SYNC_MAX_PAGES);
-  let cursor = options.resetCursor ? undefined : options.settings.notion_sync_next_cursor || undefined;
+  const cursorKey = options.repairOnly ? "notion_repair_next_cursor" : "notion_sync_next_cursor";
+  let cursor = options.resetCursor ? undefined : options.settings[cursorKey] || undefined;
   const deletedNotionSlugs = parseDeletedNotionSlugs(options.settings);
+  const maxBodyPages = clampInt(options.maxBodyPages, 1, 5, options.repairOnly ? 1 : 5);
+  let bodyPagesProcessed = 0;
   const resultBase = {
     success: true,
     created: 0,
@@ -201,16 +206,33 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
 
       for (const page of pageBatch.pages) {
         try {
+          const pageSlug = notionSlug(page.id);
+          const pageLegacySlug = legacyNotionSlug(page.id);
+          let existing = await options.db.getPostBySlug(pageSlug);
+          if (!existing && pageLegacySlug !== pageSlug) {
+            const legacy = await options.db.getPostBySlug(pageLegacySlug);
+            if (legacy) existing = legacy;
+          }
+
+          if (options.repairOnly) {
+            resultBase.processed++;
+            if (!existing || !isLinkShellContent(existing.content) || bodyPagesProcessed >= maxBodyPages) {
+              resultBase.skipped++;
+              continue;
+            }
+            bodyPagesProcessed++;
+          }
+
           const post = await notionPageToPost(client, page, {
             includePageBody,
           });
-          resultBase.processed++;
+          if (!options.repairOnly) resultBase.processed++;
           if (!post.title) {
             resultBase.skipped++;
             continue;
           }
 
-          let existing = await options.db.getPostBySlug(post.slug);
+          existing = await options.db.getPostBySlug(post.slug);
           if (!existing && post.legacySlug !== post.slug) {
             const legacy = await options.db.getPostBySlug(post.legacySlug);
             if (legacy?.title === post.title) existing = legacy;
@@ -270,8 +292,15 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   }
 
   const result = finishResult(startedAt, startedMs, resultBase);
-  await saveSyncStatus(options.db, result);
+  await saveSyncStatus(options.db, result, cursorKey, options.repairOnly);
   return result;
+}
+
+function isLinkShellContent(content: string): boolean {
+  const trimmed = content.trim();
+  if (trimmed.length < 260) return true;
+  if (trimmed.length < 900 && /原文地址/.test(trimmed)) return true;
+  return false;
 }
 
 function parseDeletedNotionSlugs(settings: Record<string, string>): Set<string> {
@@ -497,10 +526,10 @@ function finishResult(startedAt: string, startedMs: number, result: Omit<NotionS
   };
 }
 
-async function saveSyncStatus(db: IDatabase, result: NotionSyncResult): Promise<void> {
+async function saveSyncStatus(db: IDatabase, result: NotionSyncResult, cursorKey = "notion_sync_next_cursor", repairOnly = false): Promise<void> {
   await db.saveSettings({
     notion_sync_last_run_at: result.finishedAt,
-    notion_sync_last_status: result.success && result.failed === 0 ? "success" : "error",
+    notion_sync_last_status: result.success && result.failed === 0 ? repairOnly ? "repair-success" : "success" : "error",
     notion_sync_last_error: result.errors.slice(0, 3).join("\n").slice(0, 500),
     notion_sync_last_created: String(result.created),
     notion_sync_last_updated: String(result.updated),
@@ -508,7 +537,7 @@ async function saveSyncStatus(db: IDatabase, result: NotionSyncResult): Promise<
     notion_sync_last_failed: String(result.failed),
     notion_sync_last_processed: String(result.processed),
     notion_sync_has_more: String(result.hasMore),
-    notion_sync_next_cursor: result.nextCursor,
+    [cursorKey]: result.nextCursor,
     notion_sync_last_duration_ms: String(result.durationMs),
   });
 }

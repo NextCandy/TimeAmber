@@ -238,6 +238,7 @@ export function AdminSettings() {
   const [avatarError, setAvatarError] = useState(false);
   const [notionStatus, setNotionStatus] = useState<NotionSyncStatus | null>(null);
   const [notionSyncing, setNotionSyncing] = useState(false);
+  const [notionRepairing, setNotionRepairing] = useState(false);
   const [archiveStatus, setArchiveStatus] = useState<ArchiveSyncStatus | null>(null);
   const [archiveSyncing, setArchiveSyncing] = useState<Record<string, boolean>>({});
 
@@ -366,6 +367,27 @@ export function AdminSettings() {
       showMsg(error instanceof Error ? error.message : "Notion 同步失败", "error");
     } finally {
       setNotionSyncing(false);
+    }
+  };
+
+  const repairNotionShellPosts = async (resetCursor = false) => {
+    setNotionRepairing(true);
+    try {
+      const res = await fetch("/api/admin/notion-sync/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ maxPages: 1, maxBodyPages: 1, repairOnly: true, resetCursor }),
+      });
+      const data = await res.json().catch(() => null);
+      await fetchNotionStatus();
+      if (!res.ok) {
+        throw new Error(data?.errors?.[0] || "Notion 正文修复失败");
+      }
+      showMsg(`Notion 正文修复完成：更新 ${data.updated || 0}，跳过 ${data.skipped || 0}`, "success");
+    } catch (error) {
+      showMsg(error instanceof Error ? error.message : "Notion 正文修复失败", "error");
+    } finally {
+      setNotionRepairing(false);
     }
   };
 
@@ -806,6 +828,25 @@ export function AdminSettings() {
                   >
                     <SettingField label="Data Source ID" value={settings.notion_data_source_id} onChange={(v) => updateSetting("notion_data_source_id", v)} placeholder="22837041-b78c-81d8-9670-000b9d50c21b" />
                     <p className="text-[11px] text-muted-foreground/35">需要配置 Worker secret：NOTION_TOKEN，并把 Notion 数据库分享给对应 Integration。为避免 Worker subrequest 超限，Notion 同步默认不转存正文图片；如确需转存，可保存高级设置 notion_sync_rewrite_images=true。</p>
+                    <div className="flex flex-wrap gap-[8px]">
+                      <button
+                        type="button"
+                        onClick={() => repairNotionShellPosts(false)}
+                        disabled={notionRepairing || !notionStatus?.configured}
+                        className="inline-flex h-[34px] items-center justify-center gap-[6px] rounded-lg border border-violet-400/20 bg-violet-400/5 px-[12px] text-[12px] font-medium text-violet-200 transition-colors hover:bg-violet-400/10 disabled:opacity-50"
+                      >
+                        <RefreshCw className={`h-[13px] w-[13px] ${notionRepairing ? "animate-spin" : ""}`} />
+                        {notionRepairing ? "修复中" : "修复链接壳文章"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => repairNotionShellPosts(true)}
+                        disabled={notionRepairing || !notionStatus?.configured}
+                        className="inline-flex h-[34px] items-center justify-center rounded-lg border border-border/15 px-[12px] text-[12px] text-muted-foreground transition-colors hover:bg-card/40 hover:text-foreground disabled:opacity-50"
+                      >
+                        从头扫描链接壳
+                      </button>
+                    </div>
                   </SyncSourceCard>
 
                   {(archiveStatus?.sources || []).map((source) => (

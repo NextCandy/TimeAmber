@@ -1289,7 +1289,7 @@ app.put("/api/admin/settings", async (c) => {
   return c.json({ success: true });
 });
 
-async function runNotionSync(db: IDatabase, env: Bindings, options: { resetCursor?: boolean; maxPages?: number } = {}) {
+async function runNotionSync(db: IDatabase, env: Bindings, options: { resetCursor?: boolean; maxPages?: number; repairOnly?: boolean; maxBodyPages?: number } = {}) {
   const settings = await db.getSettings();
   const rewriteNotionImages = settings.notion_sync_rewrite_images === "true";
   return syncNotionPosts({
@@ -1299,6 +1299,8 @@ async function runNotionSync(db: IDatabase, env: Bindings, options: { resetCurso
     rewriteImages: async (content) => rewriteNotionImages ? (await rewriteExternalImagesToSee(content, settings)).content : content,
     maxPages: options.maxPages,
     resetCursor: options.resetCursor,
+    repairOnly: options.repairOnly,
+    maxBodyPages: options.maxBodyPages,
   });
 }
 
@@ -1310,7 +1312,7 @@ app.get("/api/admin/notion-sync/status", async (c) => {
 
 app.post("/api/admin/notion-sync/run", async (c) => {
   const db = c.get("db");
-  let body: { resetCursor?: boolean; maxPages?: number } = {};
+  let body: { resetCursor?: boolean; maxPages?: number; repairOnly?: boolean; maxBodyPages?: number } = {};
   try {
     body = await c.req.json();
   } catch {
@@ -1318,7 +1320,14 @@ app.post("/api/admin/notion-sync/run", async (c) => {
   }
   const requestedMaxPages = Number(body.maxPages);
   const maxPages = Number.isFinite(requestedMaxPages) ? Math.min(Math.max(requestedMaxPages, 1), 3) : 1;
-  const result = await runNotionSync(db, c.env, { resetCursor: body.resetCursor === true, maxPages });
+  const requestedMaxBodyPages = Number(body.maxBodyPages);
+  const maxBodyPages = Number.isFinite(requestedMaxBodyPages) ? Math.min(Math.max(requestedMaxBodyPages, 1), 5) : undefined;
+  const result = await runNotionSync(db, c.env, {
+    resetCursor: body.resetCursor === true,
+    maxPages,
+    repairOnly: body.repairOnly === true,
+    maxBodyPages,
+  });
   return c.json(result, result.success ? 200 : 502);
 });
 
