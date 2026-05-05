@@ -4,7 +4,8 @@ const NOTION_API_BASE = "https://api.notion.com/v1";
 const NOTION_VERSION = "2026-03-11";
 const DEFAULT_DATA_SOURCE_ID = "22837041-b78c-81d8-9670-000b9d50c21b";
 const DEFAULT_NOTION_CATEGORY = "剪藏";
-const DEFAULT_SYNC_PAGE_SIZE = 10;
+const DEFAULT_METADATA_SYNC_PAGE_SIZE = 10;
+const DEFAULT_BODY_SYNC_PAGE_SIZE = 2;
 const DEFAULT_SYNC_MAX_PAGES = 3;
 const NOTION_DELETED_SLUGS_KEY = "notion_sync_deleted_slugs";
 const MAX_DELETED_NOTION_SLUGS = 5000;
@@ -167,7 +168,9 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   }
 
   const client = new NotionClient(token);
-  const pageSize = clampInt(options.pageSize, 1, 20, DEFAULT_SYNC_PAGE_SIZE);
+  const includePageBody = options.settings.notion_sync_include_page_body !== "false";
+  const defaultPageSize = includePageBody ? DEFAULT_BODY_SYNC_PAGE_SIZE : DEFAULT_METADATA_SYNC_PAGE_SIZE;
+  const pageSize = clampInt(options.pageSize, 1, 20, defaultPageSize);
   const maxPages = clampInt(options.maxPages, 1, 25, DEFAULT_SYNC_MAX_PAGES);
   let cursor = options.resetCursor ? undefined : options.settings.notion_sync_next_cursor || undefined;
   const deletedNotionSlugs = parseDeletedNotionSlugs(options.settings);
@@ -195,7 +198,7 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
       for (const page of pageBatch.pages) {
         try {
           const post = await notionPageToPost(client, page, {
-            includePageBody: options.settings.notion_sync_include_page_body === "true",
+            includePageBody,
           });
           resultBase.processed++;
           if (!post.title) {

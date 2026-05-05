@@ -85,7 +85,7 @@
 - Markdown 导入：后台支持批量导入 Markdown；导入后默认草稿，可在列表批量发布，也可进入单篇编辑页单独发布。
 - 友链：导航栏新增 `/friends` 友链入口，后台 `站点设置 -> 友链` 可自定义名称、地址与 Logo。
 - S.EE 图床：后台 `站点设置 -> 图片托管` 可开启自动上传外部图片；已托管的 `i.see.you` / `s.ee` 链接会跳过，S.EE 返回的直连会原样写入文章。
-- Notion 同步：后台 `站点设置 -> Notion 同步` 可查看最近同步状态并手动触发；剪藏库默认只读取 `标题`、`摘要`、`原文地址`、`发布日期` 等属性生成草稿，不拉取页面正文块，以避免 Cloudflare Worker 单次 subrequests 超限；文章 slug 固定为 `notion-{pageId}`。站内删除 `notion-*` 文章后会记录删除标记，Notion 中仍存在也不会再次创建；若文章仍存在，Notion 更新会继续同步到站内。
+- Notion 同步：后台 `站点设置 -> Notion 同步` 可查看最近同步状态并手动触发；默认读取 `标题`、`摘要`、`原文地址`、`发布日期` 并同步 Notion 页面正文块，文章 slug 固定为 `notion-{pageId}`。站内删除 `notion-*` 文章后会记录删除标记，Notion 中仍存在也不会再次创建；若文章仍存在，Notion 更新会继续同步到站内。
 - AI 编辑：后台 `站点设置 -> AI 编辑` 可配置 DeepSeek、Gemini 或 OpenAI Compatible API Key；文章编辑页可预览 AI 修改内容后再应用。
 - 访客分析：Cloudflare Analytics Engine 增强分析已接入，依赖 `CLOUDFLARE_ACCOUNT_ID` 与具备 `Account Analytics:Read` 权限的 `CLOUDFLARE_API_TOKEN`。
 - SEO 域名：sitemap、robots、RSS 与前后台 SEO 面板使用 `https://timeamber.com`。

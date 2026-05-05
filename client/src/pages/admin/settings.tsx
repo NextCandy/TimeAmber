@@ -707,7 +707,7 @@ export function AdminSettings() {
                 <h2 className="text-[16px] font-semibold mb-[4px] flex items-center gap-[6px]">
                   <Database className="h-[15px] w-[15px] text-violet-400" /> Notion 文章同步
                 </h2>
-                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">每 10 分钟从指定 Notion 数据库同步文章。首次同步进入草稿，发布仍由后台单独控制。</p>
+                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">每 10 分钟从指定 Notion 数据库同步文章，默认同步页面正文块。首次同步进入草稿，发布仍由后台单独控制。</p>
                 <div className="rounded-xl border border-border/15 bg-card/5 p-[20px] sm:p-[24px] space-y-[18px]">
                   <SettingField label="Data Source ID" value={settings.notion_data_source_id} onChange={(v) => updateSetting("notion_data_source_id", v)} placeholder="22837041-b78c-81d8-9670-000b9d50c21b" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-[12px]">
@@ -728,7 +728,7 @@ export function AdminSettings() {
                     )}
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[12px]">
-                    <p className="text-[11px] text-muted-foreground/35">需要在 Cloudflare Worker secret 中配置 NOTION_TOKEN，并把 Notion 数据库分享给对应 Integration。</p>
+                    <p className="text-[11px] text-muted-foreground/35">需要在 Cloudflare Worker secret 中配置 NOTION_TOKEN，并把 Notion 数据库分享给对应 Integration。若只想同步摘要和原文链接，可在设置中保存 notion_sync_include_page_body=false。</p>
                     <button
                       type="button"
                       onClick={runNotionSync}
