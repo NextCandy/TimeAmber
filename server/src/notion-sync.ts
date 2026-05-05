@@ -54,6 +54,7 @@ type NotionProperty = {
 
 type NotionSyncPost = {
   slug: string;
+  legacySlug: string;
   title: string;
   content: string;
   excerpt: string;
@@ -111,7 +112,7 @@ export function getNotionSyncStatus(settings: Record<string, string>, env: Notio
 }
 
 export function isNotionSyncedSlug(slug: string): boolean {
-  return /^notion-[a-f0-9]{12}$/i.test(slug);
+  return /^notion-[a-f0-9]{12,32}$/i.test(slug);
 }
 
 export async function rememberDeletedNotionSlugs(db: IDatabase, slugs: string[]): Promise<void> {
@@ -206,15 +207,23 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
             continue;
           }
 
-          const existing = await options.db.getPostBySlug(post.slug);
+          let existing = await options.db.getPostBySlug(post.slug);
+          if (!existing && post.legacySlug !== post.slug) {
+            const legacy = await options.db.getPostBySlug(post.legacySlug);
+            if (legacy?.title === post.title) existing = legacy;
+          }
           if (!existing && deletedNotionSlugs.has(post.slug)) {
+            resultBase.skipped++;
+            continue;
+          }
+          if (!existing && deletedNotionSlugs.has(post.legacySlug)) {
             resultBase.skipped++;
             continue;
           }
 
           post.content = await options.rewriteImages(post.content);
           if (existing) {
-            await options.db.updatePost(post.slug, {
+            await options.db.updatePost(existing.slug, {
               title: post.title,
               content: post.content,
               excerpt: post.excerpt,
@@ -296,7 +305,8 @@ async function notionPageToPost(client: NotionClient, page: NotionPage, options:
   const normalizedTags = Array.from(new Set([DEFAULT_NOTION_CATEGORY, ...authorTags])).slice(0, 20);
 
   return {
-    slug: `notion-${page.id.replace(/-/g, "").slice(0, 12)}`,
+    slug: notionSlug(page.id),
+    legacySlug: legacyNotionSlug(page.id),
     title,
     content,
     excerpt: excerpt || truncate(stripMarkdown(content), 220),
@@ -304,6 +314,14 @@ async function notionPageToPost(client: NotionClient, page: NotionPage, options:
     category: DEFAULT_NOTION_CATEGORY,
     createdAt,
   };
+}
+
+function notionSlug(pageId: string): string {
+  return `notion-${pageId.replace(/-/g, "").slice(0, 32)}`;
+}
+
+function legacyNotionSlug(pageId: string): string {
+  return `notion-${pageId.replace(/-/g, "").slice(0, 12)}`;
 }
 
 function buildClippingFallback(title: string, excerpt: string, sourceUrl: string): string {
