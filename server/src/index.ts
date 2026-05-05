@@ -12,6 +12,7 @@ import type { IDatabase } from "./storage/interfaces";
 import type { IObjectStorage } from "./storage/interfaces";
 import { writeAnalyticsPoint, isWebsiteAllowed } from "./analytics/ae-tracker";
 import { queryAEAnalytics } from "./analytics/ae-query";
+import { syncArchiveSources } from "./archive-sync";
 import { getNotionSyncStatus, rememberDeletedNotionSlugs, syncNotionPosts } from "./notion-sync";
 
 /* ── 类型定义 ──────────────────────────────── */
@@ -32,6 +33,13 @@ type Bindings = {
   ANALYTICS_WEBSITE_WHITELIST?: string; // 站点白名单，格式: domain1|domain2 (空=放行所有)
   NOTION_TOKEN?: string;
   NOTION_DATA_SOURCE_ID?: string;
+  SHUDONG_BASE_URL?: string;
+  SHUDONG_TOKEN?: string;
+  MEARCHIVE_BASE_URL?: string;
+  MEARCHIVE_EMAIL?: string;
+  MEARCHIVE_PASSWORD?: string;
+  ARCHIVE_SYNC_MAX_PAGES?: string;
+  ARCHIVE_SYNC_MAX_CONTENT_CHARS?: string;
 };
 
 type Variables = {
@@ -1304,6 +1312,22 @@ app.post("/api/admin/notion-sync/run", async (c) => {
   return c.json(result, result.success ? 200 : 502);
 });
 
+app.post("/api/admin/archive-sync/run", async (c) => {
+  const db = c.get("db");
+  let body: { maxPages?: number } = {};
+  try {
+    body = await c.req.json();
+  } catch {
+    body = {};
+  }
+  const requestedMaxPages = Number(body.maxPages);
+  const maxPages = Number.isFinite(requestedMaxPages) ? Math.min(Math.max(requestedMaxPages, 1), 50) : undefined;
+  const result = await syncArchiveSources(db, c.env, { maxPages });
+  const failed = result.reduce((sum, item) => sum + item.failed, 0);
+  const changed = result.reduce((sum, item) => sum + item.created + item.updated, 0);
+  return c.json({ success: failed === 0, changed, result }, failed > 0 && changed === 0 ? 502 : 200);
+});
+
 app.post("/api/admin/ai/edit", async (c) => {
   const body = await c.req.json<{
     title?: string;
@@ -2037,6 +2061,12 @@ export default {
     if (scheduledAt.getUTCMinutes() % 10 === 0) {
       const result = await runNotionSync(db, env, { maxPages: 4 });
       console.log(`[Cron] Notion sync finished: created=${result.created}, updated=${result.updated}, failed=${result.failed}`);
+    }
+    if (scheduledAt.getUTCMinutes() % 20 === 5) {
+      const result = await syncArchiveSources(db, env, { maxPages: 2 });
+      const changed = result.reduce((sum, item) => sum + item.created + item.updated, 0);
+      const failed = result.reduce((sum, item) => sum + item.failed, 0);
+      console.log(`[Cron] Archive sync finished: changed=${changed}, failed=${failed}`);
     }
   }
 };
