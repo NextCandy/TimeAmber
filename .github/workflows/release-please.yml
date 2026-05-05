@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,6 +13,21 @@ permissions:
 
 jobs:
   release-please:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.head_commit.message, 'feat:') ||
+      startsWith(github.event.head_commit.message, 'feat(') ||
+      startsWith(github.event.head_commit.message, 'fix:') ||
+      startsWith(github.event.head_commit.message, 'fix(') ||
+      startsWith(github.event.head_commit.message, 'perf:') ||
+      startsWith(github.event.head_commit.message, 'perf(') ||
+      startsWith(github.event.head_commit.message, 'refactor:') ||
+      startsWith(github.event.head_commit.message, 'refactor(') ||
+      startsWith(github.event.head_commit.message, 'docs:') ||
+      startsWith(github.event.head_commit.message, 'docs(') ||
+      startsWith(github.event.head_commit.message, 'deps:') ||
+      startsWith(github.event.head_commit.message, 'deps(') ||
+      startsWith(github.event.head_commit.message, 'chore: release')
     runs-on: ubuntu-latest
     steps:
       - uses: googleapis/release-please-action@v5
