@@ -47,6 +47,26 @@ export type ArchiveSyncResult = {
   errors: string[];
 };
 
+export type ArchiveSyncStatus = {
+  configured: boolean;
+  sources: {
+    id: ArchiveSource["id"];
+    label: string;
+    configured: boolean;
+    nextPage: number;
+    lastRunAt: string;
+    lastStatus: string;
+    lastError: string;
+    lastTotal: number;
+    lastScanned: number;
+    lastCreated: number;
+    lastUpdated: number;
+    lastSkipped: number;
+    lastFailed: number;
+    hasMore: boolean;
+  }[];
+};
+
 type ArchiveSyncOptions = {
   maxPages?: number;
   pageNumber?: number;
@@ -190,6 +210,48 @@ function getSources(env: ArchiveSyncEnv): ArchiveSource[] {
   return sources;
 }
 
+export function getArchiveSyncStatus(settings: Record<string, string>, env: ArchiveSyncEnv): ArchiveSyncStatus {
+  const knownSources: ArchiveSource[] = [
+    {
+      id: "shudong",
+      label: "树洞剪藏",
+      baseUrl: trimSlash(env.SHUDONG_BASE_URL || "https://shudong.org"),
+      token: env.SHUDONG_TOKEN,
+    },
+    {
+      id: "mearchive",
+      label: "MeArchive",
+      baseUrl: trimSlash(env.MEARCHIVE_BASE_URL || "https://mearchive.com"),
+      email: env.MEARCHIVE_EMAIL,
+      password: env.MEARCHIVE_PASSWORD,
+    },
+  ];
+  const sources = knownSources.map((source) => {
+    const prefix = `archive_sync_${source.id}`;
+    const configured = source.id === "shudong" ? Boolean(source.token) : Boolean(source.email && source.password);
+    return {
+      id: source.id,
+      label: source.label,
+      configured,
+      nextPage: clampInt(settings[`${prefix}_next_page`], 1, 100000, 1),
+      lastRunAt: settings[`${prefix}_last_run_at`] || "",
+      lastStatus: settings[`${prefix}_last_status`] || "never",
+      lastError: settings[`${prefix}_last_error`] || "",
+      lastTotal: clampInt(settings[`${prefix}_last_total`], 0, 1000000, 0),
+      lastScanned: clampInt(settings[`${prefix}_last_scanned`], 0, 1000000, 0),
+      lastCreated: clampInt(settings[`${prefix}_last_created`], 0, 1000000, 0),
+      lastUpdated: clampInt(settings[`${prefix}_last_updated`], 0, 1000000, 0),
+      lastSkipped: clampInt(settings[`${prefix}_last_skipped`], 0, 1000000, 0),
+      lastFailed: clampInt(settings[`${prefix}_last_failed`], 0, 1000000, 0),
+      hasMore: settings[`${prefix}_has_more`] === "true",
+    };
+  });
+  return {
+    configured: sources.some((source) => source.configured),
+    sources,
+  };
+}
+
 export async function syncArchiveSources(db: IDatabase, env: ArchiveSyncEnv, options: ArchiveSyncOptions = {}): Promise<ArchiveSyncResult[]> {
   const maxPages = clampInt(options.maxPages || env.ARCHIVE_SYNC_MAX_PAGES, 1, 50, 10);
   const maxContentChars = Math.min(Math.max(Number(env.ARCHIVE_SYNC_MAX_CONTENT_CHARS || 60000) || 60000, 5000), 180000);
@@ -198,7 +260,8 @@ export async function syncArchiveSources(db: IDatabase, env: ArchiveSyncEnv, opt
   const cursorUpdates: Record<string, string> = {};
 
   for (const source of getSources(env)) {
-    const cursorKey = `archive_sync_${source.id}_next_page`;
+    const settingsPrefix = `archive_sync_${source.id}`;
+    const cursorKey = `${settingsPrefix}_next_page`;
     const pageNumber = clampInt(
       options.pageNumber || (options.resetCursor ? 1 : settings[cursorKey]),
       1,
@@ -234,7 +297,7 @@ export async function syncArchiveSources(db: IDatabase, env: ArchiveSyncEnv, opt
           const slug = stableArchiveSlug(source.id, page.id);
           const existing = await db.getPostBySlug(slug);
           const sourceUpdatedAt = parseArchiveDate(page.updatedAt || page.createdAt);
-          if (existing && new Date(existing.updatedAt).getTime() >= new Date(sourceUpdatedAt).getTime()) {
+          if (existing && existing.category === source.label && new Date(existing.updatedAt).getTime() >= new Date(sourceUpdatedAt).getTime()) {
             result.skipped++;
             continue;
           }
@@ -254,11 +317,20 @@ export async function syncArchiveSources(db: IDatabase, env: ArchiveSyncEnv, opt
             pinned: false,
             publishAt: null,
             tags,
-            category: "剪藏",
+            category: source.label,
             updatedAt: sourceUpdatedAt,
           };
 
-          if (existing) {
+          if (existing && existing.category !== source.label) {
+            await db.updatePost(slug, {
+              tags,
+              category: source.label,
+              excerpt: payload.excerpt,
+              coverColor: payload.coverColor,
+              coverImage: payload.coverImage,
+            });
+            result.updated++;
+          } else if (existing) {
             await db.updatePost(slug, payload);
             result.updated++;
           } else {
@@ -273,6 +345,18 @@ export async function syncArchiveSources(db: IDatabase, env: ArchiveSyncEnv, opt
     } catch (error) {
       result.failed++;
       result.errors.push(error instanceof Error ? error.message : String(error));
+    }
+    if (options.advanceCursor) {
+      cursorUpdates[`${settingsPrefix}_last_run_at`] = new Date().toISOString();
+      cursorUpdates[`${settingsPrefix}_last_status`] = result.failed === 0 ? "success" : "error";
+      cursorUpdates[`${settingsPrefix}_last_error`] = result.errors.slice(0, 3).join("\n").slice(0, 500);
+      cursorUpdates[`${settingsPrefix}_last_total`] = String(result.total);
+      cursorUpdates[`${settingsPrefix}_last_scanned`] = String(result.scanned);
+      cursorUpdates[`${settingsPrefix}_last_created`] = String(result.created);
+      cursorUpdates[`${settingsPrefix}_last_updated`] = String(result.updated);
+      cursorUpdates[`${settingsPrefix}_last_skipped`] = String(result.skipped);
+      cursorUpdates[`${settingsPrefix}_last_failed`] = String(result.failed);
+      cursorUpdates[`${settingsPrefix}_has_more`] = String(result.hasMore);
     }
   }
 

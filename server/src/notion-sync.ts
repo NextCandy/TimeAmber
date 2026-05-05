@@ -5,14 +5,16 @@ const NOTION_VERSION = "2026-03-11";
 const DEFAULT_DATA_SOURCE_ID = "22837041-b78c-81d8-9670-000b9d50c21b";
 const DEFAULT_NOTION_CATEGORY = "剪藏";
 const DEFAULT_METADATA_SYNC_PAGE_SIZE = 10;
-const DEFAULT_BODY_SYNC_PAGE_SIZE = 2;
-const DEFAULT_SYNC_MAX_PAGES = 3;
+const DEFAULT_BODY_SYNC_PAGE_SIZE = 1;
+const DEFAULT_SYNC_MAX_PAGES = 1;
+const DEFAULT_MAX_NOTION_SUBREQUESTS = 40;
 const NOTION_DELETED_SLUGS_KEY = "notion_sync_deleted_slugs";
 const MAX_DELETED_NOTION_SLUGS = 5000;
 
 type NotionEnv = {
   NOTION_TOKEN?: string;
   NOTION_DATA_SOURCE_ID?: string;
+  NOTION_SYNC_MAX_SUBREQUESTS?: string;
 };
 
 type RichText = {
@@ -169,6 +171,7 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   }
 
   const client = new NotionClient(token);
+  client.setRequestBudget(clampInt(Number(options.env.NOTION_SYNC_MAX_SUBREQUESTS), 10, 45, DEFAULT_MAX_NOTION_SUBREQUESTS));
   const includePageBody = options.settings.notion_sync_include_page_body !== "false";
   const defaultPageSize = includePageBody ? DEFAULT_BODY_SYNC_PAGE_SIZE : DEFAULT_METADATA_SYNC_PAGE_SIZE;
   const pageSize = clampInt(options.pageSize, 1, 20, defaultPageSize);
@@ -329,6 +332,10 @@ function buildClippingFallback(title: string, excerpt: string, sourceUrl: string
   if (excerpt) lines.push(excerpt);
   if (sourceUrl) lines.push(`> 原文地址: [${sourceUrl}](${sourceUrl})`);
   return lines.join("\n\n");
+}
+
+function budgetNotice(): string {
+  return "> Notion 页面内容较长，本次同步已接近 Cloudflare Worker 单次 subrequest 限制，剩余子块将在后续同步中继续尝试更新。";
 }
 
 async function blocksToMarkdown(client: NotionClient, blocks: NotionBlock[], depth: number): Promise<string> {
@@ -511,7 +518,18 @@ function errorToMessage(error: unknown): string {
 }
 
 class NotionClient {
+  private requestCount = 0;
+  private maxRequests = DEFAULT_MAX_NOTION_SUBREQUESTS;
+
   constructor(private readonly token: string) {}
+
+  setRequestBudget(maxRequests: number) {
+    this.maxRequests = maxRequests;
+  }
+
+  isBudgetExhausted(): boolean {
+    return this.requestCount >= this.maxRequests;
+  }
 
   async queryDataSource(dataSourceId: string, options: { startCursor?: string; pageSize: number }): Promise<{
     pages: NotionPage[];
@@ -540,6 +558,14 @@ class NotionClient {
     const blocks: NotionBlock[] = [];
     let cursor: string | undefined;
     do {
+      if (this.isBudgetExhausted()) {
+        blocks.push({
+          id: `${blockId}-budget-notice`,
+          type: "paragraph",
+          paragraph: { rich_text: [{ plain_text: budgetNotice() }] },
+        });
+        break;
+      }
       const query = new URLSearchParams({ page_size: "100" });
       if (cursor) query.set("start_cursor", cursor);
       const data = await this.request<{ results?: NotionBlock[]; has_more?: boolean; next_cursor?: string | null }>(
@@ -552,6 +578,10 @@ class NotionClient {
   }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    if (this.isBudgetExhausted()) {
+      throw new Error("Notion sync reached the per-invocation subrequest budget.");
+    }
+    this.requestCount++;
     const res = await fetch(`${NOTION_API_BASE}${path}`, {
       ...init,
       headers: {

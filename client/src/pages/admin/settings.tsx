@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import type { ReactNode } from "react";
 import { getToken } from "@/lib/api";
 import { Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, Rss, Wand2, ImageIcon, Handshake, Plus, Trash2, Database, RefreshCw, GripVertical } from "lucide-react";
 
@@ -44,7 +45,31 @@ type NotionSyncStatus = {
   lastUpdated: number;
   lastSkipped: number;
   lastFailed: number;
+  lastProcessed: number;
+  hasMore: boolean;
   lastDurationMs: number;
+};
+
+type ArchiveSourceStatus = {
+  id: "shudong" | "mearchive";
+  label: string;
+  configured: boolean;
+  nextPage: number;
+  lastRunAt: string;
+  lastStatus: string;
+  lastError: string;
+  lastTotal: number;
+  lastScanned: number;
+  lastCreated: number;
+  lastUpdated: number;
+  lastSkipped: number;
+  lastFailed: number;
+  hasMore: boolean;
+};
+
+type ArchiveSyncStatus = {
+  configured: boolean;
+  sources: ArchiveSourceStatus[];
 };
 
 const defaultSettings: Settings = {
@@ -82,7 +107,7 @@ const TABS: TabDefinition[] = [
   { id: "social", label: "社交与订阅", icon: Link2 },
   { id: "friends", label: "友链", icon: Handshake },
   { id: "images", label: "图片托管", icon: ImageIcon },
-  { id: "notion", label: "Notion 同步", icon: Database },
+  { id: "notion", label: "同步中心", icon: Database },
   { id: "ai", label: "AI 编辑", icon: Wand2 },
   { id: "advanced", label: "扩展与注入", icon: Code },
 ];
@@ -213,6 +238,8 @@ export function AdminSettings() {
   const [avatarError, setAvatarError] = useState(false);
   const [notionStatus, setNotionStatus] = useState<NotionSyncStatus | null>(null);
   const [notionSyncing, setNotionSyncing] = useState(false);
+  const [archiveStatus, setArchiveStatus] = useState<ArchiveSyncStatus | null>(null);
+  const [archiveSyncing, setArchiveSyncing] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     document.title = "站点设置 | TimeAmber";
@@ -232,7 +259,7 @@ export function AdminSettings() {
       if (data && Object.keys(data).length > 0) {
         setSettings((prev) => ({ ...prev, ...data }));
       }
-      fetchNotionStatus();
+      fetchSyncStatuses();
       setLoadError("");
     } catch {
       setSettings(defaultSettings);
@@ -291,6 +318,10 @@ export function AdminSettings() {
     updateSetting("friend_links", serializeFriendLinks(links));
   };
 
+  const fetchSyncStatuses = async () => {
+    await Promise.all([fetchNotionStatus(), fetchArchiveStatus()]);
+  };
+
   const fetchNotionStatus = async () => {
     try {
       const res = await fetch("/api/admin/notion-sync/status", {
@@ -304,12 +335,26 @@ export function AdminSettings() {
     }
   };
 
-  const runNotionSync = async () => {
+  const fetchArchiveStatus = async () => {
+    try {
+      const res = await fetch("/api/admin/archive-sync/status", {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (res.ok) {
+        setArchiveStatus(await res.json());
+      }
+    } catch {
+      setArchiveStatus(null);
+    }
+  };
+
+  const runNotionSync = async (resetCursor = false) => {
     setNotionSyncing(true);
     try {
       const res = await fetch("/api/admin/notion-sync/run", {
         method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ maxPages: 1, resetCursor }),
       });
       const data = await res.json().catch(() => null);
       await fetchNotionStatus();
@@ -321,6 +366,33 @@ export function AdminSettings() {
       showMsg(error instanceof Error ? error.message : "Notion 同步失败", "error");
     } finally {
       setNotionSyncing(false);
+    }
+  };
+
+  const runArchiveSync = async (source: ArchiveSourceStatus, resetCursor = false) => {
+    setArchiveSyncing((prev) => ({ ...prev, [source.id]: true }));
+    try {
+      const res = await fetch("/api/admin/archive-sync/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({
+          maxPages: 10,
+          pageNumber: resetCursor ? 1 : source.nextPage,
+          resetCursor,
+          advanceCursor: true,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      await fetchArchiveStatus();
+      const current = data?.result?.find((item: { source: string }) => item.source === source.id);
+      if (!res.ok || current?.failed) {
+        throw new Error(current?.errors?.[0] || data?.result?.[0]?.errors?.[0] || "剪藏同步失败");
+      }
+      showMsg(`${source.label} 同步完成：新增 ${current?.created || 0}，更新 ${current?.updated || 0}`, "success");
+    } catch (error) {
+      showMsg(error instanceof Error ? error.message : `${source.label} 同步失败`, "error");
+    } finally {
+      setArchiveSyncing((prev) => ({ ...prev, [source.id]: false }));
     }
   };
 
@@ -700,45 +772,73 @@ export function AdminSettings() {
             </div>
           )}
 
-          {/* TAB: Notion 同步 */}
+          {/* TAB: 同步中心 */}
           {activeTab === "notion" && (
             <div className="space-y-[24px] animate-fade-in" role="tabpanel" id="settings-panel-notion" aria-labelledby="settings-tab-notion">
               <div>
                 <h2 className="text-[16px] font-semibold mb-[4px] flex items-center gap-[6px]">
-                  <Database className="h-[15px] w-[15px] text-violet-400" /> Notion 文章同步
+                  <Database className="h-[15px] w-[15px] text-violet-400" /> 同步中心
                 </h2>
-                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">每 10 分钟从指定 Notion 数据库同步文章，默认同步页面正文块。首次同步进入草稿，发布仍由后台单独控制。</p>
-                <div className="rounded-xl border border-border/15 bg-card/5 p-[20px] sm:p-[24px] space-y-[18px]">
-                  <SettingField label="Data Source ID" value={settings.notion_data_source_id} onChange={(v) => updateSetting("notion_data_source_id", v)} placeholder="22837041-b78c-81d8-9670-000b9d50c21b" />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-[12px]">
-                    <StatusPill label="Token" value={notionStatus?.configured ? "已配置" : "未配置"} tone={notionStatus?.configured ? "success" : "error"} />
-                    <StatusPill label="最近状态" value={notionStatus?.lastStatus || "never"} tone={notionStatus?.lastStatus === "success" ? "success" : notionStatus?.lastStatus === "error" ? "error" : "neutral"} />
-                    <StatusPill label="最近同步" value={formatDateTime(notionStatus?.lastRunAt)} tone="neutral" />
-                    <StatusPill label="耗时" value={notionStatus?.lastDurationMs ? `${notionStatus.lastDurationMs} ms` : "-"} tone="neutral" />
-                  </div>
-                  <div className="rounded-lg border border-border/10 bg-background/20 px-[14px] py-[12px]">
-                    <div className="grid grid-cols-4 gap-[8px] text-center">
-                      <SyncMetric label="新增" value={notionStatus?.lastCreated || 0} />
-                      <SyncMetric label="更新" value={notionStatus?.lastUpdated || 0} />
-                      <SyncMetric label="跳过" value={notionStatus?.lastSkipped || 0} />
-                      <SyncMetric label="失败" value={notionStatus?.lastFailed || 0} />
+                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">分开管理 Notion、树洞剪藏和 MeArchive 同步状态。剪藏来源会写入对应来源分类，Notion 仍写入“剪藏”。</p>
+
+                <div className="space-y-[14px]">
+                  <SyncSourceCard
+                    title="Notion 数据库"
+                    subtitle="每 10 分钟小批量同步 1 页，避免触发 Worker subrequest 限制。"
+                    configured={Boolean(notionStatus?.configured)}
+                    status={notionStatus?.lastStatus || "never"}
+                    lastRunAt={notionStatus?.lastRunAt || ""}
+                    metrics={[
+                      { label: "新增", value: notionStatus?.lastCreated || 0 },
+                      { label: "更新", value: notionStatus?.lastUpdated || 0 },
+                      { label: "跳过", value: notionStatus?.lastSkipped || 0 },
+                      { label: "失败", value: notionStatus?.lastFailed || 0 },
+                    ]}
+                    details={[
+                      `已处理 ${notionStatus?.lastProcessed || 0} 页`,
+                      notionStatus?.hasMore ? "还有后续页面" : "暂无后续游标",
+                      notionStatus?.lastDurationMs ? `耗时 ${notionStatus.lastDurationMs} ms` : "耗时 -",
+                    ]}
+                    error={notionStatus?.lastError || ""}
+                    syncing={notionSyncing}
+                    onSync={() => runNotionSync(false)}
+                    onReset={() => runNotionSync(true)}
+                  >
+                    <SettingField label="Data Source ID" value={settings.notion_data_source_id} onChange={(v) => updateSetting("notion_data_source_id", v)} placeholder="22837041-b78c-81d8-9670-000b9d50c21b" />
+                    <p className="text-[11px] text-muted-foreground/35">需要配置 Worker secret：NOTION_TOKEN，并把 Notion 数据库分享给对应 Integration。</p>
+                  </SyncSourceCard>
+
+                  {(archiveStatus?.sources || []).map((source) => (
+                    <SyncSourceCard
+                      key={source.id}
+                      title={source.label}
+                      subtitle={source.id === "shudong" ? "来源：shudong.org，文章分类写入“树洞剪藏”。" : "来源：mearchive.com，文章分类写入“MeArchive”。"}
+                      configured={source.configured}
+                      status={source.lastStatus}
+                      lastRunAt={source.lastRunAt}
+                      metrics={[
+                        { label: "新增", value: source.lastCreated },
+                        { label: "更新", value: source.lastUpdated },
+                        { label: "跳过", value: source.lastSkipped },
+                        { label: "失败", value: source.lastFailed },
+                      ]}
+                      details={[
+                        `总数 ${source.lastTotal || 0}`,
+                        `上次扫描 ${source.lastScanned || 0} 篇`,
+                        source.hasMore ? `下次第 ${source.nextPage} 页` : "已到末尾，将回到第 1 页",
+                      ]}
+                      error={source.lastError}
+                      syncing={Boolean(archiveSyncing[source.id])}
+                      onSync={() => runArchiveSync(source, false)}
+                      onReset={() => runArchiveSync(source, true)}
+                    />
+                  ))}
+
+                  {!archiveStatus?.sources?.length && (
+                    <div className="rounded-xl border border-border/15 bg-card/5 p-[20px] text-[12px] text-muted-foreground/45">
+                      剪藏同步状态暂未加载，可刷新页面重试。
                     </div>
-                    {notionStatus?.lastError && (
-                      <pre className="mt-[12px] max-h-[120px] overflow-auto whitespace-pre-wrap rounded-md bg-red-500/5 px-[10px] py-[8px] text-[11px] leading-[1.5] text-red-400">{notionStatus.lastError}</pre>
-                    )}
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[12px]">
-                    <p className="text-[11px] text-muted-foreground/35">需要在 Cloudflare Worker secret 中配置 NOTION_TOKEN，并把 Notion 数据库分享给对应 Integration。若只想同步摘要和原文链接，可在设置中保存 notion_sync_include_page_body=false。</p>
-                    <button
-                      type="button"
-                      onClick={runNotionSync}
-                      disabled={notionSyncing}
-                      className="inline-flex h-[36px] shrink-0 items-center justify-center gap-[6px] rounded-lg border border-border/20 px-[14px] text-[12px] font-medium text-foreground transition-colors hover:bg-card/60 disabled:opacity-50"
-                    >
-                      <RefreshCw className={`h-[14px] w-[14px] ${notionSyncing ? "animate-spin" : ""}`} />
-                      {notionSyncing ? "同步中" : "立即同步"}
-                    </button>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -864,6 +964,92 @@ function SyncMetric({ label, value }: { label: string; value: number }) {
     <div>
       <p className="text-[18px] font-semibold text-foreground">{value}</p>
       <p className="mt-[2px] text-[11px] text-muted-foreground/40">{label}</p>
+    </div>
+  );
+}
+
+function SyncSourceCard({
+  title,
+  subtitle,
+  configured,
+  status,
+  lastRunAt,
+  metrics,
+  details,
+  error,
+  syncing,
+  onSync,
+  onReset,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  configured: boolean;
+  status: string;
+  lastRunAt: string;
+  metrics: { label: string; value: number }[];
+  details: string[];
+  error?: string;
+  syncing: boolean;
+  onSync: () => void;
+  onReset: () => void;
+  children?: ReactNode;
+}) {
+  const statusTone = status === "success" ? "success" : status === "error" ? "error" : "neutral";
+
+  return (
+    <div className="rounded-xl border border-border/15 bg-card/5 p-[20px] sm:p-[24px]">
+      <div className="mb-[16px] flex flex-col gap-[12px] sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="text-[15px] font-semibold text-foreground">{title}</h3>
+          <p className="mt-[4px] text-[12px] text-muted-foreground/50">{subtitle}</p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-[8px]">
+          <button
+            type="button"
+            onClick={onSync}
+            disabled={syncing || !configured}
+            className="inline-flex h-[34px] items-center justify-center gap-[6px] rounded-lg border border-border/20 px-[12px] text-[12px] font-medium text-foreground transition-colors hover:bg-card/60 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-[13px] w-[13px] ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "同步中" : "同步下一批"}
+          </button>
+          <button
+            type="button"
+            onClick={onReset}
+            disabled={syncing || !configured}
+            className="inline-flex h-[34px] items-center justify-center rounded-lg border border-border/15 px-[12px] text-[12px] text-muted-foreground transition-colors hover:bg-card/40 hover:text-foreground disabled:opacity-50"
+          >
+            从头同步
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-[10px] sm:grid-cols-3">
+        <StatusPill label="配置" value={configured ? "已配置" : "未配置"} tone={configured ? "success" : "error"} />
+        <StatusPill label="最近状态" value={status || "never"} tone={statusTone} />
+        <StatusPill label="最近同步" value={formatDateTime(lastRunAt)} tone="neutral" />
+      </div>
+
+      <div className="mt-[12px] rounded-lg border border-border/10 bg-background/20 px-[14px] py-[12px]">
+        <div className="grid grid-cols-4 gap-[8px] text-center">
+          {metrics.map((metric) => (
+            <SyncMetric key={metric.label} label={metric.label} value={metric.value} />
+          ))}
+        </div>
+        <div className="mt-[12px] flex flex-wrap gap-[6px]">
+          {details.map((detail) => (
+            <span key={detail} className="rounded-md border border-border/10 bg-background/25 px-[8px] py-[4px] text-[11px] text-muted-foreground/45">
+              {detail}
+            </span>
+          ))}
+        </div>
+        {error && (
+          <pre className="mt-[12px] max-h-[120px] overflow-auto whitespace-pre-wrap rounded-md bg-red-500/5 px-[10px] py-[8px] text-[11px] leading-[1.5] text-red-400">{error}</pre>
+        )}
+      </div>
+
+      {children && <div className="mt-[14px] space-y-[10px]">{children}</div>}
     </div>
   );
 }

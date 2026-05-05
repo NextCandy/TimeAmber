@@ -12,7 +12,7 @@ import type { IDatabase } from "./storage/interfaces";
 import type { IObjectStorage } from "./storage/interfaces";
 import { writeAnalyticsPoint, isWebsiteAllowed } from "./analytics/ae-tracker";
 import { queryAEAnalytics } from "./analytics/ae-query";
-import { syncArchiveSources } from "./archive-sync";
+import { getArchiveSyncStatus, syncArchiveSources } from "./archive-sync";
 import { getNotionSyncStatus, rememberDeletedNotionSlugs, syncNotionPosts } from "./notion-sync";
 
 /* ── 类型定义 ──────────────────────────────── */
@@ -40,6 +40,7 @@ type Bindings = {
   MEARCHIVE_PASSWORD?: string;
   ARCHIVE_SYNC_MAX_PAGES?: string;
   ARCHIVE_SYNC_MAX_CONTENT_CHARS?: string;
+  NOTION_SYNC_MAX_SUBREQUESTS?: string;
 };
 
 type Variables = {
@@ -1308,8 +1309,22 @@ app.get("/api/admin/notion-sync/status", async (c) => {
 
 app.post("/api/admin/notion-sync/run", async (c) => {
   const db = c.get("db");
-  const result = await runNotionSync(db, c.env, { resetCursor: true, maxPages: 3 });
+  let body: { resetCursor?: boolean; maxPages?: number } = {};
+  try {
+    body = await c.req.json();
+  } catch {
+    body = {};
+  }
+  const requestedMaxPages = Number(body.maxPages);
+  const maxPages = Number.isFinite(requestedMaxPages) ? Math.min(Math.max(requestedMaxPages, 1), 3) : 1;
+  const result = await runNotionSync(db, c.env, { resetCursor: body.resetCursor === true, maxPages });
   return c.json(result, result.success ? 200 : 502);
+});
+
+app.get("/api/admin/archive-sync/status", async (c) => {
+  const db = c.get("db");
+  const settings = await db.getSettings();
+  return c.json(getArchiveSyncStatus(settings, c.env));
 });
 
 app.post("/api/admin/archive-sync/run", async (c) => {
@@ -2066,7 +2081,7 @@ export default {
 
     const scheduledAt = new Date(event.scheduledTime || Date.now());
     if (scheduledAt.getUTCMinutes() % 10 === 0) {
-      const result = await runNotionSync(db, env, { maxPages: 4 });
+      const result = await runNotionSync(db, env, { maxPages: 1 });
       console.log(`[Cron] Notion sync finished: created=${result.created}, updated=${result.updated}, failed=${result.failed}`);
     }
     if (scheduledAt.getUTCMinutes() % 20 === 5) {

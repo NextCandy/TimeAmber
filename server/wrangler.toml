@@ -13,6 +13,7 @@ SHUDONG_BASE_URL = "https://shudong.org"
 MEARCHIVE_BASE_URL = "https://mearchive.com"
 ARCHIVE_SYNC_MAX_PAGES = "10"
 ARCHIVE_SYNC_MAX_CONTENT_CHARS = "60000"
+NOTION_SYNC_MAX_SUBREQUESTS = "40"
 # 运行时默认不做建表/补列；部署流程负责迁移与 schema reconcile。
 AUTO_SCHEMA_MIGRATION = "false"
 
