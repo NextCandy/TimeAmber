@@ -1291,11 +1291,12 @@ app.put("/api/admin/settings", async (c) => {
 
 async function runNotionSync(db: IDatabase, env: Bindings, options: { resetCursor?: boolean; maxPages?: number } = {}) {
   const settings = await db.getSettings();
+  const rewriteNotionImages = settings.notion_sync_rewrite_images === "true";
   return syncNotionPosts({
     db,
     env,
     settings,
-    rewriteImages: async (content) => (await rewriteExternalImagesToSee(content, settings)).content,
+    rewriteImages: async (content) => rewriteNotionImages ? (await rewriteExternalImagesToSee(content, settings)).content : content,
     maxPages: options.maxPages,
     resetCursor: options.resetCursor,
   });

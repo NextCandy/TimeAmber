@@ -805,7 +805,7 @@ export function AdminSettings() {
                     onReset={() => runNotionSync(true)}
                   >
                     <SettingField label="Data Source ID" value={settings.notion_data_source_id} onChange={(v) => updateSetting("notion_data_source_id", v)} placeholder="22837041-b78c-81d8-9670-000b9d50c21b" />
-                    <p className="text-[11px] text-muted-foreground/35">需要配置 Worker secret：NOTION_TOKEN，并把 Notion 数据库分享给对应 Integration。</p>
+                    <p className="text-[11px] text-muted-foreground/35">需要配置 Worker secret：NOTION_TOKEN，并把 Notion 数据库分享给对应 Integration。为避免 Worker subrequest 超限，Notion 同步默认不转存正文图片；如确需转存，可保存高级设置 notion_sync_rewrite_images=true。</p>
                   </SyncSourceCard>
 
                   {(archiveStatus?.sources || []).map((source) => (
