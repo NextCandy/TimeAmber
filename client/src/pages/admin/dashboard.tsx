@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useDeferredValue } from "react";
 import { Link } from "wouter";
-import { fetchAdminPosts, deletePost, batchOperatePosts, fetchViewStats, importMarkdownPosts, batchOptimizePostsWithAI, type MarkdownImportPost, type Post, type ViewStats } from "@/lib/api";
+import { fetchAdminPostsPage, deletePost, batchOperatePosts, fetchViewStats, importMarkdownPosts, batchOptimizePostsWithAI, type MarkdownImportPost, type Post, type ViewStats, type AdminPostsPage } from "@/lib/api";
 import { Plus, Edit, Trash2, Eye, FileText, Clock, Search, ExternalLink, Globe, CheckCircle2, AlertTriangle, XCircle, CheckSquare, Square, EyeOff, TrendingUp, ArrowRight, BarChart3, FileUp, Wand2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { parseMarkdownFile } from "@/lib/importers/frontmatter";
@@ -48,8 +48,19 @@ export function AdminDashboard() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(30);
+  const [pagination, setPagination] = useState<Omit<AdminPostsPage, "items">>({
+    page: 1,
+    pageSize: 30,
+    total: 0,
+    totalPages: 1,
+    counts: { all: 0, published: 0, draft: 0 },
+    tags: [],
+  });
   const [deleting, setDeleting] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedTag, setSelectedTag] = useState<string>("");
   const [tagExpanded, setTagExpanded] = useState(false);
@@ -57,20 +68,78 @@ export function AdminDashboard() {
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
+  const loadPosts = async (targetPage = page) => {
+    setLoading(true);
+    try {
+      const data = await fetchAdminPostsPage({
+        page: targetPage,
+        pageSize,
+        status: filter,
+        q: deferredSearch,
+        tag: selectedTag,
+      });
+      setPosts(data.items);
+      setPagination({
+        page: data.page,
+        pageSize: data.pageSize,
+        total: data.total,
+        totalPages: data.totalPages,
+        counts: data.counts,
+        tags: data.tags,
+      });
+      setPage(data.page);
+      setLoadError("");
+    } catch (err) {
+      setPosts([]);
+      setLoadError(err instanceof Error ? err.message : "文章列表加载失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     document.title = "管理后台 | TimeAmber";
-    fetchAdminPosts()
+    fetchViewStats().then(setViewStats).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, selectedTag, deferredSearch, pageSize]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchAdminPostsPage({
+      page,
+      pageSize,
+      status: filter,
+      q: deferredSearch,
+      tag: selectedTag,
+    })
       .then((data) => {
-        setPosts(data);
+        if (cancelled) return;
+        setPosts(data.items);
+        setPagination({
+          page: data.page,
+          pageSize: data.pageSize,
+          total: data.total,
+          totalPages: data.totalPages,
+          counts: data.counts,
+          tags: data.tags,
+        });
+        if (data.page !== page) setPage(data.page);
         setLoadError("");
       })
       .catch((err) => {
+        if (cancelled) return;
         setPosts([]);
         setLoadError(err instanceof Error ? err.message : "文章列表加载失败");
       })
-      .finally(() => setLoading(false));
-    fetchViewStats().then(setViewStats).catch(() => {});
-  }, []);
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [page, pageSize, filter, selectedTag, deferredSearch]);
 
   const handleDelete = async (slug: string, title: string) => {
     if (!confirm(`确定删除「${title}」？此操作不可撤销。`)) return;
@@ -78,6 +147,11 @@ export function AdminDashboard() {
     try {
       await deletePost(slug);
       setPosts((prev) => prev.filter((p) => p.slug !== slug));
+      setPagination((prev) => ({
+        ...prev,
+        total: Math.max(prev.total - 1, 0),
+        counts: { ...prev.counts, all: Math.max(prev.counts.all - 1, 0) },
+      }));
       setSelectedSlugs((prev) => { const next = new Set(prev); next.delete(slug); return next; });
     } finally {
       setDeleting(null);
@@ -88,21 +162,7 @@ export function AdminDashboard() {
   const [batchOperating, setBatchOperating] = useState(false);
   const [batchAiOperating, setBatchAiOperating] = useState(false);
 
-  const filteredPosts = useMemo(() => {
-    let result = posts;
-    if (filter === "published") result = result.filter((p) => p.published);
-    if (filter === "draft") result = result.filter((p) => !p.published);
-    if (selectedTag) result = result.filter((p) => p.tags.includes(selectedTag));
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter((p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.slug.toLowerCase().includes(q) ||
-        p.tags.some((t) => t.toLowerCase().includes(q))
-      );
-    }
-    return result;
-  }, [posts, filter, selectedTag, search]);
+  const filteredPosts = posts;
 
   useEffect(() => {
     setSelectedSlugs(prev => {
@@ -137,6 +197,11 @@ export function AdminDashboard() {
       await batchOperatePosts(slugs, action);
       if (action === "delete") {
         setPosts((prev) => prev.filter((p) => !slugs.includes(p.slug)));
+        setPagination((prev) => ({
+          ...prev,
+          total: Math.max(prev.total - slugs.length, 0),
+          counts: { ...prev.counts, all: Math.max(prev.counts.all - slugs.length, 0) },
+        }));
       } else {
         setPosts((prev) => prev.map((p) => slugs.includes(p.slug) ? { ...p, published: action === "publish" } : p));
       }
@@ -160,8 +225,7 @@ export function AdminDashboard() {
     try {
       const slugs = Array.from(selectedSlugs);
       const result = await batchOptimizePostsWithAI({ slugs, mode: "seo" });
-      const refreshed = await fetchAdminPosts();
-      setPosts(refreshed);
+      await loadPosts();
       setSelectedSlugs(new Set());
       const failedItems = result.posts.filter((item) => item.status === "failed" || item.status === "skipped");
       const detail = failedItems.length > 0
@@ -205,9 +269,8 @@ export function AdminDashboard() {
       }
 
       const result = await importMarkdownPosts(payload);
-      const refreshed = await fetchAdminPosts();
-      setPosts(refreshed);
       setFilter("draft");
+      setPage(1);
       setSelectedTag("");
       setSelectedSlugs(new Set());
       alert(`已导入 ${result.imported} 篇 Markdown，均为草稿。发布请进入单篇编辑页单独发布。`);
@@ -221,12 +284,12 @@ export function AdminDashboard() {
 
 
 
-  const publishedCount = posts.filter((p) => p.published).length;
-  const draftCount = posts.filter((p) => !p.published).length;
+  const publishedCount = pagination.counts.published;
+  const draftCount = pagination.counts.draft;
   const allTags = useMemo(() => {
-    const tagSet = new Set(posts.flatMap((p) => p.tags));
-    return Array.from(tagSet).sort();
-  }, [posts]);
+    return pagination.tags.map((tag) => tag.name);
+  }, [pagination.tags]);
+  const tagCounts = useMemo(() => new Map(pagination.tags.map((tag) => [tag.name, tag.count])), [pagination.tags]);
 
 
   return (
@@ -270,7 +333,7 @@ export function AdminDashboard() {
       {/* ═══════════ 数据概览行 ═══════════ */}
       <div className="mb-[22px] grid grid-cols-2 gap-[8px] sm:grid-cols-4 sm:gap-[10px]">
         {([
-          { key: "all" as FilterType, label: "全部", value: posts.length, icon: FileText, activeColor: "border-foreground/20 bg-foreground/[0.03]", iconColor: "text-foreground/60" },
+          { key: "all" as FilterType, label: "全部", value: pagination.counts.all, icon: FileText, activeColor: "border-foreground/20 bg-foreground/[0.03]", iconColor: "text-foreground/60" },
           { key: "published" as FilterType, label: "已发布", value: publishedCount, icon: Eye, activeColor: "border-emerald-500/25 bg-emerald-500/[0.04]", iconColor: "text-emerald-400/70" },
           { key: "draft" as FilterType, label: "草稿", value: draftCount, icon: Clock, activeColor: "border-amber-500/25 bg-amber-500/[0.04]", iconColor: "text-amber-400/70" },
         ] as const).map((stat) => (
@@ -315,7 +378,33 @@ export function AdminDashboard() {
               {filter === "all" ? "所有文章" : filter === "published" ? "已发布" : "草稿箱"}
               {selectedTag && <><span className="text-muted-foreground/15">·</span><span className="text-cyan-400 normal-case">{selectedTag}</span></>}
             </h2>
-            <span className="text-[11px] text-muted-foreground/25">{filteredPosts.length} 篇</span>
+            <span className="text-[11px] text-muted-foreground/25">本页 {filteredPosts.length} / 共 {pagination.total} 篇</span>
+          </div>
+          <div className="mb-[10px] flex flex-wrap items-center justify-between gap-[8px] rounded-md border border-border/12 bg-background/18 px-[12px] py-[8px] text-[11px] text-muted-foreground/40">
+            <span>第 {pagination.page} / {pagination.totalPages} 页</span>
+            <div className="flex items-center gap-[6px]">
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="h-[30px] rounded-md border border-border/20 bg-background/60 px-[8px] text-[11px] text-foreground/70 outline-none"
+              >
+                {[20, 30, 50, 80].map((size) => <option key={size} value={size}>{size} / 页</option>)}
+              </select>
+              <button
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                disabled={pagination.page <= 1 || loading}
+                className="h-[30px] rounded-md border border-border/20 px-[10px] text-foreground/60 transition-colors hover:bg-card/25 disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                上一页
+              </button>
+              <button
+                onClick={() => setPage((prev) => Math.min(prev + 1, pagination.totalPages))}
+                disabled={pagination.page >= pagination.totalPages || loading}
+                className="h-[30px] rounded-md border border-border/20 px-[10px] text-foreground/60 transition-colors hover:bg-card/25 disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                下一页
+              </button>
+            </div>
           </div>
 
           {/* 批量操作工具栏 */}
@@ -497,7 +586,7 @@ export function AdminDashboard() {
               </div>
               <div className={`flex flex-wrap gap-[4px] ${!tagExpanded ? "max-h-[64px] overflow-hidden" : ""}`}>
                 {allTags.map((tag) => {
-                  const count = posts.filter((p) => p.tags.includes(tag)).length;
+                  const count = tagCounts.get(tag) || 0;
                   return (
                     <button key={tag} onClick={() => setSelectedTag(selectedTag === tag ? "" : tag)}
                     className={`inline-flex min-h-[32px] items-center gap-[4px] rounded-md px-[8px] text-[11px] transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${

@@ -8,7 +8,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { sign, verify } from "hono/jwt";
 import { createDatabase, createObjectStorage } from "./storage/factory";
-import type { IDatabase } from "./storage/interfaces";
+import type { AdminPostSummary, IDatabase } from "./storage/interfaces";
 import type { IObjectStorage } from "./storage/interfaces";
 import { writeAnalyticsPoint, isWebsiteAllowed } from "./analytics/ae-tracker";
 import { queryAEAnalytics } from "./analytics/ae-query";
@@ -614,10 +614,54 @@ app.use("/api/admin/*", async (c, next) => {
 app.get("/api/admin/posts", async (c) => {
   const db = c.get("db");
   c.header("Cache-Control", "no-store");
-  const result = c.req.query("include") === "content"
-    ? await db.getAllPosts()
-    : await db.getAllPostSummaries();
-  return c.json(result);
+  if (c.req.query("include") === "content") {
+    return c.json(await db.getAllPosts());
+  }
+
+  const pageParam = c.req.query("page");
+  const allPosts = await db.getAllPostSummaries();
+  if (!pageParam) return c.json(allPosts);
+
+  const pageSizeParam = Number.parseInt(c.req.query("pageSize") || "30", 10);
+  const pageSize = Number.isFinite(pageSizeParam) ? Math.min(Math.max(pageSizeParam, 10), 100) : 30;
+  const page = Math.max(Number.parseInt(pageParam || "1", 10) || 1, 1);
+  const status = c.req.query("status") || "all";
+  const q = (c.req.query("q") || "").trim().toLowerCase();
+  const tag = (c.req.query("tag") || "").trim();
+
+  const filtered = allPosts.filter((post: AdminPostSummary) => {
+    if (status === "published" && !post.published) return false;
+    if (status === "draft" && post.published) return false;
+    if (tag && !post.tags.includes(tag)) return false;
+    if (q) {
+      const haystack = `${post.title}\n${post.slug}\n${post.excerpt || ""}\n${post.category || ""}\n${post.tags.join("\n")}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const total = filtered.length;
+  const totalPages = Math.max(Math.ceil(total / pageSize), 1);
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+  const tags = new Map<string, number>();
+  for (const post of allPosts) {
+    for (const item of post.tags) tags.set(item, (tags.get(item) || 0) + 1);
+  }
+
+  return c.json({
+    items: filtered.slice(start, start + pageSize),
+    page: safePage,
+    pageSize,
+    total,
+    totalPages,
+    counts: {
+      all: allPosts.length,
+      published: allPosts.filter((post: AdminPostSummary) => post.published).length,
+      draft: allPosts.filter((post: AdminPostSummary) => !post.published).length,
+    },
+    tags: Array.from(tags, ([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name)),
+  });
 });
 
 // 阅读统计数据

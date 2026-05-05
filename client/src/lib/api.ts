@@ -11,6 +11,30 @@ type PublicCacheEntry<T> = {
 const publicCache = new Map<string, PublicCacheEntry<unknown>>();
 const inflightRequests = new Map<string, Promise<unknown>>();
 
+export type TrafficData = {
+  totalViews: number;
+  totalPosts?: number;
+  chart: { date: string; count: number }[];
+};
+
+export type HomeSnapshot = {
+  generatedAt: string;
+  posts?: PostMeta[];
+  categories?: CategoryInfo[];
+  settings?: PublicSettings;
+  traffic?: TrafficData;
+};
+
+declare global {
+  interface Window {
+    __TIMEAMBER_HOME_SNAPSHOT__?: HomeSnapshot;
+  }
+}
+
+export function getHomeSnapshot(): HomeSnapshot | null {
+  return typeof window !== "undefined" ? window.__TIMEAMBER_HOME_SNAPSHOT__ || null : null;
+}
+
 async function fetchJsonWithCache<T>(path: string, ttlMs: number): Promise<T> {
   const now = Date.now();
   const cached = publicCache.get(path) as PublicCacheEntry<T> | undefined;
@@ -118,6 +142,10 @@ export async function fetchPublicSettings(): Promise<PublicSettings> {
   return fetchJsonWithCache<PublicSettings>("/api/settings/public", 60_000);
 }
 
+export async function fetchTraffic(): Promise<TrafficData> {
+  return fetchJsonWithCache<TrafficData>("/api/stats/traffic", 60_000);
+}
+
 export async function fetchSeriesPosts(seriesSlug: string): Promise<SeriesPost[]> {
   const res = await fetch(`${API_BASE}/api/series/${seriesSlug}`);
   if (!res.ok) return [];
@@ -210,6 +238,38 @@ export async function checkAuth(): Promise<boolean> {
 export async function fetchAdminPosts(options: { includeContent?: boolean } = {}): Promise<Post[]> {
   const query = options.includeContent ? "?include=content" : "";
   const res = await fetch(`${API_BASE}/api/admin/posts${query}`, {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("获取文章列表失败");
+  return res.json();
+}
+
+export type AdminPostsPage = {
+  items: Post[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  counts: { all: number; published: number; draft: number };
+  tags: { name: string; count: number }[];
+};
+
+export async function fetchAdminPostsPage(options: {
+  page?: number;
+  pageSize?: number;
+  status?: "all" | "published" | "draft";
+  q?: string;
+  tag?: string;
+} = {}): Promise<AdminPostsPage> {
+  const params = new URLSearchParams();
+  params.set("page", String(options.page || 1));
+  params.set("pageSize", String(options.pageSize || 30));
+  if (options.status && options.status !== "all") params.set("status", options.status);
+  if (options.q?.trim()) params.set("q", options.q.trim());
+  if (options.tag?.trim()) params.set("tag", options.tag.trim());
+
+  const res = await fetch(`${API_BASE}/api/admin/posts?${params.toString()}`, {
     headers: authHeaders(),
     cache: "no-store",
   });

@@ -11,6 +11,7 @@
     "dev:client": "npm -w timeamber-client run dev",
     "dev:server": "npm -w timeamber-server run dev",
     "build": "npm -w timeamber-client run build",
+    "build:home-snapshot": "node scripts/write-home-snapshot.mjs",
     "deploy:server": "npm -w timeamber-server run deploy",
     "deploy:client": "node -e \"const {spawnSync}=require('node:child_process'); const wrangler='../server/node_modules/.bin/wrangler'+(process.platform==='win32'?'.cmd':''); const result=spawnSync(wrangler,['pages','deploy','dist','--project-name','timeamber-client','--branch','main','--commit-dirty=true'],{cwd:'client',stdio:'inherit',shell:process.platform==='win32'}); process.exit(result.status ?? 1);\"",
     "deploy:cloudflare": "node scripts/deploy-cloudflare.mjs",

@@ -4,17 +4,11 @@ import { Hero } from "@/components/hero";
 import { ArticleCard } from "@/components/article-card";
 
 import { Separator } from "@/components/ui/separator";
-import { fetchPosts, fetchCategories, fetchPublicSettings, type PostMeta, type CategoryInfo, type PublicSettings } from "@/lib/api";
+import { fetchPosts, fetchCategories, fetchPublicSettings, fetchTraffic, getHomeSnapshot, type PostMeta, type CategoryInfo, type PublicSettings, type TrafficData } from "@/lib/api";
 import { AnimateIn } from "@/hooks/use-animate";
 import { SeoHead } from "@/components/seo-head";
 import { ExternalLink, Mail, Rss, Eye, FolderOpen, Hash, ChevronDown, Link2 } from "lucide-react";
 import { preloadMarkdownRenderer } from "@/lib/markdown-loader";
-
-type TrafficData = {
-  totalViews: number;
-  totalPosts: number;
-  chart: { date: string; count: number }[];
-};
 
 function preconnectToMedia(url: string) {
   try {
@@ -238,11 +232,12 @@ function SparkLine({ data, width = 240, height = 48 }: { data: number[]; width?:
 }
 
 export function HomePage() {
-  const [posts, setPosts] = useState<PostMeta[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState<PublicSettings | null>(null);
-  const [traffic, setTraffic] = useState<TrafficData | null>(null);
-  const [categories, setCategories] = useState<CategoryInfo[]>([]);
+  const snapshot = getHomeSnapshot();
+  const [posts, setPosts] = useState<PostMeta[]>(() => snapshot?.posts || []);
+  const [loading, setLoading] = useState(() => !snapshot?.posts);
+  const [settings, setSettings] = useState<PublicSettings | null>(() => snapshot?.settings || null);
+  const [traffic, setTraffic] = useState<TrafficData | null>(() => snapshot?.traffic || null);
+  const [categories, setCategories] = useState<CategoryInfo[]>(() => snapshot?.categories || []);
 
   useEffect(() => {
     fetchPosts({ limit: 80 })
@@ -254,10 +249,7 @@ export function HomePage() {
       .then((data) => setSettings(data))
       .catch(() => {});
 
-    fetch("/api/stats/traffic")
-      .then((r) => r.json())
-      .then((data) => setTraffic(data))
-      .catch(() => {});
+    fetchTraffic().then(setTraffic).catch(() => {});
 
     fetchCategories().then(setCategories).catch(() => {});
   }, []);

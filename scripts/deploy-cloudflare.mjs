@@ -317,6 +317,7 @@ if (!options.skipClient) {
   }
 
   runStep("构建前端", "npm", ["run", "build"]);
+  runStep("写入首页静态快照", "npm", ["run", "build:home-snapshot", "--", `--api-base=${options.apiBase}`, "--dist=client/dist"]);
   // Pages Functions are discovered relative to the deploy cwd, so this must run from clientRoot.
   runWranglerStep("部署 Cloudflare Pages 前端", [
     "pages",
