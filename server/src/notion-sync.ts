@@ -329,10 +329,11 @@ async function notionPageToPost(client: NotionClient, page: NotionPage, options:
     .filter((name): name is string => Boolean(name));
   const blocks = options.includePageBody ? await client.listBlockChildren(page.id) : [];
   const markdown = blocks.length > 0 ? await blocksToMarkdown(client, blocks, 0) : "";
+  const externalText = !markdown.trim() && sourceUrl ? await fetchExternalReadableText(sourceUrl) : "";
   const fallbackContent = buildClippingFallback(title, excerpt, sourceUrl);
   const content = [
-    markdown.trim() || fallbackContent,
-    sourceUrl && markdown.trim() ? `\n\n> 原文地址: [${sourceUrl}](${sourceUrl})` : "",
+    markdown.trim() || externalText.trim() || fallbackContent,
+    sourceUrl && (markdown.trim() || externalText.trim()) ? `\n\n> 原文地址: [${sourceUrl}](${sourceUrl})` : "",
   ].join("").trim();
   const normalizedTags = Array.from(new Set([DEFAULT_NOTION_CATEGORY, ...authorTags])).slice(0, 20);
 
@@ -346,6 +347,48 @@ async function notionPageToPost(client: NotionClient, page: NotionPage, options:
     category: DEFAULT_NOTION_CATEGORY,
     createdAt,
   };
+}
+
+async function fetchExternalReadableText(url: string): Promise<string> {
+  if (!/^https?:\/\//i.test(url)) return "";
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; TimeAmberBot/1.0; +https://timeamber.com)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.5",
+      },
+    });
+    const contentType = res.headers.get("content-type") || "";
+    if (!res.ok || !/text\/html|text\/plain|application\/xhtml\+xml/i.test(contentType)) return "";
+    const text = await res.text();
+    return htmlToReadableText(text, 60000);
+  } catch {
+    return "";
+  }
+}
+
+function htmlToReadableText(html: string, maxChars: number): string {
+  const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html;
+  return body
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
+    .replace(/<(h[1-6]|p|li|blockquote|pre|tr|div|section|article|br)\b[^>]*>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, maxChars);
 }
 
 function notionSlug(pageId: string): string {
