@@ -1314,7 +1314,7 @@ app.post("/api/admin/notion-sync/run", async (c) => {
 
 app.post("/api/admin/archive-sync/run", async (c) => {
   const db = c.get("db");
-  let body: { maxPages?: number } = {};
+  let body: { maxPages?: number; pageNumber?: number; resetCursor?: boolean; advanceCursor?: boolean } = {};
   try {
     body = await c.req.json();
   } catch {
@@ -1322,7 +1322,14 @@ app.post("/api/admin/archive-sync/run", async (c) => {
   }
   const requestedMaxPages = Number(body.maxPages);
   const maxPages = Number.isFinite(requestedMaxPages) ? Math.min(Math.max(requestedMaxPages, 1), 50) : undefined;
-  const result = await syncArchiveSources(db, c.env, { maxPages });
+  const requestedPageNumber = Number(body.pageNumber);
+  const pageNumber = Number.isFinite(requestedPageNumber) ? Math.max(requestedPageNumber, 1) : undefined;
+  const result = await syncArchiveSources(db, c.env, {
+    maxPages,
+    pageNumber,
+    resetCursor: body.resetCursor === true,
+    advanceCursor: body.advanceCursor === true,
+  });
   const failed = result.reduce((sum, item) => sum + item.failed, 0);
   const changed = result.reduce((sum, item) => sum + item.created + item.updated, 0);
   return c.json({ success: failed === 0, changed, result }, failed > 0 && changed === 0 ? 502 : 200);
@@ -2063,7 +2070,7 @@ export default {
       console.log(`[Cron] Notion sync finished: created=${result.created}, updated=${result.updated}, failed=${result.failed}`);
     }
     if (scheduledAt.getUTCMinutes() % 20 === 5) {
-      const result = await syncArchiveSources(db, env, { maxPages: 2 });
+      const result = await syncArchiveSources(db, env, { maxPages: 10, advanceCursor: true });
       const changed = result.reduce((sum, item) => sum + item.created + item.updated, 0);
       const failed = result.reduce((sum, item) => sum + item.failed, 0);
       console.log(`[Cron] Archive sync finished: changed=${changed}, failed=${failed}`);

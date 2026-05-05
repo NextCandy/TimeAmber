@@ -19,6 +19,11 @@ type ArchivePage = {
   updatedAt?: string;
 };
 
+type ArchivePageBatch = {
+  list: ArchivePage[];
+  total: number;
+};
+
 type ArchiveSource = {
   id: "shudong" | "mearchive";
   label: string;
@@ -30,6 +35,10 @@ type ArchiveSource = {
 
 export type ArchiveSyncResult = {
   source: string;
+  pageNumber: number;
+  total: number;
+  hasMore: boolean;
+  nextPage: number;
   scanned: number;
   created: number;
   updated: number;
@@ -37,6 +46,19 @@ export type ArchiveSyncResult = {
   failed: number;
   errors: string[];
 };
+
+type ArchiveSyncOptions = {
+  maxPages?: number;
+  pageNumber?: number;
+  resetCursor?: boolean;
+  advanceCursor?: boolean;
+};
+
+function clampInt(value: unknown, min: number, max: number, fallback: number): number {
+  const parsed = typeof value === "number" ? value : Number.parseInt(String(value || ""), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(Math.max(parsed, min), max);
+}
 
 function trimSlash(value: string): string {
   return value.replace(/\/+$/, "");
@@ -123,16 +145,19 @@ async function resolveToken(source: ArchiveSource): Promise<string> {
   return data.data.token;
 }
 
-async function queryRecentPages(source: ArchiveSource, token: string, maxPages: number): Promise<ArchivePage[]> {
-  const data = await archiveFetchJson<{ data?: { list?: ArchivePage[] } }>(
+async function queryPages(source: ArchiveSource, token: string, pageNumber: number, pageSize: number): Promise<ArchivePageBatch> {
+  const data = await archiveFetchJson<{ data?: { list?: ArchivePage[]; total?: number } }>(
     `${source.baseUrl}/api/pages/query`,
     token,
     {
       method: "POST",
-      body: JSON.stringify({ pageNumber: "1", pageSize: String(maxPages) }),
+      body: JSON.stringify({ pageNumber: String(pageNumber), pageSize: String(pageSize) }),
     },
   );
-  return Array.isArray(data.data?.list) ? data.data.list : [];
+  return {
+    list: Array.isArray(data.data?.list) ? data.data.list : [],
+    total: Number(data.data?.total || 0),
+  };
 }
 
 async function fetchReadableContent(source: ArchiveSource, token: string, pageId: number, maxChars: number): Promise<string> {
@@ -165,18 +190,44 @@ function getSources(env: ArchiveSyncEnv): ArchiveSource[] {
   return sources;
 }
 
-export async function syncArchiveSources(db: IDatabase, env: ArchiveSyncEnv, options: { maxPages?: number } = {}): Promise<ArchiveSyncResult[]> {
-  const maxPages = Math.min(Math.max(options.maxPages || Number(env.ARCHIVE_SYNC_MAX_PAGES || 2) || 2, 1), 50);
+export async function syncArchiveSources(db: IDatabase, env: ArchiveSyncEnv, options: ArchiveSyncOptions = {}): Promise<ArchiveSyncResult[]> {
+  const maxPages = clampInt(options.maxPages || env.ARCHIVE_SYNC_MAX_PAGES, 1, 50, 10);
   const maxContentChars = Math.min(Math.max(Number(env.ARCHIVE_SYNC_MAX_CONTENT_CHARS || 60000) || 60000, 5000), 180000);
   const results: ArchiveSyncResult[] = [];
+  const settings = options.advanceCursor ? await db.getSettings() : {};
+  const cursorUpdates: Record<string, string> = {};
 
   for (const source of getSources(env)) {
-    const result: ArchiveSyncResult = { source: source.id, scanned: 0, created: 0, updated: 0, skipped: 0, failed: 0, errors: [] };
+    const cursorKey = `archive_sync_${source.id}_next_page`;
+    const pageNumber = clampInt(
+      options.pageNumber || (options.resetCursor ? 1 : settings[cursorKey]),
+      1,
+      100000,
+      1,
+    );
+    const result: ArchiveSyncResult = {
+      source: source.id,
+      pageNumber,
+      total: 0,
+      hasMore: false,
+      nextPage: pageNumber,
+      scanned: 0,
+      created: 0,
+      updated: 0,
+      skipped: 0,
+      failed: 0,
+      errors: [],
+    };
     results.push(result);
     try {
       const token = await resolveToken(source);
-      const pages = await queryRecentPages(source, token, maxPages);
+      const batch = await queryPages(source, token, pageNumber, maxPages);
+      const pages = batch.list;
+      result.total = batch.total;
+      result.hasMore = pageNumber * maxPages < batch.total;
+      result.nextPage = result.hasMore ? pageNumber + 1 : 1;
       result.scanned = pages.length;
+      if (options.advanceCursor) cursorUpdates[cursorKey] = String(result.nextPage);
 
       for (const page of pages) {
         try {
@@ -223,6 +274,10 @@ export async function syncArchiveSources(db: IDatabase, env: ArchiveSyncEnv, opt
       result.failed++;
       result.errors.push(error instanceof Error ? error.message : String(error));
     }
+  }
+
+  if (Object.keys(cursorUpdates).length > 0) {
+    await db.saveSettings(cursorUpdates);
   }
 
   return results;

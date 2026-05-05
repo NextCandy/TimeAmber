@@ -11,7 +11,7 @@ SITE_ORIGIN = "https://timeamber.com"
 NOTION_DATA_SOURCE_ID = "22837041-b78c-81d8-9670-000b9d50c21b"
 SHUDONG_BASE_URL = "https://shudong.org"
 MEARCHIVE_BASE_URL = "https://mearchive.com"
-ARCHIVE_SYNC_MAX_PAGES = "2"
+ARCHIVE_SYNC_MAX_PAGES = "10"
 ARCHIVE_SYNC_MAX_CONTENT_CHARS = "60000"
 # 运行时默认不做建表/补列；部署流程负责迁移与 schema reconcile。
 AUTO_SCHEMA_MIGRATION = "false"
