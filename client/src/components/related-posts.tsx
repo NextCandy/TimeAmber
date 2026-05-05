@@ -17,7 +17,7 @@ export function RelatedPosts({ currentSlug, currentTags }: RelatedPostsProps) {
   const [allPosts, setAllPosts] = useState<PostMeta[]>([]);
 
   useEffect(() => {
-    fetchPosts().then(setAllPosts).catch(() => {});
+    fetchPosts({ limit: 80 }).then(setAllPosts).catch(() => {});
   }, []);
 
   const related = useMemo(() => {

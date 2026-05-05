@@ -245,7 +245,7 @@ export function HomePage() {
   const [categories, setCategories] = useState<CategoryInfo[]>([]);
 
   useEffect(() => {
-    fetchPosts()
+    fetchPosts({ limit: 80 })
       .then(setPosts)
       .catch(console.error)
       .finally(() => setLoading(false));

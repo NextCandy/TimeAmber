@@ -179,7 +179,10 @@ app.post("/api/track", async (c) => {
 // 获取文章列表（仅已发布）
 app.get("/api/posts", async (c) => {
   const db = c.get("db");
-  return publicCachedJson(c, { maxAge: 300, sMaxAge: 1800, staleWhileRevalidate: 3600 }, () => db.getPublishedPosts());
+  const rawLimit = c.req.query("limit");
+  const parsedLimit = rawLimit ? Number.parseInt(rawLimit, 10) : undefined;
+  const limit = parsedLimit && parsedLimit > 0 ? Math.min(parsedLimit, 200) : undefined;
+  return publicCachedJson(c, { maxAge: 300, sMaxAge: 1800, staleWhileRevalidate: 3600 }, () => db.getPublishedPosts(limit));
 });
 
 // 搜索文章

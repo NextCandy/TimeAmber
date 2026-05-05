@@ -234,8 +234,8 @@ export class D1Adapter implements IDatabase {
 
   /* ── 文章 ─────────────────────── */
 
-  async getPublishedPosts(): Promise<PostSummary[]> {
-    const allPosts = await this.db
+  async getPublishedPosts(limit?: number): Promise<PostSummary[]> {
+    const query = this.db
       .select({
         id: posts.id,
         slug: posts.slug,
@@ -254,6 +254,7 @@ export class D1Adapter implements IDatabase {
         sql`${posts.published} = 1 AND (${posts.publishAt} IS NULL OR ${posts.publishAt} <= datetime('now'))`
       )
       .orderBy(desc(posts.pinned), desc(posts.createdAt));
+    const allPosts = limit ? await query.limit(limit) : await query;
 
     const tagMap = await this.getPostTagsMap(allPosts.map((post) => post.id));
 

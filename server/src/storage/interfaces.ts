@@ -172,7 +172,7 @@ export type PostVersion = {
 
 export interface IDatabase {
   /* 文章 */
-  getPublishedPosts(): Promise<PostSummary[]>;
+  getPublishedPosts(limit?: number): Promise<PostSummary[]>;
   getAllPostSummaries(): Promise<AdminPostSummary[]>;
   getAllPosts(): Promise<(Post & { tags: string[] })[]>;
   getPostBySlug(slug: string): Promise<(Post & { tags: string[] }) | null>;

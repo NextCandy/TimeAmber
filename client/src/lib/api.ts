@@ -66,8 +66,9 @@ export type Post = PostMeta & {
 };
 
 /* ── 公开 API ──────────────────────────────── */
-export async function fetchPosts(): Promise<PostMeta[]> {
-  return fetchJsonWithCache<PostMeta[]>("/api/posts", 60_000);
+export async function fetchPosts(options?: { limit?: number }): Promise<PostMeta[]> {
+  const query = options?.limit ? `?limit=${encodeURIComponent(String(options.limit))}` : "";
+  return fetchJsonWithCache<PostMeta[]>(`/api/posts${query}`, 60_000);
 }
 
 export async function fetchPost(slug: string): Promise<Post> {

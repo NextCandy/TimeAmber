@@ -207,8 +207,8 @@ export class PostgresAdapter implements IDatabase {
 
   /* ── 文章 ─────────────────────── */
 
-  async getPublishedPosts(): Promise<PostSummary[]> {
-    const allPosts = await this.db
+  async getPublishedPosts(limit?: number): Promise<PostSummary[]> {
+    const query = this.db
       .select({
         id: pgPosts.id,
         slug: pgPosts.slug,
@@ -227,6 +227,7 @@ export class PostgresAdapter implements IDatabase {
         sql`${pgPosts.published} = true AND (${pgPosts.publishAt} IS NULL OR ${pgPosts.publishAt} <= NOW())`
       )
       .orderBy(desc(pgPosts.pinned), desc(pgPosts.createdAt));
+    const allPosts = limit ? await query.limit(limit) : await query;
 
     const tagMap = await this.getPostTagsMap(allPosts.map((post) => post.id));
 
