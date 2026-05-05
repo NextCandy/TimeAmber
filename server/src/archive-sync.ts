@@ -72,6 +72,7 @@ type ArchiveSyncOptions = {
   pageNumber?: number;
   resetCursor?: boolean;
   advanceCursor?: boolean;
+  source?: ArchiveSource["id"];
 };
 
 function clampInt(value: unknown, min: number, max: number, fallback: number): number {
@@ -259,7 +260,7 @@ export async function syncArchiveSources(db: IDatabase, env: ArchiveSyncEnv, opt
   const settings = options.advanceCursor ? await db.getSettings() : {};
   const cursorUpdates: Record<string, string> = {};
 
-  for (const source of getSources(env)) {
+  for (const source of getSources(env).filter((item) => !options.source || item.id === options.source)) {
     const settingsPrefix = `archive_sync_${source.id}`;
     const cursorKey = `${settingsPrefix}_next_page`;
     const pageNumber = clampInt(

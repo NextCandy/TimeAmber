@@ -1339,7 +1339,7 @@ app.get("/api/admin/archive-sync/status", async (c) => {
 
 app.post("/api/admin/archive-sync/run", async (c) => {
   const db = c.get("db");
-  let body: { maxPages?: number; pageNumber?: number; resetCursor?: boolean; advanceCursor?: boolean } = {};
+  let body: { maxPages?: number; pageNumber?: number; resetCursor?: boolean; advanceCursor?: boolean; source?: "shudong" | "mearchive" } = {};
   try {
     body = await c.req.json();
   } catch {
@@ -1354,6 +1354,7 @@ app.post("/api/admin/archive-sync/run", async (c) => {
     pageNumber,
     resetCursor: body.resetCursor === true,
     advanceCursor: body.advanceCursor === true,
+    source: body.source === "shudong" || body.source === "mearchive" ? body.source : undefined,
   });
   const failed = result.reduce((sum, item) => sum + item.failed, 0);
   const changed = result.reduce((sum, item) => sum + item.created + item.updated, 0);

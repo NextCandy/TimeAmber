@@ -398,6 +398,7 @@ export function AdminSettings() {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({
+          source: source.id,
           maxPages: 10,
           pageNumber: resetCursor ? 1 : source.nextPage,
           resetCursor,
@@ -410,7 +411,7 @@ export function AdminSettings() {
       if (!res.ok || current?.failed) {
         throw new Error(current?.errors?.[0] || data?.result?.[0]?.errors?.[0] || "剪藏同步失败");
       }
-      showMsg(`${source.label} 同步完成：新增 ${current?.created || 0}，更新 ${current?.updated || 0}`, "success");
+      showMsg(`${source.label} 同步完成：扫描 ${current?.scanned || 0}，新增 ${current?.created || 0}，更新 ${current?.updated || 0}，跳过 ${current?.skipped || 0}`, "success");
     } catch (error) {
       showMsg(error instanceof Error ? error.message : `${source.label} 同步失败`, "error");
     } finally {
