@@ -79,9 +79,7 @@ export function prefetchPost(slug: string): void {
 }
 
 export async function fetchTags(): Promise<{ id: number; name: string }[]> {
-  const res = await fetch(`${API_BASE}/api/tags`);
-  if (!res.ok) throw new Error("获取标签失败");
-  return res.json();
+  return fetchJsonWithCache<{ id: number; name: string }[]>("/api/tags", 60_000);
 }
 
 export type CategoryInfo = { name: string; count: number };

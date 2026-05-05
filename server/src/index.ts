@@ -102,6 +102,31 @@ async function triggerWebhook(c: any, eventName: string, payload: any) {
   }
 }
 
+async function publicCachedJson<T>(
+  c: any,
+  options: { maxAge: number; sMaxAge: number; staleWhileRevalidate: number },
+  producer: () => Promise<T>,
+) {
+  const cacheControl = `public, max-age=${options.maxAge}, s-maxage=${options.sMaxAge}, stale-while-revalidate=${options.staleWhileRevalidate}`;
+  const cacheKey = new Request(c.req.url, { method: "GET" });
+  const cached = await caches.default.match(cacheKey);
+  if (cached) {
+    const hit = new Response(cached.body, cached);
+    hit.headers.set("X-TimeAmber-Cache", "HIT");
+    return hit;
+  }
+
+  const data = await producer();
+  const response = Response.json(data, {
+    headers: {
+      "Cache-Control": cacheControl,
+      "X-TimeAmber-Cache": "MISS",
+    },
+  });
+  c.executionCtx?.waitUntil(caches.default.put(cacheKey, response.clone()));
+  return response;
+}
+
 /* ── 健康检查端点 ──────────────────────────── */
 app.get("/api/health", async (c) => {
   return c.json({ status: "ok", timestamp: new Date().toISOString() });
@@ -154,9 +179,7 @@ app.post("/api/track", async (c) => {
 // 获取文章列表（仅已发布）
 app.get("/api/posts", async (c) => {
   const db = c.get("db");
-  c.header("Cache-Control", "public, max-age=300, s-maxage=1800, stale-while-revalidate=3600");
-  const result = await db.getPublishedPosts();
-  return c.json(result);
+  return publicCachedJson(c, { maxAge: 300, sMaxAge: 1800, staleWhileRevalidate: 3600 }, () => db.getPublishedPosts());
 });
 
 // 搜索文章
@@ -229,15 +252,13 @@ app.get("/api/series/:slug", async (c) => {
 // 获取所有标签
 app.get("/api/tags", async (c) => {
   const db = c.get("db");
-  const allTags = await db.getAllTags();
-  return c.json(allTags);
+  return publicCachedJson(c, { maxAge: 300, sMaxAge: 1800, staleWhileRevalidate: 3600 }, () => db.getAllTags());
 });
 
 // 获取所有分类
 app.get("/api/categories", async (c) => {
   const db = c.get("db");
-  const categories = await db.getCategories();
-  return c.json(categories);
+  return publicCachedJson(c, { maxAge: 300, sMaxAge: 1800, staleWhileRevalidate: 3600 }, () => db.getCategories());
 });
 
 // 获取文章评论（仅已审核，不暴露邮箱）
@@ -347,9 +368,9 @@ app.post("/api/posts/:slug/reactions", async (c) => {
 // 公开：获取前台需要的设置（不含敏感信息）
 app.get("/api/settings/public", async (c) => {
   const db = c.get("db");
-  c.header("Cache-Control", "public, max-age=300, s-maxage=1800, stale-while-revalidate=3600");
-  const all = await db.getSettings();
-  return c.json({
+  return publicCachedJson(c, { maxAge: 300, sMaxAge: 1800, staleWhileRevalidate: 3600 }, async () => {
+    const all = await db.getSettings();
+    return {
     site_title: all.site_title || "TimeAmber",
     site_description: all.site_description || "",
     site_tagline: all.site_tagline || "",
@@ -366,21 +387,23 @@ app.get("/api/settings/public", async (c) => {
     friend_links: all.friend_links || "[]",
     custom_header: all.custom_header || "",
     custom_footer: all.custom_footer || "",
+    };
   });
 });
 
 // 公开流量统计（侧边栏折线图）
 app.get("/api/stats/traffic", async (c) => {
   const db = c.get("db");
-  c.header("Cache-Control", "public, max-age=120, s-maxage=600, stale-while-revalidate=1800");
-  const [chart, stats] = await Promise.all([
-    db.getDailyViews(14),
-    db.getViewStats(1),   // 只取 top1 即可，主要用 totalViews
-  ]);
-  return c.json({
-    totalViews: stats.totalViews,
-    totalPosts: stats.topPosts.length > 0 ? undefined : 0, // 前端已有文章数，无需重复传
-    chart,
+  return publicCachedJson(c, { maxAge: 120, sMaxAge: 600, staleWhileRevalidate: 1800 }, async () => {
+    const [chart, stats] = await Promise.all([
+      db.getDailyViews(14),
+      db.getViewStats(1),   // 只取 top1 即可，主要用 totalViews
+    ]);
+    return {
+      totalViews: stats.totalViews,
+      totalPosts: stats.topPosts.length > 0 ? undefined : 0, // 前端已有文章数，无需重复传
+      chart,
+    };
   });
 });
 
