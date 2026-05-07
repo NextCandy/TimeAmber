@@ -88,6 +88,9 @@ function normalizeSocialHref(link: SocialLinkConfig) {
   }
 }
 
+function isRssEnabled(value: PublicSettings["rss_enabled"] | undefined) {
+  return value !== false && String(value).toLowerCase() !== "false";
+}
 function getPublicSocialLinks(settings: PublicSettings | null): { id: string; icon: React.ElementType; href: string; label: string }[] {
   if (!settings) return [];
 
@@ -108,7 +111,7 @@ function getPublicSocialLinks(settings: PublicSettings | null): { id: string; ic
     }))
     .filter((link) => link.href);
 
-  if (links.length > 0 && settings.rss_enabled !== "false" && !links.some((link) => link.href === "/rss.xml")) {
+  if (links.length > 0 && isRssEnabled(settings.rss_enabled) && !links.some((link) => link.href === "/rss.xml")) {
     links.push({ id: "rss-feed", icon: Rss, href: "/rss.xml", label: "RSS" });
   }
 
