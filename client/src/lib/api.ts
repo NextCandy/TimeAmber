@@ -132,7 +132,7 @@ export type PublicSettings = {
   email: string;
   social_links: string;
   footer_text: string;
-  rss_enabled: string;
+  rss_enabled: string | boolean;
   friend_links: string;
   custom_header: string;
   custom_footer: string;
