@@ -108,7 +108,12 @@ export type PaginatedPosts = { posts: PostMeta[]; total: number; hasMore: boolea
 
 export async function fetchPostsPaged(offset: number, limit: number): Promise<PaginatedPosts> {
   const path = `/api/posts?limit=${limit}&offset=${offset}`;
-  return fetchJsonWithCache<PaginatedPosts>(path, 30_000);
+  const data = await fetchJsonWithCache<PaginatedPosts | PostMeta[]>(path, 30_000);
+  // 兼容处理：如果后端返回数组（旧版/缓存），自动包装为分页格式
+  if (Array.isArray(data)) {
+    return { posts: data, total: data.length, hasMore: false };
+  }
+  return data;
 }
 
 export async function fetchPost(slug: string): Promise<Post> {
