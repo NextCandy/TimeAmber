@@ -23,9 +23,6 @@ import {
 } from "./utils/image";
 import { normalizeSlug, uniqueSlug } from "./utils/slug";
 import aiRoutes from "./routes/ai";
-import backupRoutes from "./routes/backup";
-import importRoutes from "./routes/import";
-import publicPages, { adminPages } from "./routes/pages";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -482,6 +479,22 @@ Sitemap: ${siteUrl}/sitemap.xml
   return new Response(txt, {
     headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=86400" },
   });
+});
+
+/* ── 独立页公开 API（必须在 JWT 中间件之前注册）─── */
+
+app.get("/api/pages", async (c) => {
+  const db = c.get("db");
+  const allPages = await db.getPublishedPages();
+  return c.json(allPages);
+});
+
+app.get("/api/pages/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const db = c.get("db");
+  const page = await db.getPublishedPageBySlug(slug);
+  if (!page) return c.json({ error: "页面不存在" }, 404);
+  return c.json(page);
 });
 
 /* ── 登录速率限制 ─────────────────────────── */
@@ -1111,18 +1124,166 @@ app.post("/api/admin/archive-sync/run", async (c) => {
 // AI 路由已提取至 routes/ai.ts
 app.route("/api/admin/ai", aiRoutes);
 
-// 备份路由已提取至 routes/backup.ts
-app.route("/api/admin/backup", backupRoutes);
+/* ── 数据备份 ────────────────────────────── */
 
-// 导入路由已提取至 routes/import.ts
-app.route("/api/admin/import", importRoutes);
+app.get("/api/admin/backup/export", async (c) => {
+  const db = c.get("db");
+  return c.json(await db.exportAll());
+});
 
-// 独立页路由已提取至 routes/pages.ts
-app.route("/api/pages", publicPages);
-app.route("/api/admin/pages", adminPages);
+app.post("/api/admin/backup/r2", async (c) => {
+  const db = c.get("db");
+  const storage = c.get("storage");
+  const data = await db.exportAll();
+  const json = JSON.stringify(data, null, 2);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const key = `backups/timeamber-backup-${timestamp}.json`;
+  await storage.put(key, json, { contentType: "application/json", customMetadata: { type: "backup", version: "1.0" } });
+  return c.json({ success: true, key, size: json.length, timestamp: data.exportedAt });
+});
 
+app.get("/api/admin/backup/r2-list", async (c) => {
+  const storage = c.get("storage");
+  const items = await storage.list("backups/", 50);
+  const backups = items.map((obj) => ({ key: obj.key, size: obj.size, uploaded: obj.uploaded, name: obj.key.replace("backups/", "") }));
+  backups.sort((a, b) => b.uploaded.localeCompare(a.uploaded));
+  return c.json(backups);
+});
 
-/* ── AI 辅助函数已提取至 routes/ai.ts ── */
+app.post("/api/admin/backup/r2-delete", async (c) => {
+  const { name } = await c.req.json<{ name: string }>();
+  if (!name) return c.json({ error: "缺少文件名" }, 400);
+  await c.get("storage").delete(`backups/${name}`);
+  return c.json({ success: true });
+});
+
+app.post("/api/admin/backup/r2-preview", async (c) => {
+  const { name } = await c.req.json<{ name: string }>();
+  const object = await c.get("storage").get(`backups/${name}`);
+  if (!object) return c.json({ error: "备份文件不存在" }, 404);
+  const reader = object.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let done = false;
+  while (!done) { const r = await reader.read(); if (r.value) chunks.push(r.value); done = r.done; }
+  const text = new TextDecoder().decode(new Uint8Array(chunks.flatMap((c) => [...c])));
+  try {
+    const data = JSON.parse(text);
+    return c.json({ version: data.version || "unknown", exportedAt: data.exportedAt || "unknown", postCount: data.posts?.length || 0, tagCount: data.tags?.length || 0, postTitles: (data.posts || []).slice(0, 10).map((p: any) => ({ title: p.title, slug: p.slug })), settingsKeys: Object.keys(data.settings || {}) });
+  } catch { return c.json({ error: "备份文件格式无效" }, 400); }
+});
+
+app.post("/api/admin/backup/restore", async (c) => {
+  const body = await c.req.json();
+  const db = c.get("db");
+  try {
+    const imported = await db.importAll({ posts: body.posts, tags: body.tags, settings: body.settings, mode: body.mode || "merge" });
+    return c.json({ success: true, imported, mode: body.mode || "merge" });
+  } catch (err) { return c.json({ error: `恢复失败: ${err instanceof Error ? err.message : "未知错误"}` }, 500); }
+});
+
+app.post("/api/admin/backup/r2-restore", async (c) => {
+  const { name, mode } = await c.req.json<{ name: string; mode?: "merge" | "overwrite" }>();
+  if (!name) return c.json({ error: "缺少备份文件名" }, 400);
+  const storage = c.get("storage"); const db = c.get("db");
+  const object = await storage.get(`backups/${name}`);
+  if (!object) return c.json({ error: "备份文件不存在" }, 404);
+  const reader = object.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let done = false;
+  while (!done) { const r = await reader.read(); if (r.value) chunks.push(r.value); done = r.done; }
+  const text = new TextDecoder().decode(new Uint8Array(chunks.flatMap((c) => [...c])));
+  let data: any;
+  try { data = JSON.parse(text); } catch { return c.json({ error: "备份文件格式无效" }, 400); }
+  if (!data.posts && !data.tags && !data.settings) return c.json({ error: "备份文件缺少有效数据字段" }, 400);
+  try {
+    const imported = await db.importAll({ posts: data.posts, tags: data.tags, settings: data.settings, mode: mode || "merge" });
+    return c.json({ success: true, imported, source: name, mode: mode || "merge" });
+  } catch (err) { return c.json({ error: `恢复失败: ${err instanceof Error ? err.message : "未知错误"}` }, 500); }
+});
+
+// WebDAV 备份辅助函数
+function isBlockedHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  return host === "localhost" || host === "::1" || host.startsWith("fc") || host.startsWith("fd") || /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|127\.|0\.|169\.254\.)/.test(host);
+}
+
+app.post("/api/admin/backup/webdav", async (c) => {
+  const body = await c.req.json<{ url: string; username: string; password: string; path?: string }>();
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(body.url);
+    if (parsedUrl.protocol !== "https:") return c.json({ error: "仅允许 HTTPS 协议的 WebDAV 地址" }, 400);
+    if (isBlockedHost(parsedUrl.hostname)) return c.json({ error: "不允许内网地址" }, 400);
+  } catch { return c.json({ error: "无效的 WebDAV 地址" }, 400); }
+  if (!body.username?.trim() || !body.password) return c.json({ error: "请填写 WebDAV 用户名和密码" }, 400);
+
+  const db = c.get("db");
+  const data = await db.exportAll();
+  const json = JSON.stringify(data, null, 2);
+  const payload = new TextEncoder().encode(json);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const filename = `time-amber-backup-${timestamp}.json`;
+  parsedUrl.hash = ""; parsedUrl.search = "";
+  const baseUrl = parsedUrl.toString().replace(/\/+$/, "");
+  const remotePath = (body.path || "/time-amber-backups").trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+  const encodedPath = remotePath ? `/${remotePath.split("/").filter(Boolean).map(encodeURIComponent).join("/")}` : "";
+  const bytes = new TextEncoder().encode(`${body.username.trim()}:${body.password}`);
+  let binary = ""; for (const byte of bytes) binary += String.fromCharCode(byte);
+  const authHeader = `Basic ${btoa(binary)}`;
+  const headers: Record<string, string> = { Authorization: authHeader, Accept: "*/*", "User-Agent": "TimeAmber-Backup/1.0" };
+  const fullUrl = `${baseUrl}${encodedPath}/${encodeURIComponent(filename)}`;
+
+  try {
+    // 创建目录
+    if (encodedPath) {
+      const segments = encodedPath.split("/").filter(Boolean);
+      let currentPath = "";
+      for (const seg of segments) {
+        currentPath += `/${seg}`;
+        const res = await fetch(`${baseUrl}${currentPath}`, { method: "MKCOL", headers });
+        if (res.status !== 405 && (res.status < 200 || res.status >= 300)) break;
+      }
+    }
+    const res = await fetch(fullUrl, { method: "PUT", headers: { ...headers, "Content-Type": "application/octet-stream" }, body: payload });
+    if (res.status < 200 || res.status >= 300) {
+      const detail = await res.text().catch(() => "");
+      return c.json({ error: `WebDAV 上传失败: ${res.status} ${res.statusText}${detail ? ` - ${detail.slice(0, 200)}` : ""}` }, 500);
+    }
+    return c.json({ success: true, url: fullUrl, size: payload.byteLength, timestamp: data.exportedAt });
+  } catch (err) { return c.json({ error: `WebDAV 连接失败: ${err instanceof Error ? err.message : "未知错误"}` }, 500); }
+});
+
+/* ── Halo 博客数据导入 ────────────────── */
+
+function convertHaloData(haloData: any): { posts: any[]; tags: { name: string }[]; preview: { postCount: number; tagCount: number; categoryCount: number; commentCount: number } } {
+  const tagMap = new Map<number, string>(); const tags: { name: string }[] = [];
+  if (Array.isArray(haloData.tags)) { for (const t of haloData.tags) { tagMap.set(t.id, t.name); tags.push({ name: t.name }); } }
+  const catMap = new Map<number, string>();
+  if (Array.isArray(haloData.categories)) { for (const ct of haloData.categories) { catMap.set(ct.id, ct.name); if (!tags.find((t) => t.name === ct.name)) tags.push({ name: ct.name }); } }
+  const postTagNames = new Map<number, string[]>();
+  if (Array.isArray(haloData.post_tags)) { for (const pt of haloData.post_tags) { const name = tagMap.get(pt.tagId); if (name) { if (!postTagNames.has(pt.postId)) postTagNames.set(pt.postId, []); postTagNames.get(pt.postId)!.push(name); } } }
+  if (Array.isArray(haloData.post_categories)) { for (const pc of haloData.post_categories) { const name = catMap.get(pc.categoryId); if (name) { if (!postTagNames.has(pc.postId)) postTagNames.set(pc.postId, []); const arr = postTagNames.get(pc.postId)!; if (!arr.includes(name)) arr.push(name); } } }
+  const posts: any[] = [];
+  if (Array.isArray(haloData.posts)) { for (const p of haloData.posts) { const content = p.originalContent || p.content?.raw || p.formatContent || ""; const status = p.status; posts.push({ slug: p.slug || `post-${p.id}`, title: p.title || "无标题", content, excerpt: p.summary || p.excerpt || "", published: status === "PUBLISHED" || status === "published" || status === 0 || status === "0", pinned: Number(p.topPriority || p.priority || 0) > 0, listed: true, tags: postTagNames.get(p.id) || [] }); } }
+  return { posts, tags, preview: { postCount: posts.length, tagCount: tags.length, categoryCount: catMap.size, commentCount: Array.isArray(haloData.comments) ? haloData.comments.length : 0 } };
+}
+
+app.post("/api/admin/import/halo/preview", async (c) => {
+  try { const haloData = await c.req.json(); const result = convertHaloData(haloData); return c.json({ success: true, preview: result.preview, postTitles: result.posts.slice(0, 20).map((p: any) => ({ title: p.title, slug: p.slug })), tagNames: result.tags.map((t) => t.name) }); }
+  catch (err) { return c.json({ error: `解析 Halo 数据失败: ${err instanceof Error ? err.message : "格式错误"}` }, 400); }
+});
+
+app.post("/api/admin/import/halo", async (c) => {
+  try { const body = await c.req.json(); const haloData = body.data || body; const mode = body.mode || "merge"; const db = c.get("db"); const { posts, tags } = convertHaloData(haloData); const imported = await db.importAll({ posts, tags, mode }); return c.json({ success: true, imported, mode }); }
+  catch (err) { return c.json({ error: `导入失败: ${err instanceof Error ? err.message : "未知错误"}` }, 500); }
+});
+
+/* ── 独立页管理 API ──────────────────── */
+
+app.get("/api/admin/pages", async (c) => { return c.json(await c.get("db").getAllPages()); });
+app.get("/api/admin/pages/:slug", async (c) => { const page = await c.get("db").getPageBySlug(c.req.param("slug")); if (!page) return c.json({ error: "页面不存在" }, 404); return c.json(page); });
+app.post("/api/admin/pages", async (c) => { const body = await c.req.json(); const result = await c.get("db").upsertPage(body); return c.json({ success: true, slug: body.slug, action: result.action }); });
+app.post("/api/admin/pages/delete", async (c) => { const { slug } = await c.req.json<{ slug: string }>(); await c.get("db").deletePage(slug); return c.json({ success: true }); });
 
 
 export default {
