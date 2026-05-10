@@ -38,6 +38,8 @@ export function getHomeSnapshot(): HomeSnapshot | null {
 async function fetchJsonWithCache<T>(path: string, ttlMs: number): Promise<T> {
   const now = Date.now();
   const cached = publicCache.get(path) as PublicCacheEntry<T> | undefined;
+
+  // 如果缓存有效，直接返回
   if (cached && cached.expiresAt > now) {
     return cached.value;
   }
@@ -61,6 +63,13 @@ async function fetchJsonWithCache<T>(path: string, ttlMs: number): Promise<T> {
     });
 
   inflightRequests.set(path, request);
+
+  // SWR: 如果有过期缓存，先返回旧数据，后台静默更新
+  if (cached) {
+    request.catch(() => {}); // 静默处理后台刷新错误
+    return cached.value;
+  }
+
   return request;
 }
 

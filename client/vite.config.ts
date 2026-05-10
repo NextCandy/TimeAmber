@@ -73,5 +73,17 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: false,
+    cssMinify: "lightningcss",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-markdown": ["marked", "dompurify"],
+          "vendor-highlight": ["highlight.js/lib/core"],
+          "vendor-katex": ["katex"],
+          "vendor-react": ["react", "react-dom"],
+          "vendor-ui": ["lucide-react", "wouter", "clsx", "class-variance-authority", "tailwind-merge"],
+        },
+      },
+    },
   },
 });

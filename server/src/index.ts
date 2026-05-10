@@ -9,45 +9,20 @@ import { cors } from "hono/cors";
 import { sign, verify } from "hono/jwt";
 import { createDatabase, createObjectStorage } from "./storage/factory";
 import type { IDatabase } from "./storage/interfaces";
-import type { IObjectStorage } from "./storage/interfaces";
 import { writeAnalyticsPoint, isWebsiteAllowed } from "./analytics/ae-tracker";
 import { queryAEAnalytics } from "./analytics/ae-query";
 import { getArchiveSyncStatus, syncArchiveSources } from "./archive-sync";
 import { getNotionSyncStatus, rememberDeletedNotionSlugs, syncNotionPosts } from "./notion-sync";
-
-/* ── 类型定义 ──────────────────────────────── */
-type Bindings = {
-  DB: D1Database;
-  BUCKET: R2Bucket;
-  AE?: AnalyticsEngineDataset; // Cloudflare Analytics Engine（CF 专属，可选）
-  ADMIN_PASSWORD: string;
-  JWT_SECRET: string;
-  REACTION_SALT?: string;
-  DB_PROVIDER?: string;
-  AUTO_SCHEMA_MIGRATION?: string;
-  STORAGE_PROVIDER?: string;
-  WEBHOOK_URLS?: string; // 逗号分隔的 Webhook 目标地址
-  SITE_ORIGIN?: string; // 对外公开域名（如 https://timeamber.com），用于 sitemap/robots/RSS
-  CLOUDFLARE_ACCOUNT_ID?: string; // AE GraphQL 查询用
-  CLOUDFLARE_API_TOKEN?: string; // AE GraphQL 查询用（需要 Account Analytics:Read 权限）
-  ANALYTICS_WEBSITE_WHITELIST?: string; // 站点白名单，格式: domain1|domain2 (空=放行所有)
-  NOTION_TOKEN?: string;
-  NOTION_DATA_SOURCE_ID?: string;
-  SHUDONG_BASE_URL?: string;
-  SHUDONG_TOKEN?: string;
-  MEARCHIVE_BASE_URL?: string;
-  MEARCHIVE_EMAIL?: string;
-  MEARCHIVE_PASSWORD?: string;
-  ARCHIVE_SYNC_MAX_PAGES?: string;
-  ARCHIVE_SYNC_MAX_CONTENT_CHARS?: string;
-  NOTION_SYNC_MAX_SUBREQUESTS?: string;
-};
-
-type Variables = {
-  jwtPayload: { sub: string; exp: number };
-  db: IDatabase;
-  storage: IObjectStorage;
-};
+import type { Bindings, Variables } from "./types";
+import { triggerWebhook } from "./utils/webhook";
+import { publicCachedJson } from "./utils/cache";
+import { escapeXml } from "./utils/html";
+import {
+  extractFirstImage, normalizeCoverImage, extractExternalImageUrls,
+  isSafeImageUrl, rewriteExternalImagesToSee,
+} from "./utils/image";
+import { normalizeSlug, uniqueSlug } from "./utils/slug";
+import aiRoutes from "./routes/ai";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -91,50 +66,7 @@ app.use("*", async (c, next) => {
   }
 });
 
-/* ── Webhook 通知辅助函数 ──────────────────────────── */
-async function triggerWebhook(c: any, eventName: string, payload: any) {
-  if (!c.env.WEBHOOK_URLS) return;
-  const urls = c.env.WEBHOOK_URLS.split(",").map((u: string) => u.trim()).filter(Boolean);
-  if (urls.length === 0) return;
-
-  const data = JSON.stringify({ event: eventName, timestamp: new Date().toISOString(), payload });
-  
-  const promises = urls.map((url: string) => 
-    fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: data })
-      .catch(err => console.error("Webhook notification failed for", url, err))
-  );
-
-  if (c.executionCtx && c.executionCtx.waitUntil) {
-    c.executionCtx.waitUntil(Promise.allSettled(promises));
-  } else {
-    Promise.allSettled(promises);
-  }
-}
-
-async function publicCachedJson<T>(
-  c: any,
-  options: { maxAge: number; sMaxAge: number; staleWhileRevalidate: number },
-  producer: () => Promise<T>,
-) {
-  const cacheControl = `public, max-age=${options.maxAge}, s-maxage=${options.sMaxAge}, stale-while-revalidate=${options.staleWhileRevalidate}`;
-  const cacheKey = new Request(c.req.url, { method: "GET" });
-  const cached = await caches.default.match(cacheKey);
-  if (cached) {
-    const hit = new Response(cached.body, cached);
-    hit.headers.set("X-TimeAmber-Cache", "HIT");
-    return hit;
-  }
-
-  const data = await producer();
-  const response = Response.json(data, {
-    headers: {
-      "Cache-Control": cacheControl,
-      "X-TimeAmber-Cache": "MISS",
-    },
-  });
-  c.executionCtx?.waitUntil(caches.default.put(cacheKey, response.clone()));
-  return response;
-}
+/* ── Webhook / 缓存 / 图片工具已提取至 utils/ ── */
 
 /* ── 健康检查端点 ──────────────────────────── */
 app.get("/api/health", async (c) => {
@@ -436,8 +368,7 @@ app.get("/rss.xml", async (c) => {
   // 获取最新 20 篇文章
   const allPosts = await db.getRecentPublishedPosts(20);
 
-  const escXml = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const escXml = escapeXml;
 
   const items = allPosts.map((p) => `    <item>
       <title>${escXml(p.title)}</title>
@@ -473,8 +404,7 @@ app.get("/sitemap.xml", async (c) => {
   const allPosts = await db.getRecentPublishedPosts(1000);
   const allPages = await db.getPublishedPages();
 
-  const escXml = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const escXml = escapeXml;
 
   const urls: string[] = [];
 
@@ -717,46 +647,9 @@ app.delete("/api/admin/comments/:id", async (c) => {
   return c.json({ success: true });
 });
 
-// 从 markdown 中提取首张图片 URL，作为封面缺省兜底
-function extractFirstImage(markdown: string): string {
-  if (!markdown) return "";
-  // 优先匹配 ![](url)；只允许非空白与非右括号字符，避免回溯灾难
-  const md = markdown.match(/!\[[^\]]*\]\(([^\s)]+)/);
-  if (md?.[1]) return md[1];
-  // 兜底匹配 <img src="url">
-  const html = markdown.match(/<img[^>]+src=["']([^"']+)["']/i);
-  if (html?.[1]) return html[1];
-  return "";
-}
 
-function normalizeCoverImage(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
+// extractFirstImage, normalizeCoverImage, normalizeSlug, uniqueSlug 已提取至 utils/
 
-// 创建文章
-function normalizeSlug(input: string): string {
-  return (input || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[\s_]+/g, "-")
-    .replace(/[^\w\u4e00-\u9fa5-]/g, "")
-    .replace(/[\u4e00-\u9fa5]+/g, (m) => m.split("").map((char) => char.charCodeAt(0).toString(36)).join(""))
-    .replace(/--+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80) || `post-${Date.now().toString(36)}`;
-}
-
-async function uniqueSlug(db: IDatabase, baseSlug: string, reserved: Set<string>): Promise<string> {
-  const base = normalizeSlug(baseSlug);
-  let next = base;
-  let index = 2;
-  while (reserved.has(next) || await db.getPostBySlug(next)) {
-    next = `${base}-${index}`;
-    index++;
-  }
-  reserved.add(next);
-  return next;
-}
 
 app.post("/api/admin/posts", async (c) => {
   const body = await c.req.json();
@@ -913,171 +806,7 @@ app.delete("/api/admin/posts/:slug", async (c) => {
   return c.json({ success: true });
 });
 
-// ── 外链图片转本地 ─────────────────────────────
-
-/** 从 Markdown 内容中提取所有外链图片 URL */
-function extractExternalImageUrls(content: string): string[] {
-  const urls = new Set<string>();
-  const mdRegex = /!\[[^\]]*\]\(([^\s"')]+)/g;
-  let match;
-  while ((match = mdRegex.exec(content)) !== null) {
-    const url = match[1].trim();
-    if (url && !url.startsWith("/") && !url.startsWith("data:")) {
-      try { new URL(url); urls.add(url); } catch { /* non-URL skip */ }
-    }
-  }
-  const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
-  while ((match = imgRegex.exec(content)) !== null) {
-    const url = match[1].trim();
-    if (url && !url.startsWith("/") && !url.startsWith("data:")) {
-      try { new URL(url); urls.add(url); } catch { /* skip */ }
-    }
-  }
-  return Array.from(urls);
-}
-
-/** SSRF 防护：仅允许 https:// 开头的外部图片地址 */
-function isSafeImageUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "https:") return false;
-    if (/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|127\.|0\.|169\.254\.)/.test(parsed.hostname)) return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// 单篇文章：外链图片转本地
-type SeeRewriteResult = {
-  content: string;
-  replaced: number;
-  failed: number;
-  errors: string[];
-};
-
-function isSeeHostedUrl(url: string): boolean {
-  try {
-    const hostname = new URL(url).hostname.toLowerCase();
-    return hostname === "s.ee" || hostname.endsWith(".s.ee") || hostname === "i.see.you";
-  } catch {
-    return false;
-  }
-}
-
-function filenameFromImageUrl(url: string, contentType: string): string {
-  const extFromType = contentType.includes("jpeg") || contentType.includes("jpg") ? "jpg"
-    : contentType.includes("png") ? "png"
-    : contentType.includes("gif") ? "gif"
-    : contentType.includes("webp") ? "webp"
-    : contentType.includes("svg") ? "svg"
-    : contentType.includes("avif") ? "avif"
-    : "png";
-
-  try {
-    const rawName = new URL(url).pathname.split("/").pop() || "";
-    const cleanName = decodeURIComponent(rawName).replace(/[^\w.-]/g, "-").slice(0, 96);
-    return cleanName && /\.[a-z0-9]{2,5}$/i.test(cleanName) ? cleanName : `timeamber-${Date.now()}.${extFromType}`;
-  } catch {
-    return `timeamber-${Date.now()}.${extFromType}`;
-  }
-}
-
-function normalizeSeePublicUrl(uploadedUrl: string | undefined, fileId: string | undefined): string | null {
-  if (uploadedUrl) {
-    try {
-      const parsed = new URL(uploadedUrl);
-      const hostname = parsed.hostname.toLowerCase();
-      if (hostname === "i.see.you" || hostname === "s.ee" || hostname.endsWith(".s.ee")) {
-        return parsed.toString();
-      }
-    } catch {
-      // Fall back to file_id below.
-    }
-  }
-  return fileId ? `https://s.ee/${fileId}` : null;
-}
-
-async function uploadImageToSee(url: string, apiToken: string): Promise<string> {
-  const abortCtrl = new AbortController();
-  const timeoutId = setTimeout(() => abortCtrl.abort(), 15000);
-  try {
-    const sourceResp = await fetch(url, {
-      headers: { "User-Agent": "TimeAmber-Bot/1.0" },
-      signal: abortCtrl.signal,
-    });
-    if (!sourceResp.ok) throw new Error(`source HTTP ${sourceResp.status}`);
-
-    const contentLength = sourceResp.headers.get("content-length");
-    if (contentLength && parseInt(contentLength) > 20 * 1024 * 1024) {
-      throw new Error("image exceeds 20MB limit");
-    }
-
-    const contentType = sourceResp.headers.get("content-type") || "image/png";
-    if (!contentType.toLowerCase().startsWith("image/")) {
-      throw new Error(`unsupported content type: ${contentType}`);
-    }
-
-    const arrayBuffer = await sourceResp.arrayBuffer();
-    if (arrayBuffer.byteLength > 20 * 1024 * 1024) {
-      throw new Error("image exceeds 20MB limit");
-    }
-
-    const form = new FormData();
-    form.append("file", new Blob([arrayBuffer], { type: contentType }), filenameFromImageUrl(url, contentType));
-
-    const uploadResp = await fetch("https://s.ee/api/v1/file/upload", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiToken}` },
-      body: form,
-    });
-    const payload = await uploadResp.json<{
-      success?: boolean;
-      message?: string;
-      data?: { file_id?: string; url?: string };
-    }>().catch(() => null);
-
-    const publicUrl = normalizeSeePublicUrl(payload?.data?.url, payload?.data?.file_id);
-    if (!uploadResp.ok || !payload?.success || !publicUrl) {
-      throw new Error(payload?.message || `S.EE HTTP ${uploadResp.status}`);
-    }
-    return publicUrl;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-async function rewriteExternalImagesToSee(content: string, settings: Record<string, string>): Promise<SeeRewriteResult> {
-  const enabled = settings.see_image_hosting_enabled === "true";
-  const apiToken = (settings.see_api_token || "").trim();
-  if (!enabled || !apiToken || !content) {
-    return { content, replaced: 0, failed: 0, errors: [] };
-  }
-
-  const externalUrls = extractExternalImageUrls(content).filter((url) => !isSeeHostedUrl(url));
-  let nextContent = content;
-  let replaced = 0;
-  let failed = 0;
-  const errors: string[] = [];
-
-  for (const url of externalUrls) {
-    if (!isSafeImageUrl(url)) {
-      failed++;
-      errors.push(`${url}: only HTTPS public image URLs are allowed`);
-      continue;
-    }
-    try {
-      const seeUrl = await uploadImageToSee(url, apiToken);
-      nextContent = nextContent.split(url).join(seeUrl);
-      replaced++;
-    } catch (err) {
-      failed++;
-      errors.push(`${url}: ${err instanceof Error ? err.message : "unknown error"}`);
-    }
-  }
-
-  return { content: nextContent, replaced, failed, errors };
-}
+// 图片工具函数已提取至 utils/image.ts
 
 app.post("/api/admin/posts/:slug/localize-images", async (c) => {
   const slug = c.req.param("slug");
@@ -1361,121 +1090,8 @@ app.post("/api/admin/archive-sync/run", async (c) => {
   return c.json({ success: failed === 0, changed, result }, failed > 0 && changed === 0 ? 502 : 200);
 });
 
-app.post("/api/admin/ai/edit", async (c) => {
-  const body = await c.req.json<{
-    title?: string;
-    content?: string;
-    instruction?: string;
-    mode?: "revise" | "seo" | "continue" | "custom";
-  }>();
-  const content = (body.content || "").trim();
-  const mode = body.mode || "revise";
-  const instruction = (body.instruction || "").trim();
-
-  if (!content) return c.json({ error: "文章内容不能为空" }, 400);
-  if (content.length > 80_000) return c.json({ error: "文章过长，请分段使用 AI 修改" }, 400);
-  if (mode === "custom" && !instruction) return c.json({ error: "请填写修改要求" }, 400);
-
-  const db = c.get("db");
-  const settings = await db.getSettings();
-  const provider = (settings.ai_provider || "deepseek").toLowerCase();
-  const apiKey = (settings.ai_api_key || "").trim();
-  if (!apiKey) return c.json({ error: "请先在后台设置中配置 AI API Key" }, 400);
-
-  try {
-    const result = await editMarkdownWithAI({
-      provider,
-      apiKey,
-      model: settings.ai_model,
-      baseUrl: settings.ai_base_url,
-      title: body.title || "",
-      content,
-      instruction,
-      mode,
-    });
-    return c.json({ content: result });
-  } catch (err) {
-    return c.json({ error: err instanceof Error ? err.message : "AI 修改失败" }, 502);
-  }
-});
-
-app.post("/api/admin/ai/batch-optimize", async (c) => {
-  const body = await c.req.json<{
-    slugs?: string[];
-    instruction?: string;
-    mode?: AIEditMode;
-  }>();
-  const slugs = Array.from(new Set((body.slugs || []).map((slug) => String(slug).trim()).filter(Boolean)));
-  const mode = body.mode || "seo";
-  const instruction = (body.instruction || "").trim();
-
-  if (slugs.length === 0) return c.json({ error: "请选择要优化的文章" }, 400);
-  if (slugs.length > 5) return c.json({ error: "单次批量 AI 优化最多支持 5 篇文章，请分批执行" }, 400);
-  if (mode === "custom" && !instruction) return c.json({ error: "请填写自定义优化要求" }, 400);
-
-  const db = c.get("db");
-  const settings = await db.getSettings();
-  const provider = (settings.ai_provider || "deepseek").toLowerCase();
-  const apiKey = (settings.ai_api_key || "").trim();
-  if (!apiKey) return c.json({ error: "请先在后台设置中配置 AI API Key" }, 400);
-
-  const results: {
-    slug: string;
-    title: string;
-    status: "updated" | "skipped" | "failed";
-    error?: string;
-  }[] = [];
-  let updated = 0;
-  let skipped = 0;
-  let failed = 0;
-
-  for (const slug of slugs) {
-    const post = await db.getPostBySlug(slug);
-    if (!post) {
-      failed++;
-      results.push({ slug, title: slug, status: "failed", error: "文章不存在" });
-      continue;
-    }
-
-    const content = (post.content || "").trim();
-    if (!content) {
-      skipped++;
-      results.push({ slug, title: post.title, status: "skipped", error: "正文为空" });
-      continue;
-    }
-    if (content.length > 80_000) {
-      skipped++;
-      results.push({ slug, title: post.title, status: "skipped", error: "正文过长，请进入编辑页单独优化" });
-      continue;
-    }
-
-    try {
-      const aiContent = await editMarkdownWithAI({
-        provider,
-        apiKey,
-        model: settings.ai_model,
-        baseUrl: settings.ai_base_url,
-        title: post.title,
-        content,
-        instruction,
-        mode,
-      });
-      const rewritten = await rewriteExternalImagesToSee(aiContent, settings);
-      await db.createPostVersion(slug);
-      await db.updatePost(slug, {
-        content: rewritten.content,
-        coverImage: "",
-      });
-      updated++;
-      results.push({ slug, title: post.title, status: "updated" });
-    } catch (err) {
-      failed++;
-      results.push({ slug, title: post.title, status: "failed", error: err instanceof Error ? err.message : "AI 优化失败" });
-    }
-  }
-
-  return c.json({ success: failed === 0, updated, skipped, failed, posts: results }, failed === slugs.length ? 502 : 200);
-});
+// AI 路由已提取至 routes/ai.ts
+app.route("/api/admin/ai", aiRoutes);
 
 /* ── 数据备份 ──────────────────────────────── */
 
@@ -1981,105 +1597,8 @@ app.post("/api/admin/pages/delete", async (c) => {
   return c.json({ success: true });
 });
 
-/* ── Durable Object / 导出 ──────────────────── */
-type AIEditMode = "revise" | "seo" | "continue" | "custom";
+/* ── AI 辅助函数已提取至 routes/ai.ts ── */
 
-type AIEditRequest = {
-  provider: string;
-  apiKey: string;
-  model?: string;
-  baseUrl?: string;
-  title: string;
-  content: string;
-  instruction: string;
-  mode: AIEditMode;
-};
-
-function buildAIPrompt(req: AIEditRequest): string {
-  const modeText: Record<AIEditMode, string> = {
-    revise: "润色全文，保持原意、Markdown 结构和标题层级，提升表达清晰度。",
-    seo: "进行 SEO 优化，补强摘要感、关键词覆盖、标题层级和可读性，但不要堆砌关键词。",
-    continue: "在原文基础上自然续写，保持语气、结构和 Markdown 风格一致。",
-    custom: req.instruction,
-  };
-
-  return [
-    "你是 TimeAmber 博客的中文文章编辑助手。",
-    "只返回修改后的 Markdown 正文，不要解释、不加代码围栏。",
-    "保留已有图片、链接、代码块和 frontmatter 中的关键信息。",
-    `文章标题：${req.title || "未命名"}`,
-    `修改目标：${modeText[req.mode]}`,
-    req.instruction && req.mode !== "custom" ? `补充要求：${req.instruction}` : "",
-    "原文如下：",
-    req.content,
-  ].filter(Boolean).join("\n\n");
-}
-
-async function editMarkdownWithAI(req: AIEditRequest): Promise<string> {
-  const prompt = buildAIPrompt(req);
-  if (req.provider === "gemini") return callGemini(req, prompt);
-  return callOpenAICompatible(req, prompt);
-}
-
-function normalizeBaseUrl(value: string | undefined, fallback: string): string {
-  return (value || fallback).replace(/\/+$/, "");
-}
-
-async function callOpenAICompatible(req: AIEditRequest, prompt: string): Promise<string> {
-  const isDeepSeek = req.provider === "deepseek";
-  const baseUrl = normalizeBaseUrl(req.baseUrl, isDeepSeek ? "https://api.deepseek.com" : "https://api.openai.com/v1");
-  const model = req.model || (isDeepSeek ? "deepseek-chat" : "gpt-4o-mini");
-  const endpoint = baseUrl.endsWith("/v1") ? `${baseUrl}/chat/completions` : `${baseUrl}/v1/chat/completions`;
-
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${req.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.4,
-      messages: [
-        { role: "system", content: "你是严谨的中文 Markdown 编辑，只输出修改后的正文。" },
-        { role: "user", content: prompt },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`AI API 请求失败 (${res.status})${text ? `: ${text.slice(0, 180)}` : ""}`);
-  }
-
-  const data = await res.json() as { choices?: { message?: { content?: string } }[] };
-  const content = data.choices?.[0]?.message?.content?.trim();
-  if (!content) throw new Error("AI 未返回可用内容");
-  return content;
-}
-
-async function callGemini(req: AIEditRequest, prompt: string): Promise<string> {
-  const model = req.model || "gemini-2.0-flash";
-  const baseUrl = normalizeBaseUrl(req.baseUrl, "https://generativelanguage.googleapis.com/v1beta");
-  const res = await fetch(`${baseUrl}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(req.apiKey)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.4 },
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Gemini 请求失败 (${res.status})${text ? `: ${text.slice(0, 180)}` : ""}`);
-  }
-
-  const data = await res.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-  const content = data.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
-  if (!content) throw new Error("Gemini 未返回可用内容");
-  return content;
-}
 
 export default {
   fetch: app.fetch,
