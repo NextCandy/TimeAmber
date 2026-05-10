@@ -104,6 +104,13 @@ export async function fetchPosts(options?: { limit?: number }): Promise<PostMeta
   return fetchJsonWithCache<PostMeta[]>(`/api/posts${query}`, 60_000);
 }
 
+export type PaginatedPosts = { posts: PostMeta[]; total: number; hasMore: boolean };
+
+export async function fetchPostsPaged(offset: number, limit: number): Promise<PaginatedPosts> {
+  const path = `/api/posts?limit=${limit}&offset=${offset}`;
+  return fetchJsonWithCache<PaginatedPosts>(path, 30_000);
+}
+
 export async function fetchPost(slug: string): Promise<Post> {
   return fetchJsonWithCache<Post>(`/api/posts/${slug}`, 60_000);
 }

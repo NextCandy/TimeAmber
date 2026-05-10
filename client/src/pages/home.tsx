@@ -4,10 +4,10 @@ import { Hero } from "@/components/hero";
 import { ArticleCard } from "@/components/article-card";
 
 import { Separator } from "@/components/ui/separator";
-import { fetchPosts, fetchCategories, fetchPublicSettings, fetchTraffic, getHomeSnapshot, type PostMeta, type CategoryInfo, type PublicSettings, type TrafficData } from "@/lib/api";
+import { fetchPostsPaged, fetchCategories, fetchPublicSettings, fetchTraffic, getHomeSnapshot, type PostMeta, type CategoryInfo, type PublicSettings, type TrafficData } from "@/lib/api";
 import { AnimateIn } from "@/hooks/use-animate";
 import { SeoHead } from "@/components/seo-head";
-import { ExternalLink, Mail, Rss, Eye, FolderOpen, Hash, ChevronDown, Link2 } from "lucide-react";
+import { ExternalLink, Mail, Rss, Eye, FolderOpen, Hash, ChevronDown, Link2, Loader2 } from "lucide-react";
 import { preloadMarkdownRenderer } from "@/lib/markdown-loader";
 
 function preconnectToMedia(url: string) {
@@ -238,13 +238,22 @@ export function HomePage() {
   const snapshot = getHomeSnapshot();
   const [posts, setPosts] = useState<PostMeta[]>(() => snapshot?.posts || []);
   const [loading, setLoading] = useState(() => !snapshot?.posts);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalPosts, setTotalPosts] = useState(0);
   const [settings, setSettings] = useState<PublicSettings | null>(() => snapshot?.settings || null);
   const [traffic, setTraffic] = useState<TrafficData | null>(() => snapshot?.traffic || null);
   const [categories, setCategories] = useState<CategoryInfo[]>(() => snapshot?.categories || []);
 
+  const PAGE_SIZE = 20;
+
   useEffect(() => {
-    fetchPosts({ limit: 80 })
-      .then(setPosts)
+    fetchPostsPaged(0, PAGE_SIZE)
+      .then((res) => {
+        setPosts(res.posts);
+        setTotalPosts(res.total);
+        setHasMore(res.hasMore);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
 
@@ -256,6 +265,21 @@ export function HomePage() {
 
     fetchCategories().then(setCategories).catch(() => {});
   }, []);
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetchPostsPaged(posts.length, PAGE_SIZE);
+      setPosts((prev) => [...prev, ...res.posts]);
+      setTotalPosts(res.total);
+      setHasMore(res.hasMore);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     const urls = [settings?.author_avatar].filter((url): url is string => Boolean(url));
@@ -311,7 +335,7 @@ export function HomePage() {
                 <h2 className="mt-[4px] text-[24px] font-semibold tracking-[-0.02em] text-foreground">最新文章</h2>
               </div>
               {!loading && (
-                <span className="text-[13px] text-muted-foreground/60">{posts.length} 篇可读内容</span>
+                <span className="text-[13px] text-muted-foreground/60">{totalPosts > 0 ? `${totalPosts} 篇可读内容` : `${posts.length} 篇可读内容`}</span>
               )}
             </div>
           </AnimateIn>
@@ -324,11 +348,29 @@ export function HomePage() {
           ) : (
             <div className="flex min-w-0 flex-col gap-[16px]">
               {posts.length > 0 ? (
-                posts.map((post, i) => (
-                  <AnimateIn key={post.slug} delay={`delay-${Math.min(i, 6)}`} className="min-w-0 max-w-full">
-                    <ArticleCard post={post} />
-                  </AnimateIn>
-                ))
+                <>
+                  {posts.map((post, i) => (
+                    <AnimateIn key={post.slug} delay={`delay-${Math.min(i, 6)}`} className="min-w-0 max-w-full">
+                      <ArticleCard post={post} />
+                    </AnimateIn>
+                  ))}
+                  {hasMore && (
+                    <button
+                      onClick={loadMore}
+                      disabled={loadingMore}
+                      className="group mx-auto flex items-center gap-[8px] rounded-md border border-border/25 bg-background/30 px-[24px] py-[10px] text-[13px] font-medium text-muted-foreground/70 transition-all duration-200 hover:border-border/40 hover:bg-background/50 hover:text-foreground disabled:opacity-50"
+                    >
+                      {loadingMore ? (
+                        <><Loader2 className="h-[14px] w-[14px] animate-spin" /><span>加载中...</span></>
+                      ) : (
+                        <><ChevronDown className="h-[14px] w-[14px] transition-transform group-hover:translate-y-[2px]" /><span>加载更多 ({posts.length}/{totalPosts})</span></>
+                      )}
+                    </button>
+                  )}
+                  {!hasMore && posts.length > PAGE_SIZE && (
+                    <p className="py-[8px] text-center text-[12px] text-muted-foreground/30">已加载全部 {totalPosts} 篇文章</p>
+                  )}
+                </>
               ) : (
                 <div className="rounded-md border border-dashed border-border/25 bg-background/20 px-[20px] py-[52px] text-center">
                   <p className="text-[15px] font-medium text-foreground/80">还没有发布文章</p>
@@ -384,8 +426,8 @@ export function HomePage() {
                         <link.icon className="h-[14px] w-[14px]" />
                       </a>
                     ))}
-                    {posts.length > 0 && (
-                      <span className="ml-auto text-[11px] text-muted-foreground/30">{posts.length} 篇文章</span>
+                    {totalPosts > 0 && (
+                      <span className="ml-auto text-[11px] text-muted-foreground/30">{totalPosts} 篇文章</span>
                     )}
                   </div>
                 )}
