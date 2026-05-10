@@ -125,7 +125,7 @@ app.get("/api/posts", async (c) => {
   const parsedLimit = rawLimit ? Number.parseInt(rawLimit, 10) : undefined;
   const parsedOffset = rawOffset ? Number.parseInt(rawOffset, 10) : undefined;
   const limit = parsedLimit && parsedLimit > 0 ? Math.min(parsedLimit, 200) : undefined;
-  const offset = parsedOffset && parsedOffset >= 0 ? parsedOffset : undefined;
+  const offset = parsedOffset !== undefined && parsedOffset >= 0 ? parsedOffset : undefined;
 
   // 分页模式：返回 { posts, total, hasMore }
   if (limit && offset !== undefined) {
