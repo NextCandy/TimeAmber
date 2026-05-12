@@ -154,19 +154,16 @@ async function archiveFetchJson<T>(url: string, token: string, init: RequestInit
 async function resolveToken(source: ArchiveSource): Promise<string> {
   if (source.token) return source.token;
   if (!source.password) throw new Error(`${source.label} missing credentials`);
-  const credentials = source.email
-    ? { email: source.email, password: source.password }
-    : { password: source.password };
-  const res = await fetch(`${source.baseUrl}/api/auth/login`, {
+  const res = await fetch(`${source.baseUrl}/api/auth`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(credentials),
+    headers: { Authorization: `Bearer ${source.password}` },
   });
   if (!res.ok) throw new Error(`${source.label} login failed with ${res.status}`);
-  const data = await res.json() as { data?: { token?: string }; token?: string };
-  const token = data.data?.token || data.token;
-  if (!token) throw new Error(`${source.label} login did not return a token`);
-  return token;
+  const data = await res.json() as { code?: number; data?: boolean; message?: string };
+  if (data.code !== 200 || data.data !== true) {
+    throw new Error(data.message || `${source.label} login failed`);
+  }
+  return source.password;
 }
 
 async function queryPages(source: ArchiveSource, token: string, pageNumber: number, pageSize: number): Promise<ArchivePageBatch> {
