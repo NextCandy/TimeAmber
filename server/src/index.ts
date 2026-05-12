@@ -1075,7 +1075,9 @@ app.get("/cdn/:key{.+}", async (c) => {
 app.get("/api/admin/settings", async (c) => {
   const db = c.get("db");
   const settings = await db.getSettings();
-  return c.json(settings);
+  const res = c.json(settings);
+  res.headers.set("Cache-Control", "no-store");
+  return res;
 });
 
 app.put("/api/admin/settings", async (c) => {

@@ -260,7 +260,7 @@ export function AdminSettings() {
       if (data && Object.keys(data).length > 0) {
         setSettings((prev) => ({ ...prev, ...data }));
       }
-      fetchSyncStatuses();
+      void fetchSyncStatuses();
       setLoadError("");
     } catch {
       setSettings(defaultSettings);
