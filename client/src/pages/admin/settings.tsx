@@ -51,7 +51,7 @@ type NotionSyncStatus = {
 };
 
 type ArchiveSourceStatus = {
-  id: "shudong" | "mearchive";
+  id: "vsdo";
   label: string;
   configured: boolean;
   nextPage: number;
@@ -802,7 +802,7 @@ export function AdminSettings() {
                 <h2 className="text-[16px] font-semibold mb-[4px] flex items-center gap-[6px]">
                   <Database className="h-[15px] w-[15px] text-violet-400" /> 同步中心
                 </h2>
-                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">分开管理 Notion、树洞剪藏和 MeArchive 同步状态。剪藏来源会写入对应来源分类，Notion 仍写入“剪藏”。</p>
+                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">分开管理 Notion 与 VS.DO 剪藏同步状态。剪藏来源会写入对应来源分类，Notion 仍写入“剪藏”。</p>
 
                 <div className="space-y-[14px]">
                   <SyncSourceCard
@@ -854,7 +854,7 @@ export function AdminSettings() {
                     <SyncSourceCard
                       key={source.id}
                       title={source.label}
-                      subtitle={source.id === "shudong" ? "来源：shudong.org，文章分类写入“树洞剪藏”。" : "来源：mearchive.com，文章分类写入“MeArchive”。"}
+                      subtitle="来源：vs.do，文章分类写入“VS.DO 剪藏”。"
                       configured={source.configured}
                       status={source.lastStatus}
                       lastRunAt={source.lastRunAt}

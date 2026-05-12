@@ -1,11 +1,10 @@
 import type { IDatabase } from "./storage/interfaces";
 
 type ArchiveSyncEnv = {
-  SHUDONG_BASE_URL?: string;
-  SHUDONG_TOKEN?: string;
-  MEARCHIVE_BASE_URL?: string;
-  MEARCHIVE_EMAIL?: string;
-  MEARCHIVE_PASSWORD?: string;
+  VS_DO_BASE_URL?: string;
+  VS_DO_TOKEN?: string;
+  VS_DO_EMAIL?: string;
+  VS_DO_PASSWORD?: string;
   ARCHIVE_SYNC_MAX_PAGES?: string;
   ARCHIVE_SYNC_MAX_CONTENT_CHARS?: string;
 };
@@ -25,7 +24,7 @@ type ArchivePageBatch = {
 };
 
 type ArchiveSource = {
-  id: "shudong" | "mearchive";
+  id: "vsdo";
   label: string;
   baseUrl: string;
   token?: string;
@@ -154,16 +153,20 @@ async function archiveFetchJson<T>(url: string, token: string, init: RequestInit
 
 async function resolveToken(source: ArchiveSource): Promise<string> {
   if (source.token) return source.token;
-  if (!source.email || !source.password) throw new Error(`${source.label} missing credentials`);
+  if (!source.password) throw new Error(`${source.label} missing credentials`);
+  const credentials = source.email
+    ? { email: source.email, password: source.password }
+    : { password: source.password };
   const res = await fetch(`${source.baseUrl}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: source.email, password: source.password }),
+    body: JSON.stringify(credentials),
   });
   if (!res.ok) throw new Error(`${source.label} login failed with ${res.status}`);
-  const data = await res.json() as { data?: { token?: string } };
-  if (!data.data?.token) throw new Error(`${source.label} login did not return a token`);
-  return data.data.token;
+  const data = await res.json() as { data?: { token?: string }; token?: string };
+  const token = data.data?.token || data.token;
+  if (!token) throw new Error(`${source.label} login did not return a token`);
+  return token;
 }
 
 async function queryPages(source: ArchiveSource, token: string, pageNumber: number, pageSize: number): Promise<ArchivePageBatch> {
@@ -191,21 +194,14 @@ async function fetchReadableContent(source: ArchiveSource, token: string, pageId
 
 function getSources(env: ArchiveSyncEnv): ArchiveSource[] {
   const sources: ArchiveSource[] = [];
-  if (env.SHUDONG_TOKEN) {
+  if (env.VS_DO_TOKEN || env.VS_DO_PASSWORD) {
     sources.push({
-      id: "shudong",
-      label: "树洞剪藏",
-      baseUrl: trimSlash(env.SHUDONG_BASE_URL || "https://shudong.org"),
-      token: env.SHUDONG_TOKEN,
-    });
-  }
-  if (env.MEARCHIVE_EMAIL && env.MEARCHIVE_PASSWORD) {
-    sources.push({
-      id: "mearchive",
-      label: "MeArchive",
-      baseUrl: trimSlash(env.MEARCHIVE_BASE_URL || "https://mearchive.com"),
-      email: env.MEARCHIVE_EMAIL,
-      password: env.MEARCHIVE_PASSWORD,
+      id: "vsdo",
+      label: "VS.DO 剪藏",
+      baseUrl: trimSlash(env.VS_DO_BASE_URL || "https://vs.do"),
+      token: env.VS_DO_TOKEN,
+      email: env.VS_DO_EMAIL,
+      password: env.VS_DO_PASSWORD,
     });
   }
   return sources;
@@ -214,22 +210,17 @@ function getSources(env: ArchiveSyncEnv): ArchiveSource[] {
 export function getArchiveSyncStatus(settings: Record<string, string>, env: ArchiveSyncEnv): ArchiveSyncStatus {
   const knownSources: ArchiveSource[] = [
     {
-      id: "shudong",
-      label: "树洞剪藏",
-      baseUrl: trimSlash(env.SHUDONG_BASE_URL || "https://shudong.org"),
-      token: env.SHUDONG_TOKEN,
-    },
-    {
-      id: "mearchive",
-      label: "MeArchive",
-      baseUrl: trimSlash(env.MEARCHIVE_BASE_URL || "https://mearchive.com"),
-      email: env.MEARCHIVE_EMAIL,
-      password: env.MEARCHIVE_PASSWORD,
+      id: "vsdo",
+      label: "VS.DO 剪藏",
+      baseUrl: trimSlash(env.VS_DO_BASE_URL || "https://vs.do"),
+      token: env.VS_DO_TOKEN,
+      email: env.VS_DO_EMAIL,
+      password: env.VS_DO_PASSWORD,
     },
   ];
   const sources = knownSources.map((source) => {
     const prefix = `archive_sync_${source.id}`;
-    const configured = source.id === "shudong" ? Boolean(source.token) : Boolean(source.email && source.password);
+    const configured = Boolean(source.token || source.password);
     return {
       id: source.id,
       label: source.label,
