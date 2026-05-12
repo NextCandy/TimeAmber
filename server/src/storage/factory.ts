@@ -14,6 +14,7 @@ import { R2Adapter } from "./object/r2";
 import { S3Adapter } from "./object/s3";
 
 let d1SchemaReady: Promise<void> | null = null;
+let d1BaselineReady: Promise<void> | null = null;
 
 /**
  * 创建数据库适配器
@@ -34,7 +35,11 @@ export async function createDatabase(env: Record<string, unknown>): Promise<IDat
         });
         await d1SchemaReady;
       } else {
-        await d1Adapter.ensureSchemaBaseline();
+        d1BaselineReady ??= d1Adapter.ensureSchemaBaseline().catch((err) => {
+          d1BaselineReady = null;
+          throw err;
+        });
+        await d1BaselineReady;
       }
       return d1Adapter;
     }

@@ -68,6 +68,37 @@ app.use("*", async (c, next) => {
 
 /* ── Webhook / 缓存 / 图片工具已提取至 utils/ ── */
 
+function purgePublicContentCache(c: any, slugs: string[] = []) {
+  const origin = new URL(c.req.url).origin;
+  const listLimits = ["", "?limit=20", "?limit=30", "?limit=50", "?limit=80", "?limit=100", "?limit=200"];
+  const paths = new Set<string>([
+    ...listLimits.map((suffix) => `/api/posts${suffix}`),
+    "/api/tags",
+    "/api/categories",
+    "/api/settings/public",
+    "/api/stats/traffic",
+    "/rss.xml",
+    "/sitemap.xml",
+  ]);
+
+  for (let offset = 0; offset <= 2000; offset += 20) {
+    paths.add(`/api/posts?limit=20&offset=${offset}`);
+  }
+
+  for (const slug of slugs) {
+    if (slug) paths.add(`/api/posts/${encodeURIComponent(slug)}`);
+  }
+
+  const purge = Promise.allSettled(
+    Array.from(paths, (path) => caches.default.delete(new Request(`${origin}${path}`, { method: "GET" }))),
+  );
+  if (c.executionCtx?.waitUntil) {
+    c.executionCtx.waitUntil(purge);
+  } else {
+    purge.catch(() => {});
+  }
+}
+
 /* ── 健康检查端点 ──────────────────────────── */
 app.get("/api/health", async (c) => {
   return c.json({ status: "ok", timestamp: new Date().toISOString() });
@@ -692,6 +723,7 @@ app.post("/api/admin/posts", async (c) => {
   }
   body.coverImage = normalizeCoverImage(body.coverImage);
   const newPost = await db.createPost(body);
+  purgePublicContentCache(c, [newPost.slug]);
   await triggerWebhook(c, "post_created", newPost);
   return c.json(newPost, 201);
 });
@@ -756,6 +788,7 @@ app.post("/api/admin/import/markdown", async (c) => {
     imported.push(post);
   }
 
+  purgePublicContentCache(c, imported.map((post) => post.slug));
   await triggerWebhook(c, "markdown_imported", { count: imported.length, slugs: imported.map((post) => post.slug) });
   return c.json({ success: true, imported: imported.length, posts: imported }, 201);
 });
@@ -779,6 +812,7 @@ app.put("/api/admin/posts/:slug", async (c) => {
   if (body.saveVersion) {
     await db.createPostVersion(slug);
   }
+  purgePublicContentCache(c, [slug, updated.slug]);
   await triggerWebhook(c, "post_updated", updated);
   return c.json(updated);
 });
@@ -822,6 +856,7 @@ app.post("/api/admin/posts/batch", async (c) => {
   if (action === "delete" && count > 0) {
     await rememberDeletedNotionSlugs(db, slugs);
   }
+  purgePublicContentCache(c, slugs);
   await triggerWebhook(c, "post_batch_operated", { action, slugs, count });
   return c.json({ success: true, count, message: `成功处理 ${count} 篇文章` });
 });
@@ -833,6 +868,7 @@ app.delete("/api/admin/posts/:slug", async (c) => {
   const deleted = await db.deletePost(slug);
   if (!deleted) return c.json({ error: "文章未找到" }, 404);
   await rememberDeletedNotionSlugs(db, [slug]);
+  purgePublicContentCache(c, [slug]);
   await triggerWebhook(c, "post_deleted", { slug });
   return c.json({ success: true });
 });

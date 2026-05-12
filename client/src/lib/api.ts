@@ -11,6 +11,11 @@ type PublicCacheEntry<T> = {
 const publicCache = new Map<string, PublicCacheEntry<unknown>>();
 const inflightRequests = new Map<string, Promise<unknown>>();
 
+function clearPublicApiCache() {
+  publicCache.clear();
+  inflightRequests.clear();
+}
+
 export type TrafficData = {
   totalViews: number;
   totalPosts?: number;
@@ -317,7 +322,9 @@ export async function createPost(data: {
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("创建文章失败");
-  return res.json();
+  const post = await res.json() as Post;
+  clearPublicApiCache();
+  return post;
 }
 
 export async function updatePost(
@@ -330,7 +337,9 @@ export async function updatePost(
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("更新文章失败");
-  return res.json();
+  const post = await res.json() as Post;
+  clearPublicApiCache();
+  return post;
 }
 
 export async function deletePost(slug: string): Promise<void> {
@@ -339,6 +348,7 @@ export async function deletePost(slug: string): Promise<void> {
     headers: authHeaders(),
   });
   if (!res.ok) throw new Error("删除失败");
+  clearPublicApiCache();
 }
 
 export async function batchOperatePosts(slugs: string[], action: "publish" | "unpublish" | "delete"): Promise<{ count: number }> {
@@ -348,7 +358,9 @@ export async function batchOperatePosts(slugs: string[], action: "publish" | "un
     body: JSON.stringify({ slugs, action }),
   });
   if (!res.ok) throw new Error("批量操作失败");
-  return res.json();
+  const result = await res.json() as { count: number };
+  clearPublicApiCache();
+  return result;
 }
 
 export type MarkdownImportPost = {
@@ -377,7 +389,9 @@ export async function importMarkdownPosts(posts: MarkdownImportPost[]): Promise<
     const data = await res.json().catch(() => null);
     throw new Error(data?.error || "Markdown 瀵煎叆澶辫触");
   }
-  return res.json();
+  const result = await res.json() as { success: boolean; imported: number; posts: Post[] };
+  clearPublicApiCache();
+  return result;
 }
 
 export type PostVersion = {

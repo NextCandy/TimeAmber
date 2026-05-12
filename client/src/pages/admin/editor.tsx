@@ -303,14 +303,24 @@ export function AdminEditor() {
       };
 
       if (isEdit && params.slug) {
-        await updatePost(params.slug, { ...payload, saveVersion });
+        const updated = await updatePost(params.slug, { ...payload, saveVersion });
         setLastSaved(new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }));
-        showMsg("已保存" + (saveVersion ? "并创建了版本快照" : ""), "success");
+        const publishState = updated.published
+          ? updated.publishAt
+            ? "已保存，文章会按定时发布"
+            : "已发布并保存"
+          : "已保存为草稿";
+        showMsg(publishState + (saveVersion ? "，并创建了版本快照" : ""), "success");
         clearDraft(params.slug);
         if (saveVersion) setSaveVersion(false);
       } else {
-        await createPost(payload);
-        showMsg("已创建，即将跳转...", "success");
+        const created = await createPost(payload);
+        const publishState = created.published
+          ? created.publishAt
+            ? "文章已创建，将按定时发布"
+            : "文章已发布"
+          : "草稿已创建";
+        showMsg(`${publishState}，即将返回后台...`, "success");
         clearDraft("new");
         setTimeout(() => setLocation("/admin"), 1200);
       }
@@ -564,6 +574,21 @@ export function AdminEditor() {
       onDragOver={(e) => e.preventDefault()}
       onPaste={handlePaste}
     >
+      {message.text && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`fixed right-[20px] top-[20px] z-[80] flex max-w-[360px] items-center gap-[8px] rounded-md border px-[14px] py-[10px] text-[13px] shadow-2xl backdrop-blur ${
+            message.type === "success"
+              ? "border-emerald-400/25 bg-emerald-500/12 text-emerald-300"
+              : "border-red-400/25 bg-red-500/12 text-red-300"
+          }`}
+        >
+          {message.type === "success" ? <Check className="h-[14px] w-[14px] shrink-0" /> : <X className="h-[14px] w-[14px] shrink-0" />}
+          <span className="min-w-0 leading-[1.5]">{message.text}</span>
+        </div>
+      )}
+
       {/* ─── 顶栏 ─── */}
       <div className="mb-[12px] flex items-center justify-between shrink-0">
         <div className="flex items-center gap-[12px]">

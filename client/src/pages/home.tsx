@@ -248,14 +248,26 @@ export function HomePage() {
   const PAGE_SIZE = 20;
 
   useEffect(() => {
-    fetchPostsPaged(0, PAGE_SIZE)
-      .then((res) => {
+    let cancelled = false;
+
+    const loadInitialPosts = async () => {
+      try {
+        const res = await fetchPostsPaged(0, PAGE_SIZE);
+        if (cancelled) return;
+
         setPosts(res.posts);
         setTotalPosts(res.total);
         setHasMore(res.hasMore);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadInitialPosts();
 
     fetchPublicSettings()
       .then((data) => setSettings(data))
@@ -264,6 +276,8 @@ export function HomePage() {
     fetchTraffic().then(setTraffic).catch(() => {});
 
     fetchCategories().then(setCategories).catch(() => {});
+
+    return () => { cancelled = true; };
   }, []);
 
   const loadMore = async () => {

@@ -45,12 +45,16 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /\/api\//i,
+            urlPattern: ({ url, request }) =>
+              request.method === "GET" &&
+              url.pathname.startsWith("/api/") &&
+              !url.pathname.startsWith("/api/admin") &&
+              !url.pathname.startsWith("/api/auth"),
             handler: "NetworkFirst",
             options: {
               cacheName: "timeamber-api",
-              expiration: { maxEntries: 100, maxAgeSeconds: 24 * 60 * 60 },
-              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 100, maxAgeSeconds: 10 * 60 },
+              networkTimeoutSeconds: 10,
               cacheableResponse: { statuses: [0, 200] }
             }
           }
