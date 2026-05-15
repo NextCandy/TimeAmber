@@ -14,6 +14,8 @@
     "deploy:server": "npm -w monolith-server run deploy",
     "deploy:client": "node -e \"const {spawnSync}=require('node:child_process'); const result=spawnSync('npx',['wrangler','pages','deploy','dist','--project-name','monolith-client','--branch','main','--commit-dirty=true'],{cwd:'client',stdio:'inherit',shell:process.platform==='win32'}); process.exit(result.status ?? 1);\"",
     "deploy:cloudflare": "node scripts/deploy-cloudflare.mjs",
+    "db:reconcile": "npm run db:reconcile:d1:local",
+    "db:reconcile:local": "npm run db:reconcile:d1:local",
     "db:reconcile:d1:local": "node scripts/reconcile-d1-schema.mjs --local",
     "db:reconcile:d1:remote": "node scripts/reconcile-d1-schema.mjs --remote",
     "db:migrate:local": "npm -w monolith-server run db:migrate:local",
@@ -30,8 +32,13 @@
     "concurrently": "^9.0.0"
   },
   "overrides": {
-    "dompurify": "^3.4.0",
-    "serialize-javascript": "^7.0.5",
-    "esbuild": "^0.25.0"
+    "@babel/plugin-transform-modules-systemjs": "7.29.4",
+    "dompurify": "3.4.3",
+    "esbuild": "^0.25.0",
+    "express-rate-limit": "8.5.2",
+    "fast-uri": "3.1.2",
+    "fast-xml-builder": "1.1.7",
+    "ip-address": "10.2.0",
+    "serialize-javascript": "^7.0.5"
   }
 }
