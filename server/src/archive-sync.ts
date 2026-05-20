@@ -244,16 +244,17 @@ async function archiveFetchJson<T>(url: string, token: string, init: RequestInit
 
 async function resolveToken(source: ArchiveSource): Promise<string> {
   if (source.token) return source.token;
-  if (!source.email || !source.password) throw new Error(`${source.label} missing credentials`);
-  const res = await fetch(`${source.baseUrl}/api/auth/login`, {
+  if (!source.password) throw new Error(`${source.label} missing credentials`);
+  const res = await fetch(`${source.baseUrl}/api/auth`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: source.email, password: source.password }),
+    headers: { Authorization: `Bearer ${source.password}` },
   });
   if (!res.ok) throw new Error(`${source.label} login failed with ${res.status}`);
-  const data = await res.json() as { data?: { token?: string } };
-  if (!data.data?.token) throw new Error(`${source.label} login did not return a token`);
-  return data.data.token;
+  const data = await res.json() as { code?: number; data?: boolean; message?: string };
+  if (data.code !== 200 || data.data !== true) {
+    throw new Error(data.message || `${source.label} login failed`);
+  }
+  return source.password;
 }
 
 async function queryPages(source: ArchiveSource, token: string, pageNumber: number, pageSize: number): Promise<ArchivePageBatch> {
@@ -285,10 +286,10 @@ async function fetchReadableContent(source: ArchiveSource, token: string, pageId
 
 function getSources(env: ArchiveSyncEnv): ArchiveSource[] {
   const sources: ArchiveSource[] = [];
-  if (env.VS_DO_TOKEN || (env.VS_DO_EMAIL && env.VS_DO_PASSWORD)) {
+  if (env.VS_DO_TOKEN || env.VS_DO_PASSWORD) {
     sources.push({
       id: "vsdo",
-      label: "vs.do",
+      label: "VS.DO 剪藏",
       baseUrl: trimSlash(env.VS_DO_BASE_URL || "https://vs.do"),
       token: env.VS_DO_TOKEN,
       email: env.VS_DO_EMAIL,
@@ -302,7 +303,7 @@ export function getArchiveSyncStatus(settings: Record<string, string>, env: Arch
   const knownSources: ArchiveSource[] = [
     {
       id: "vsdo",
-      label: "vs.do",
+      label: "VS.DO 剪藏",
       baseUrl: trimSlash(env.VS_DO_BASE_URL || "https://vs.do"),
       token: env.VS_DO_TOKEN,
       email: env.VS_DO_EMAIL,
@@ -311,7 +312,7 @@ export function getArchiveSyncStatus(settings: Record<string, string>, env: Arch
   ];
   const sources = knownSources.map((source) => {
     const prefix = `archive_sync_${source.id}`;
-    const configured = Boolean(source.token || (source.email && source.password));
+    const configured = Boolean(source.token || source.password);
     return {
       id: source.id,
       label: source.label,

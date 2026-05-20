@@ -272,20 +272,20 @@ if (!options.skipServer) {
       "wrangler", "secret", "put", "CLOUDFLARE_API_TOKEN", "--name", "timeamber-server"
     ], { input: `${process.env.CLOUDFLARE_API_TOKEN}\n`, cwd: `${projectRoot}/server` });
   }
-  if (process.env.SHUDONG_TOKEN) {
-    runStep("写入 Backend 的 SHUDONG_TOKEN（剪藏同步）", "npx", [
-      "wrangler", "secret", "put", "SHUDONG_TOKEN", "--name", "timeamber-server"
-    ], { input: `${process.env.SHUDONG_TOKEN}\n`, cwd: `${projectRoot}/server` });
+  if (process.env.VS_DO_TOKEN) {
+    runStep("写入 Backend 的 VS_DO_TOKEN（剪藏同步）", "npx", [
+      "wrangler", "secret", "put", "VS_DO_TOKEN", "--name", "timeamber-server"
+    ], { input: `${process.env.VS_DO_TOKEN}\n`, cwd: `${projectRoot}/server` });
   }
-  if (process.env.MEARCHIVE_EMAIL) {
-    runStep("写入 Backend 的 MEARCHIVE_EMAIL（剪藏同步）", "npx", [
-      "wrangler", "secret", "put", "MEARCHIVE_EMAIL", "--name", "timeamber-server"
-    ], { input: `${process.env.MEARCHIVE_EMAIL}\n`, cwd: `${projectRoot}/server` });
+  if (process.env.VS_DO_EMAIL) {
+    runStep("写入 Backend 的 VS_DO_EMAIL（剪藏同步）", "npx", [
+      "wrangler", "secret", "put", "VS_DO_EMAIL", "--name", "timeamber-server"
+    ], { input: `${process.env.VS_DO_EMAIL}\n`, cwd: `${projectRoot}/server` });
   }
-  if (process.env.MEARCHIVE_PASSWORD) {
-    runStep("写入 Backend 的 MEARCHIVE_PASSWORD（剪藏同步）", "npx", [
-      "wrangler", "secret", "put", "MEARCHIVE_PASSWORD", "--name", "timeamber-server"
-    ], { input: `${process.env.MEARCHIVE_PASSWORD}\n`, cwd: `${projectRoot}/server` });
+  if (process.env.VS_DO_PASSWORD) {
+    runStep("写入 Backend 的 VS_DO_PASSWORD（剪藏同步）", "npx", [
+      "wrangler", "secret", "put", "VS_DO_PASSWORD", "--name", "timeamber-server"
+    ], { input: `${process.env.VS_DO_PASSWORD}\n`, cwd: `${projectRoot}/server` });
   }
 
   const deployOutput = runCapture("部署 Cloudflare Workers 后端", "npm", ["run", "deploy:server"]);

@@ -64,9 +64,9 @@ jobs:
       ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-      SHUDONG_TOKEN: ${{ secrets.SHUDONG_TOKEN }}
-      MEARCHIVE_EMAIL: ${{ secrets.MEARCHIVE_EMAIL }}
-      MEARCHIVE_PASSWORD: ${{ secrets.MEARCHIVE_PASSWORD }}
+      VS_DO_TOKEN: ${{ secrets.VS_DO_TOKEN }}
+      VS_DO_EMAIL: ${{ secrets.VS_DO_EMAIL }}
+      VS_DO_PASSWORD: ${{ secrets.VS_DO_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6

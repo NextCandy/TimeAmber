@@ -262,7 +262,7 @@ export function AdminSettings() {
       if (data && Object.keys(data).length > 0) {
         setSettings((prev) => ({ ...prev, ...data }));
       }
-      fetchSyncStatuses();
+      void fetchSyncStatuses();
       setLoadError("");
     } catch {
       setSettings(defaultSettings);
@@ -804,7 +804,7 @@ export function AdminSettings() {
                 <h2 className="text-[16px] font-semibold mb-[4px] flex items-center gap-[6px]">
                   <Database className="h-[15px] w-[15px] text-violet-400" /> 同步中心
                 </h2>
-                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">分开管理 Notion 和 vs.do 同步状态。vs.do 连接树莓派中的 web-archive 项目，Notion 仍写入“剪藏”。</p>
+                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">分开管理 Notion 与 VS.DO 剪藏同步状态。树莓派部署连接本机 web-archive 项目，剪藏来源会写入对应来源分类，Notion 仍写入“剪藏”。</p>
 
                 <div className="space-y-[14px]">
                   <SyncSourceCard
@@ -857,7 +857,7 @@ export function AdminSettings() {
                     <SyncSourceCard
                       key={source.id}
                       title={source.label}
-                      subtitle="来源：vs.do，连接树莓派中的 web-archive 项目。"
+                      subtitle="来源：vs.do，树莓派部署连接本机 web-archive，文章分类写入“VS.DO 剪藏”。"
                       configured={source.configured}
                       status={source.lastStatus}
                       lastRunAt={source.lastRunAt}

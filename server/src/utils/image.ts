@@ -121,17 +121,19 @@ export async function uploadImageToSee(url: string, apiToken: string): Promise<s
 
     const uploadResp = await fetch("https://s.ee/api/v1/file/upload", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiToken}` },
+      headers: { Authorization: apiToken },
       body: form,
     });
     const payload = await uploadResp.json<{
       success?: boolean;
+      code?: number;
       message?: string;
-      data?: { file_id?: string; url?: string };
+      data?: { file_id?: string | number; url?: string };
     }>().catch(() => null);
 
-    const publicUrl = normalizeSeePublicUrl(payload?.data?.url, payload?.data?.file_id);
-    if (!uploadResp.ok || !payload?.success || !publicUrl) {
+    const publicUrl = normalizeSeePublicUrl(payload?.data?.url, payload?.data?.file_id ? String(payload.data.file_id) : undefined);
+    const success = payload?.success === true || payload?.code === 0 || payload?.code === 200;
+    if (!uploadResp.ok || !success || !publicUrl) {
       throw new Error(payload?.message || `S.EE HTTP ${uploadResp.status}`);
     }
     return publicUrl;
