@@ -215,33 +215,44 @@ export function PostPage() {
         } as React.CSSProperties : undefined}
       >
         {/* 主内容区 */}
-        <article className="post-content py-[32px] lg:py-[56px]">
+        <article className="post-content py-[28px] lg:py-[48px]">
           <div className="mb-[32px] flex items-center justify-between gap-[12px] animate-fade-in">
             <Link href="/" className="inline-flex min-h-[44px] items-center gap-[6px] rounded-md text-[13px] text-muted-foreground/60 transition-all duration-200 hover:-translate-x-[2px] hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
               <ArrowLeft className="h-[14px] w-[14px]" />返回首页
             </Link>
             <button
               onClick={toggleReadingMode}
-              className="reading-mode-toggle inline-flex min-h-[44px] items-center gap-[5px] rounded-md px-[8px] text-[12px] text-muted-foreground/50 transition-all duration-200 hover:bg-accent/30 hover:text-foreground/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="reading-mode-toggle inline-flex min-h-[44px] items-center gap-[6px] rounded-md px-[8px] text-[12px] text-muted-foreground/50 transition-all duration-200 hover:bg-accent/30 hover:text-foreground/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               title="进入专注阅读模式"
               aria-label="进入专注阅读模式"
             >
-              <BookOpen className="h-[13px] w-[13px]" />
+              <BookOpen className="h-[14px] w-[14px]" />
               专注阅读
             </button>
           </div>
 
-          <header className="mb-[32px] animate-fade-in-up delay-1">
-            <div className={`mb-[24px] h-[3px] w-[60px] rounded-full bg-gradient-to-r ${post.coverColor || "from-gray-500/20 to-gray-600/20"}`} />
+          <header className="mb-[32px] animate-fade-in-up delay-1 rounded-md border border-border/20 bg-background/28 p-[18px] sm:p-[24px]">
+            <div className="mb-[18px] flex flex-wrap items-center gap-[12px]">
+              <div className="h-[2px] w-[64px] rounded-full bg-foreground/36" />
+              <span className="font-mono text-[11px] text-muted-foreground/44">READING FILE</span>
+              {post.category && (
+                <span className="rounded-[4px] border border-border/18 px-[6px] py-[2px] text-[11px] text-muted-foreground/55">{post.category}</span>
+              )}
+            </div>
             <div className="mb-[16px] flex flex-wrap items-center gap-[8px]">
               {post.tags.map((tag) => (
                 <Badge key={tag} variant="secondary" className="h-[22px] rounded-[4px] px-[8px] text-[12px] font-normal">{tag}</Badge>
               ))}
               <span className="text-[12px] text-muted-foreground/50">{formatDate(post.createdAt)}</span>
-              <span className="text-[12px] text-muted-foreground/50 inline-flex items-center gap-[3px]"><Eye className="h-[12px] w-[12px]" />{post.viewCount ?? 0}</span>
+              <span className="text-[12px] text-muted-foreground/50 inline-flex items-center gap-[4px]"><Eye className="h-[12px] w-[12px]" />{(post.viewCount ?? 0).toLocaleString()}</span>
             </div>
-            <h1 className="text-[24px] sm:text-[28px] font-semibold tracking-[-0.02em] leading-[1.3] lg:text-[32px]">{post.title}</h1>
-            <p className="mt-[16px] text-[15px] leading-[1.8] text-muted-foreground">{post.excerpt}</p>
+            <h1 className="font-heading text-[30px] font-semibold tracking-[-0.035em] leading-[1.08] sm:text-[40px] lg:text-[48px]">{post.title}</h1>
+            <p className="mt-[18px] max-w-[680px] text-[16px] leading-[1.85] text-muted-foreground">{post.excerpt}</p>
+            <div className="mt-[20px] grid grid-cols-2 gap-[8px] border-t border-border/16 pt-[14px] text-[12px] text-muted-foreground/52 sm:grid-cols-3">
+              <span>发布：{formatDate(post.createdAt)}</span>
+              <span>浏览：{(post.viewCount ?? 0).toLocaleString()}</span>
+              <span className="col-span-2 sm:col-span-1">更新：{formatDate(post.updatedAt)}</span>
+            </div>
           </header>
 
           {/* 移动端 TOC（显示在分隔线上方） */}

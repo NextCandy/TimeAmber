@@ -1,6 +1,6 @@
 {
   "name": "timeamber-server",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,6 +8,9 @@
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply timeamber-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply timeamber-db --remote",
+    "db:reconcile": "npm run db:reconcile:local",
+    "db:reconcile:local": "node ../scripts/reconcile-d1-schema.mjs --local",
+    "db:reconcile:remote": "node ../scripts/reconcile-d1-schema.mjs --remote",
     "db:seed:local": "wrangler d1 execute timeamber-db --local --file=src/migrations/0002_seed.sql",
     "db:seed:test-posts:local": "wrangler d1 execute timeamber-db --local --file=src/seeds/seed_test_posts.sql",
     "check": "tsc --noEmit",
@@ -17,7 +20,7 @@
     "aws4fetch": "^1.0.20",
     "@libsql/client": "^0.17.3",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.12.15",
+    "hono": "^4.12.18",
     "postgres": "^3.4.9"
   },
   "devDependencies": {

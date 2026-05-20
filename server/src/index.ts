@@ -11,6 +11,7 @@ import { createDatabase, createObjectStorage } from "./storage/factory";
 import type { IDatabase } from "./storage/interfaces";
 import { writeAnalyticsPoint, isWebsiteAllowed } from "./analytics/ae-tracker";
 import { queryAEAnalytics } from "./analytics/ae-query";
+import { attachAnalyticsInsights } from "./analytics/insights";
 import { getArchiveSyncStatus, syncArchiveSources } from "./archive-sync";
 import { getNotionSyncStatus, rememberDeletedNotionSlugs, syncNotionPosts } from "./notion-sync";
 import type { Bindings, Variables } from "./types";
@@ -646,8 +647,21 @@ app.get("/api/admin/analytics", async (c) => {
   let days = parseInt(c.req.query("days") || "7", 10);
   if (isNaN(days) || days <= 0) days = 7;
   const db = c.get("db");
-  const analytics = await db.getAnalytics(Math.min(days, 90));
-  return c.json(analytics);
+  const safeDays = Math.min(days, 90);
+  const [analytics, broaderAnalytics, posts] = await Promise.all([
+    db.getAnalytics(safeDays),
+    db.getAnalytics(Math.min(safeDays * 2, 180)),
+    db.getPublishedPosts(),
+  ]);
+  const currentDates = new Set(analytics.visitsByDay.map((item) => item.date));
+  const previousVisitsByDay = broaderAnalytics.visitsByDay
+    .filter((item) => !currentDates.has(item.date))
+    .slice(-safeDays);
+  return c.json(attachAnalyticsInsights(analytics, {
+    days: safeDays,
+    previousVisitsByDay,
+    posts,
+  }));
 });
 
 // 访客分析数据 — AE 增强版（CF 专属，仅在 D1 后端 + 配置好 API Token 时可用）
@@ -670,9 +684,12 @@ app.get("/api/admin/analytics/ae", async (c) => {
   if (isNaN(days) || days <= 0) days = 7;
 
   try {
+    const db = c.get("db");
+    const posts = await db.getPublishedPosts();
     const data = await queryAEAnalytics(
       { CLOUDFLARE_ACCOUNT_ID: c.env.CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN: c.env.CLOUDFLARE_API_TOKEN },
       Math.min(days, 31),
+      posts,
     );
     return c.json(data);
   } catch (err) {

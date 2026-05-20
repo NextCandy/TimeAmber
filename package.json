@@ -1,6 +1,6 @@
 {
   "name": "timeamber",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "private": true,
   "workspaces": [
     "client",
@@ -15,6 +15,8 @@
     "deploy:server": "npm -w timeamber-server run deploy",
     "deploy:client": "node -e \"const {spawnSync}=require('node:child_process'); const wrangler='../server/node_modules/.bin/wrangler'+(process.platform==='win32'?'.cmd':''); const result=spawnSync(wrangler,['pages','deploy','dist','--project-name','timeamber-client','--branch','main','--commit-dirty=true'],{cwd:'client',stdio:'inherit',shell:process.platform==='win32'}); process.exit(result.status ?? 1);\"",
     "deploy:cloudflare": "node scripts/deploy-cloudflare.mjs",
+    "db:reconcile": "npm run db:reconcile:d1:local",
+    "db:reconcile:local": "npm run db:reconcile:d1:local",
     "db:reconcile:d1:local": "node scripts/reconcile-d1-schema.mjs --local",
     "db:reconcile:d1:remote": "node scripts/reconcile-d1-schema.mjs --remote",
     "db:migrate:local": "npm -w timeamber-server run db:migrate:local",
@@ -38,8 +40,13 @@
     "lightningcss-linux-x64-gnu": "1.32.0"
   },
   "overrides": {
-    "dompurify": "^3.4.0",
-    "serialize-javascript": "^7.0.5",
-    "esbuild": "^0.25.0"
+    "@babel/plugin-transform-modules-systemjs": "7.29.4",
+    "dompurify": "3.4.3",
+    "esbuild": "^0.25.0",
+    "express-rate-limit": "8.5.2",
+    "fast-uri": "3.1.2",
+    "fast-xml-builder": "1.1.7",
+    "ip-address": "10.2.0",
+    "serialize-javascript": "^7.0.5"
   }
 }
