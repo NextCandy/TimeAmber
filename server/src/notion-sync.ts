@@ -1,4 +1,4 @@
-import type { IDatabase } from "./storage/interfaces";
+import type { IDatabase, Post } from "./storage/interfaces";
 
 const NOTION_API_BASE = "https://api.notion.com/v1";
 const NOTION_VERSION = "2026-03-11";
@@ -16,6 +16,8 @@ type NotionEnv = {
   NOTION_DATA_SOURCE_ID?: string;
   NOTION_SYNC_MAX_SUBREQUESTS?: string;
 };
+
+type PostWithTags = Post & { tags: string[] };
 
 type RichText = {
   plain_text?: string;
@@ -98,10 +100,38 @@ export function getNotionDataSourceId(env: NotionEnv, settings: Record<string, s
   return (settings.notion_data_source_id || env.NOTION_DATA_SOURCE_ID || DEFAULT_DATA_SOURCE_ID).trim();
 }
 
+function normalizeNotionId(value: string): string {
+  const cleaned = value.trim().replace(/-/g, "");
+  if (!/^[a-f0-9]{32}$/i.test(cleaned)) return value.trim();
+  return `${cleaned.slice(0, 8)}-${cleaned.slice(8, 12)}-${cleaned.slice(12, 16)}-${cleaned.slice(16, 20)}-${cleaned.slice(20)}`;
+}
+
+function getNotionDataSourceIds(env: NotionEnv, settings: Record<string, string>): string[] {
+  const raw = getNotionDataSourceId(env, settings);
+  const values = raw
+    .split(/[\s,;]+/)
+    .map((item) => normalizeNotionId(item))
+    .filter(Boolean);
+  return Array.from(new Set(values));
+}
+
+function getNotionToken(env: NotionEnv, settings: Record<string, string>): string {
+  return (settings.notion_token || env.NOTION_TOKEN || "").trim();
+}
+
+function normalizeTitle(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function notionCursorKey(baseKey: string, dataSourceId: string, index: number): string {
+  if (index === 0) return baseKey;
+  return `${baseKey}_${dataSourceId.replace(/-/g, "").slice(0, 12)}`;
+}
+
 export function getNotionSyncStatus(settings: Record<string, string>, env: NotionEnv) {
   return {
-    configured: Boolean((env.NOTION_TOKEN || "").trim()),
-    dataSourceId: getNotionDataSourceId(env, settings),
+    configured: Boolean(getNotionToken(env, settings)),
+    dataSourceId: getNotionDataSourceIds(env, settings).join(", "),
     lastRunAt: settings.notion_sync_last_run_at || "",
     lastStatus: settings.notion_sync_last_status || "never",
     lastError: settings.notion_sync_last_error || "",
@@ -137,8 +167,8 @@ export async function rememberDeletedNotionSlugs(db: IDatabase, slugs: string[])
 export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncResult> {
   const startedAt = new Date().toISOString();
   const startedMs = Date.now();
-  const token = (options.env.NOTION_TOKEN || "").trim();
-  const dataSourceId = getNotionDataSourceId(options.env, options.settings);
+  const token = getNotionToken(options.env, options.settings);
+  const dataSourceIds = getNotionDataSourceIds(options.env, options.settings);
 
   if (!token) {
     const result = finishResult(startedAt, startedMs, {
@@ -156,7 +186,7 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
     return result;
   }
 
-  if (!dataSourceId) {
+  if (dataSourceIds.length === 0) {
     const result = finishResult(startedAt, startedMs, {
       success: false,
       created: 0,
@@ -178,11 +208,17 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   const defaultPageSize = options.repairOnly ? DEFAULT_METADATA_SYNC_PAGE_SIZE : includePageBody ? DEFAULT_BODY_SYNC_PAGE_SIZE : DEFAULT_METADATA_SYNC_PAGE_SIZE;
   const pageSize = clampInt(options.pageSize, 1, 20, defaultPageSize);
   const maxPages = clampInt(options.maxPages, 1, 25, DEFAULT_SYNC_MAX_PAGES);
-  const cursorKey = options.repairOnly ? "notion_repair_next_cursor" : "notion_sync_next_cursor";
-  let cursor = options.resetCursor ? undefined : options.settings[cursorKey] || undefined;
+  const baseCursorKey = options.repairOnly ? "notion_repair_next_cursor" : "notion_sync_next_cursor";
   const deletedNotionSlugs = parseDeletedNotionSlugs(options.settings);
   const maxBodyPages = clampInt(options.maxBodyPages, 1, 5, options.repairOnly ? 1 : 5);
   let bodyPagesProcessed = 0;
+  const existingTitleMap = new Map<string, PostWithTags>();
+  const initialPosts = await options.db.getAllPosts();
+  for (const post of initialPosts) {
+    if (isNotionSyncedSlug(post.slug)) {
+      existingTitleMap.set(normalizeTitle(post.title), post);
+    }
+  }
   const resultBase = {
     success: true,
     created: 0,
@@ -196,94 +232,113 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   };
 
   try {
-    for (let pageIndex = 0; pageIndex < maxPages; pageIndex++) {
-      const pageBatch = await client.queryDataSource(dataSourceId, {
-        startCursor: cursor,
-        pageSize,
-      });
-      resultBase.hasMore = pageBatch.hasMore;
-      resultBase.nextCursor = pageBatch.nextCursor || "";
+    for (let sourceIndex = 0; sourceIndex < dataSourceIds.length; sourceIndex++) {
+      const dataSourceId = dataSourceIds[sourceIndex];
+      const cursorKey = notionCursorKey(baseCursorKey, dataSourceId, sourceIndex);
+      let cursor = options.resetCursor ? undefined : options.settings[cursorKey] || undefined;
+      try {
+        for (let pageIndex = 0; pageIndex < maxPages; pageIndex++) {
+        const pageBatch = await client.queryDataSource(dataSourceId, {
+          startCursor: cursor,
+          pageSize,
+        });
+        resultBase.hasMore = pageBatch.hasMore;
+        resultBase.nextCursor = pageBatch.nextCursor || "";
 
-      for (const page of pageBatch.pages) {
-        try {
-          const pageSlug = notionSlug(page.id);
-          const pageLegacySlug = legacyNotionSlug(page.id);
-          let existing = await options.db.getPostBySlug(pageSlug);
-          if (!existing && pageLegacySlug !== pageSlug) {
-            const legacy = await options.db.getPostBySlug(pageLegacySlug);
-            if (legacy) existing = legacy;
-          }
+        for (const page of pageBatch.pages) {
+          try {
+            const pageSlug = notionSlug(page.id);
+            const pageLegacySlug = legacyNotionSlug(page.id);
+            let existing = await options.db.getPostBySlug(pageSlug);
+            if (!existing && pageLegacySlug !== pageSlug) {
+              const legacy = await options.db.getPostBySlug(pageLegacySlug);
+              if (legacy) existing = legacy;
+            }
 
-          if (options.repairOnly) {
-            resultBase.processed++;
-            if (!existing || !isLinkShellContent(existing.content) || bodyPagesProcessed >= maxBodyPages) {
+            if (options.repairOnly) {
+              resultBase.processed++;
+              if (!existing || !isLinkShellContent(existing.content) || bodyPagesProcessed >= maxBodyPages) {
+                resultBase.skipped++;
+                continue;
+              }
+              bodyPagesProcessed++;
+            }
+
+            const post = await notionPageToPost(client, page, {
+              includePageBody,
+            });
+            if (!options.repairOnly) resultBase.processed++;
+            if (!post.title) {
               resultBase.skipped++;
               continue;
             }
-            bodyPagesProcessed++;
-          }
 
-          const post = await notionPageToPost(client, page, {
-            includePageBody,
-          });
-          if (!options.repairOnly) resultBase.processed++;
-          if (!post.title) {
-            resultBase.skipped++;
-            continue;
-          }
+            existing = await options.db.getPostBySlug(post.slug);
+            if (!existing && post.legacySlug !== post.slug) {
+              const legacy = await options.db.getPostBySlug(post.legacySlug);
+              if (legacy?.title === post.title) existing = legacy;
+            }
+            if (!existing && sourceIndex > 0) {
+              existing = existingTitleMap.get(normalizeTitle(post.title)) || null;
+            }
+            if (!existing && deletedNotionSlugs.has(post.slug)) {
+              resultBase.skipped++;
+              continue;
+            }
+            if (!existing && deletedNotionSlugs.has(post.legacySlug)) {
+              resultBase.skipped++;
+              continue;
+            }
 
-          existing = await options.db.getPostBySlug(post.slug);
-          if (!existing && post.legacySlug !== post.slug) {
-            const legacy = await options.db.getPostBySlug(post.legacySlug);
-            if (legacy?.title === post.title) existing = legacy;
+            post.content = await options.rewriteImages(post.content);
+            if (existing) {
+              await options.db.updatePost(existing.slug, {
+                title: post.title,
+                content: post.content,
+                excerpt: post.excerpt,
+                tags: post.tags,
+                category: post.category,
+                coverImage: extractFirstImage(post.content) || existing.coverImage || "",
+              });
+              resultBase.updated++;
+              existingTitleMap.set(normalizeTitle(post.title), { ...existing, title: post.title, content: post.content, excerpt: post.excerpt, category: post.category, tags: post.tags });
+            } else {
+              const created = await options.db.createPost({
+                slug: post.slug,
+                title: post.title,
+                content: post.content,
+                excerpt: post.excerpt,
+                tags: post.tags,
+                coverImage: extractFirstImage(post.content) || "",
+                coverColor: "from-cyan-500/20 to-blue-600/20",
+                published: false,
+                listed: true,
+                pinned: false,
+                publishAt: null,
+                category: post.category,
+                createdAt: post.createdAt,
+                updatedAt: page.last_edited_time || new Date().toISOString(),
+              });
+              existingTitleMap.set(normalizeTitle(post.title), { ...created, tags: post.tags });
+              resultBase.created++;
+            }
+          } catch (error) {
+            resultBase.failed++;
+            resultBase.errors.push(`${page.id}: ${errorToMessage(error)}`);
           }
-          if (!existing && deletedNotionSlugs.has(post.slug)) {
-            resultBase.skipped++;
-            continue;
-          }
-          if (!existing && deletedNotionSlugs.has(post.legacySlug)) {
-            resultBase.skipped++;
-            continue;
-          }
-
-          post.content = await options.rewriteImages(post.content);
-          if (existing) {
-            await options.db.updatePost(existing.slug, {
-              title: post.title,
-              content: post.content,
-              excerpt: post.excerpt,
-              tags: post.tags,
-              category: post.category,
-              coverImage: extractFirstImage(post.content) || existing.coverImage || "",
-            });
-            resultBase.updated++;
-          } else {
-            await options.db.createPost({
-              slug: post.slug,
-              title: post.title,
-              content: post.content,
-              excerpt: post.excerpt,
-              tags: post.tags,
-              coverImage: extractFirstImage(post.content) || "",
-              coverColor: "from-cyan-500/20 to-blue-600/20",
-              published: false,
-              listed: true,
-              pinned: false,
-              publishAt: null,
-              category: post.category,
-              createdAt: post.createdAt,
-              updatedAt: page.last_edited_time || new Date().toISOString(),
-            });
-            resultBase.created++;
-          }
-        } catch (error) {
-          resultBase.failed++;
-          resultBase.errors.push(`${page.id}: ${errorToMessage(error)}`);
         }
-      }
 
-      if (!pageBatch.hasMore || !pageBatch.nextCursor || pageBatch.pages.length === 0) break;
-      cursor = pageBatch.nextCursor;
+        await options.db.saveSettings({
+          [cursorKey]: pageBatch.nextCursor || "",
+        });
+        if (!pageBatch.hasMore || !pageBatch.nextCursor || pageBatch.pages.length === 0) break;
+        cursor = pageBatch.nextCursor;
+        }
+      } catch (error) {
+        resultBase.success = false;
+        resultBase.failed++;
+        resultBase.errors.push(`${dataSourceId}: ${errorToMessage(error)}`);
+      }
     }
   } catch (error) {
     resultBase.success = false;
@@ -292,7 +347,7 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   }
 
   const result = finishResult(startedAt, startedMs, resultBase);
-  await saveSyncStatus(options.db, result, cursorKey, options.repairOnly);
+  await saveSyncStatus(options.db, result, baseCursorKey, options.repairOnly);
   return result;
 }
 
@@ -318,15 +373,30 @@ function clampInt(value: number | undefined, min: number, max: number, fallback:
   return Math.max(min, Math.min(max, Math.floor(value as number)));
 }
 
+function firstProperty(properties: Record<string, NotionProperty>, names: string[]): NotionProperty | undefined {
+  for (const name of names) {
+    const property = properties[name];
+    if (property) return property;
+  }
+  return undefined;
+}
+
 async function notionPageToPost(client: NotionClient, page: NotionPage, options: { includePageBody: boolean }): Promise<NotionSyncPost> {
   const properties = page.properties || {};
-  const title = truncate(getTitle(properties["标题"]) || "未命名文章", 160);
-  const excerpt = truncate(getRichText(properties["摘要"]), 300);
-  const sourceUrl = properties["原文地址"]?.url || "";
-  const createdAt = properties["发布日期"]?.date?.start || properties["创建时间"]?.date?.start || page.created_time || new Date().toISOString();
-  const authorTags = (properties["作者"]?.multi_select || [])
-    .map((item) => item.name?.trim())
-    .filter((name): name is string => Boolean(name));
+  const title = truncate(getTitle(firstProperty(properties, ["标题", "Name"])) || "未命名文章", 160);
+  const excerpt = truncate(getRichText(firstProperty(properties, ["摘要", "Excerpt"])), 300);
+  const sourceUrl = firstProperty(properties, ["原文地址", "URL"])?.url || "";
+  const createdAt = firstProperty(properties, ["发布日期", "Created", "创建时间"])?.date?.start || page.created_time || new Date().toISOString();
+  const authorText = getRichText(firstProperty(properties, ["Author"])).trim();
+  const authorTags = [
+    ...((firstProperty(properties, ["作者"])?.multi_select || [])
+      .map((item) => item.name?.trim())
+      .filter((name): name is string => Boolean(name))),
+    ...(authorText ? [authorText] : []),
+    ...((firstProperty(properties, ["Tags"])?.multi_select || [])
+      .map((item) => item.name?.trim())
+      .filter((name): name is string => Boolean(name))),
+  ];
   const blocks = options.includePageBody ? await client.listBlockChildren(page.id) : [];
   const markdown = blocks.length > 0 ? await blocksToMarkdown(client, blocks, 0) : "";
   const externalText = !markdown.trim() && sourceUrl ? await fetchExternalReadableText(sourceUrl) : "";

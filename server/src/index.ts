@@ -5,6 +5,7 @@
    ────────────────────────────────────────────── */
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { cors } from "hono/cors";
 import { sign, verify } from "hono/jwt";
 import { createDatabase, createObjectStorage } from "./storage/factory";
@@ -49,7 +50,7 @@ app.use("*", async (c, next) => {
 // 注入存储实例到上下文（每次请求创建 — 在边缘环境中是无状态的）
 app.use("*", async (c, next) => {
   c.set("db", await createDatabase(c.env as unknown as Record<string, unknown>));
-  c.set("storage", createObjectStorage(c.env as unknown as Record<string, unknown>));
+  c.set("storage", await createObjectStorage(c.env as unknown as Record<string, unknown>));
   await next();
 });
 
@@ -1152,7 +1153,7 @@ app.get("/api/admin/archive-sync/status", async (c) => {
 
 app.post("/api/admin/archive-sync/run", async (c) => {
   const db = c.get("db");
-  let body: { maxPages?: number; pageNumber?: number; resetCursor?: boolean; advanceCursor?: boolean; source?: "shudong" | "mearchive" } = {};
+  let body: { maxPages?: number; pageNumber?: number; resetCursor?: boolean; advanceCursor?: boolean; source?: "vsdo" } = {};
   try {
     body = await c.req.json();
   } catch {
@@ -1167,7 +1168,7 @@ app.post("/api/admin/archive-sync/run", async (c) => {
     pageNumber,
     resetCursor: body.resetCursor === true,
     advanceCursor: body.advanceCursor === true,
-    source: body.source === "shudong" || body.source === "mearchive" ? body.source : undefined,
+    source: body.source === "vsdo" ? body.source : undefined,
   });
   const failed = result.reduce((sum, item) => sum + item.failed, 0);
   const changed = result.reduce((sum, item) => sum + item.created + item.updated, 0);
@@ -1184,46 +1185,12 @@ app.get("/api/admin/backup/export", async (c) => {
   return c.json(await db.exportAll());
 });
 
-app.post("/api/admin/backup/r2", async (c) => {
-  const db = c.get("db");
-  const storage = c.get("storage");
-  const data = await db.exportAll();
-  const json = JSON.stringify(data, null, 2);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const key = `backups/timeamber-backup-${timestamp}.json`;
-  await storage.put(key, json, { contentType: "application/json", customMetadata: { type: "backup", version: "1.0" } });
-  return c.json({ success: true, key, size: json.length, timestamp: data.exportedAt });
-});
+const r2BackupRetired = (c: Context) => c.json({ error: "R2 备份已下线，请使用本地下载或 WebDAV。" }, 410);
 
-app.get("/api/admin/backup/r2-list", async (c) => {
-  const storage = c.get("storage");
-  const items = await storage.list("backups/", 50);
-  const backups = items.map((obj) => ({ key: obj.key, size: obj.size, uploaded: obj.uploaded, name: obj.key.replace("backups/", "") }));
-  backups.sort((a, b) => b.uploaded.localeCompare(a.uploaded));
-  return c.json(backups);
-});
-
-app.post("/api/admin/backup/r2-delete", async (c) => {
-  const { name } = await c.req.json<{ name: string }>();
-  if (!name) return c.json({ error: "缺少文件名" }, 400);
-  await c.get("storage").delete(`backups/${name}`);
-  return c.json({ success: true });
-});
-
-app.post("/api/admin/backup/r2-preview", async (c) => {
-  const { name } = await c.req.json<{ name: string }>();
-  const object = await c.get("storage").get(`backups/${name}`);
-  if (!object) return c.json({ error: "备份文件不存在" }, 404);
-  const reader = object.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let done = false;
-  while (!done) { const r = await reader.read(); if (r.value) chunks.push(r.value); done = r.done; }
-  const text = new TextDecoder().decode(new Uint8Array(chunks.flatMap((c) => [...c])));
-  try {
-    const data = JSON.parse(text);
-    return c.json({ version: data.version || "unknown", exportedAt: data.exportedAt || "unknown", postCount: data.posts?.length || 0, tagCount: data.tags?.length || 0, postTitles: (data.posts || []).slice(0, 10).map((p: any) => ({ title: p.title, slug: p.slug })), settingsKeys: Object.keys(data.settings || {}) });
-  } catch { return c.json({ error: "备份文件格式无效" }, 400); }
-});
+app.post("/api/admin/backup/r2", r2BackupRetired);
+app.get("/api/admin/backup/r2-list", r2BackupRetired);
+app.post("/api/admin/backup/r2-delete", r2BackupRetired);
+app.post("/api/admin/backup/r2-preview", r2BackupRetired);
 
 app.post("/api/admin/backup/restore", async (c) => {
   const body = await c.req.json();
@@ -1234,25 +1201,7 @@ app.post("/api/admin/backup/restore", async (c) => {
   } catch (err) { return c.json({ error: `恢复失败: ${err instanceof Error ? err.message : "未知错误"}` }, 500); }
 });
 
-app.post("/api/admin/backup/r2-restore", async (c) => {
-  const { name, mode } = await c.req.json<{ name: string; mode?: "merge" | "overwrite" }>();
-  if (!name) return c.json({ error: "缺少备份文件名" }, 400);
-  const storage = c.get("storage"); const db = c.get("db");
-  const object = await storage.get(`backups/${name}`);
-  if (!object) return c.json({ error: "备份文件不存在" }, 404);
-  const reader = object.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let done = false;
-  while (!done) { const r = await reader.read(); if (r.value) chunks.push(r.value); done = r.done; }
-  const text = new TextDecoder().decode(new Uint8Array(chunks.flatMap((c) => [...c])));
-  let data: any;
-  try { data = JSON.parse(text); } catch { return c.json({ error: "备份文件格式无效" }, 400); }
-  if (!data.posts && !data.tags && !data.settings) return c.json({ error: "备份文件缺少有效数据字段" }, 400);
-  try {
-    const imported = await db.importAll({ posts: data.posts, tags: data.tags, settings: data.settings, mode: mode || "merge" });
-    return c.json({ success: true, imported, source: name, mode: mode || "merge" });
-  } catch (err) { return c.json({ error: `恢复失败: ${err instanceof Error ? err.message : "未知错误"}` }, 500); }
-});
+app.post("/api/admin/backup/r2-restore", r2BackupRetired);
 
 // WebDAV 备份辅助函数
 function isBlockedHost(hostname: string): boolean {

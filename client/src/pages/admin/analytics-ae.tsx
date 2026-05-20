@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { AEAnalyticsData } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { fetchAEAnalytics, type AEAnalyticsData, type AEAnalyticsError } from "@/lib/api";
 import { Activity, CalendarClock, Clock, ExternalLink, Gauge, Globe, Hourglass, Languages, LogIn, LogOut, Monitor, MonitorSmartphone, Repeat, TrendingDown, TrendingUp, UserPlus, Users } from "lucide-react";
 
 function formatDuration(ms: number): string {
@@ -12,6 +12,62 @@ function formatDuration(ms: number): string {
 }
 
 type ListItem = { name: string; count: number };
+
+export function AnalyticsAEView({ days }: { days: number }) {
+  const [data, setData] = useState<AEAnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<AEAnalyticsError | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchAEAnalytics(days)
+      .then((nextData) => {
+        setData(nextData);
+        setError(null);
+      })
+      .catch((nextError: AEAnalyticsError) => {
+        setData(null);
+        setError(nextError);
+      })
+      .finally(() => setLoading(false));
+  }, [days]);
+
+  if (loading) {
+    return <div className="text-center text-muted-foreground/40 py-[60px]">加载中...</div>;
+  }
+
+  if (error) {
+    if (error.status === 501) {
+      return (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-[20px] py-[28px] text-center">
+          <div className="text-[14px] text-amber-300 mb-[6px]">AE 增强分析仅支持 Cloudflare 部署</div>
+          <div className="text-[12px] text-muted-foreground/60">当前后端：{error.message}</div>
+        </div>
+      );
+    }
+    if (error.status === 503) {
+      return (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-[20px] py-[28px] text-center">
+          <div className="text-[14px] text-amber-300 mb-[6px]">AE 配置缺失</div>
+          <div className="text-[12px] text-muted-foreground/60">
+            请注入 CLOUDFLARE_ACCOUNT_ID 与 CLOUDFLARE_API_TOKEN。
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-[16px] py-[24px] text-center text-[13px] text-red-400">
+        {error.message}
+      </div>
+    );
+  }
+
+  if (!data) {
+    return <div className="text-center text-muted-foreground/40 py-[60px]">暂无数据</div>;
+  }
+
+  return <AnalyticsAEAdvancedView data={data} />;
+}
 
 // PV/UV 双系列趋势图：折线 + 数据点 + 网格线
 function DualTrendChart({ data, maxValue }: { data: { date: string; count: number; uv: number }[]; maxValue: number }) {

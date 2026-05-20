@@ -88,7 +88,7 @@ export async function createDatabase(env: Record<string, unknown>): Promise<IDat
  *  - 阿里云 OSS:   S3_ENDPOINT=https://oss-cn-hangzhou.aliyuncs.com
  *  - 腾讯云 COS:   S3_ENDPOINT=https://cos.ap-guangzhou.myqcloud.com
  */
-export function createObjectStorage(env: Record<string, unknown>): IObjectStorage {
+export async function createObjectStorage(env: Record<string, unknown>): Promise<IObjectStorage> {
   const provider = (env.STORAGE_PROVIDER as string) || "r2";
 
   switch (provider) {
@@ -116,6 +116,15 @@ export function createObjectStorage(env: Record<string, unknown>): IObjectStorag
         region: (env.S3_REGION as string) || "auto",
         publicUrl: env.S3_PUBLIC_URL as string | undefined,
       });
+    }
+
+    case "fs": {
+      const rootDir = env.FS_STORAGE_DIR as string;
+      if (!rootDir) {
+        throw new Error("File storage configuration is incomplete. Set FS_STORAGE_DIR.");
+      }
+      const { FileSystemAdapter } = await import("./object/fs");
+      return new FileSystemAdapter(rootDir);
     }
 
     default:

@@ -126,6 +126,7 @@ export type UpdatePostInput = {
   seriesSlug?: string | null;
   seriesOrder?: number;
   category?: string;
+  createdAt?: string;
 };
 
 export type UpsertPageInput = {

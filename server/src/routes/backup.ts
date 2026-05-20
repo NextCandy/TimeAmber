@@ -1,23 +1,15 @@
 /* ── 数据备份与恢复路由 (R2 / WebDAV) ──────── */
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import type { Bindings, Variables } from "../types";
 
 const backup = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // ── 通用辅助 ──────────────────────────────
 
-async function readStreamToText(body: ReadableStream): Promise<string> {
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let done = false;
-  while (!done) {
-    const result = await reader.read();
-    if (result.value) chunks.push(result.value);
-    done = result.done;
-  }
-  return new TextDecoder().decode(new Uint8Array(chunks.flatMap((c) => [...c])));
-}
+const r2BackupRetired = (c: Context) =>
+  c.json({ error: "R2 备份已下线，请使用本地下载或 WebDAV。" }, 410);
 
 // ── R2 备份 ───────────────────────────────
 
@@ -27,55 +19,13 @@ backup.get("/export", async (c) => {
   return c.json(data);
 });
 
-backup.post("/r2", async (c) => {
-  const db = c.get("db");
-  const storage = c.get("storage");
-  const data = await db.exportAll();
-  const json = JSON.stringify(data, null, 2);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const key = `backups/timeamber-backup-${timestamp}.json`;
-  await storage.put(key, json, { contentType: "application/json", customMetadata: { type: "backup", version: "1.0" } });
-  return c.json({ success: true, key, size: json.length, timestamp: data.exportedAt });
-});
+backup.post("/r2", r2BackupRetired);
 
-backup.get("/r2-list", async (c) => {
-  const storage = c.get("storage");
-  const items = await storage.list("backups/", 50);
-  const backups = items
-    .map((obj) => ({ key: obj.key, size: obj.size, uploaded: obj.uploaded, name: obj.key.replace("backups/", "") }))
-    .sort((a, b) => b.uploaded.localeCompare(a.uploaded));
-  return c.json(backups);
-});
+backup.get("/r2-list", r2BackupRetired);
 
-backup.post("/r2-delete", async (c) => {
-  const { name } = await c.req.json<{ name: string }>();
-  if (!name) return c.json({ error: "缺少文件名" }, 400);
-  const storage = c.get("storage");
-  await storage.delete(`backups/${name}`);
-  return c.json({ success: true });
-});
+backup.post("/r2-delete", r2BackupRetired);
 
-backup.post("/r2-preview", async (c) => {
-  const { name } = await c.req.json<{ name: string }>();
-  const storage = c.get("storage");
-  const object = await storage.get(`backups/${name}`);
-  if (!object) return c.json({ error: "备份文件不存在" }, 404);
-
-  const text = await readStreamToText(object.body);
-  try {
-    const data = JSON.parse(text);
-    return c.json({
-      version: data.version || "unknown",
-      exportedAt: data.exportedAt || "unknown",
-      postCount: data.posts?.length || 0,
-      tagCount: data.tags?.length || 0,
-      postTitles: (data.posts || []).slice(0, 10).map((p: { title: string; slug: string }) => ({ title: p.title, slug: p.slug })),
-      settingsKeys: Object.keys(data.settings || {}),
-    });
-  } catch {
-    return c.json({ error: "备份文件格式无效" }, 400);
-  }
-});
+backup.post("/r2-preview", r2BackupRetired);
 
 backup.post("/restore", async (c) => {
   const body = await c.req.json();
@@ -88,31 +38,7 @@ backup.post("/restore", async (c) => {
   }
 });
 
-backup.post("/r2-restore", async (c) => {
-  const { name, mode } = await c.req.json<{ name: string; mode?: "merge" | "overwrite" }>();
-  if (!name) return c.json({ error: "缺少备份文件名" }, 400);
-  const storage = c.get("storage");
-  const db = c.get("db");
-  const object = await storage.get(`backups/${name}`);
-  if (!object) return c.json({ error: "备份文件不存在" }, 404);
-
-  const text = await readStreamToText(object.body);
-  let data: { posts?: unknown[]; tags?: unknown[]; settings?: Record<string, string> };
-  try { data = JSON.parse(text); } catch { return c.json({ error: "备份文件格式无效，无法解析 JSON" }, 400); }
-  if (!data.posts && !data.tags && !data.settings) return c.json({ error: "备份文件缺少有效数据字段（posts / tags / settings）" }, 400);
-
-  try {
-    const imported = await db.importAll({
-      posts: data.posts as Parameters<typeof db.importAll>[0]["posts"],
-      tags: data.tags as Parameters<typeof db.importAll>[0]["tags"],
-      settings: data.settings,
-      mode: mode || "merge",
-    });
-    return c.json({ success: true, imported, source: name, mode: mode || "merge" });
-  } catch (err) {
-    return c.json({ error: `恢复失败: ${err instanceof Error ? err.message : "未知错误"}` }, 500);
-  }
-});
+backup.post("/r2-restore", r2BackupRetired);
 
 // ── WebDAV 备份 ───────────────────────────
 

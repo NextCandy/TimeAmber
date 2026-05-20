@@ -4,9 +4,6 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 
-const BRAND_ASSET_LIGHT_URL = "https://i.see.you/2026/04/28/jN4b/TimeAmberPNG.png";
-const BRAND_ASSET_DARK_URL = "https://i.see.you/2026/04/28/o9fC/TimeAmberPNG-Dark.png";
-
 export default defineConfig({
   plugins: [
     react(),
@@ -21,13 +18,13 @@ export default defineConfig({
         background_color: "#0a0a0a",
         icons: [
           {
-            src: BRAND_ASSET_LIGHT_URL,
-            sizes: "any",
+            src: "/icon-192.png",
+            sizes: "192x192",
             type: "image/png"
           },
           {
-            src: BRAND_ASSET_DARK_URL,
-            sizes: "any",
+            src: "/icon-512.png",
+            sizes: "512x512",
             type: "image/png"
           }
         ]

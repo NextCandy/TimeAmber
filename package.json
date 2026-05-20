@@ -33,11 +33,22 @@
     "concurrently": "^9.0.0"
   },
   "optionalDependencies": {
+    "@esbuild/linux-arm64": "^0.25.12",
     "@esbuild/linux-x64": "0.25.12",
+    "@esbuild/win32-x64": "0.25.12",
+    "@libsql/linux-arm64-gnu": "^0.5.29",
+    "@rollup/rollup-linux-arm64-gnu": "^4.60.2",
     "@rollup/rollup-linux-x64-gnu": "4.60.2",
+    "@rollup/rollup-win32-x64-msvc": "4.60.2",
+    "@swc/core-linux-arm64-gnu": "^1.15.26",
     "@swc/core-linux-x64-gnu": "1.15.26",
+    "@swc/core-win32-x64-msvc": "1.15.26",
+    "@tailwindcss/oxide-linux-arm64-gnu": "^4.2.2",
     "@tailwindcss/oxide-linux-x64-gnu": "4.2.2",
-    "lightningcss-linux-x64-gnu": "1.32.0"
+    "@tailwindcss/oxide-win32-x64-msvc": "4.2.2",
+    "lightningcss-linux-arm64-gnu": "^1.32.0",
+    "lightningcss-linux-x64-gnu": "1.32.0",
+    "lightningcss-win32-x64-msvc": "1.32.0"
   },
   "overrides": {
     "@babel/plugin-transform-modules-systemjs": "7.29.4",

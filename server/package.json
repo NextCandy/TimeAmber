@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --port 8787",
+    "build:node": "esbuild src/node.ts --bundle --platform=node --format=esm --target=node24 --external:@libsql/client --outfile=dist/node.js",
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply timeamber-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply timeamber-db --remote",
@@ -17,8 +18,9 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
-    "aws4fetch": "^1.0.20",
+    "@hono/node-server": "^2.0.2",
     "@libsql/client": "^0.17.3",
+    "aws4fetch": "^1.0.20",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.18",
     "postgres": "^3.4.9"
@@ -28,6 +30,7 @@
     "@typescript-eslint/eslint-plugin": "^8.59.0",
     "@typescript-eslint/parser": "^8.58.2",
     "drizzle-kit": "^0.31.10",
+    "esbuild": "^0.25.12",
     "eslint": "^10.2.1",
     "eslint-plugin-security": "^4.0.0",
     "typescript": "^5.7.0",

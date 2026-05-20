@@ -19,11 +19,10 @@ export type Bindings = {
   ANALYTICS_WEBSITE_WHITELIST?: string; // 站点白名单，格式: domain1|domain2 (空=放行所有)
   NOTION_TOKEN?: string;
   NOTION_DATA_SOURCE_ID?: string;
-  SHUDONG_BASE_URL?: string;
-  SHUDONG_TOKEN?: string;
-  MEARCHIVE_BASE_URL?: string;
-  MEARCHIVE_EMAIL?: string;
-  MEARCHIVE_PASSWORD?: string;
+  VS_DO_BASE_URL?: string;
+  VS_DO_TOKEN?: string;
+  VS_DO_EMAIL?: string;
+  VS_DO_PASSWORD?: string;
   ARCHIVE_SYNC_MAX_PAGES?: string;
   ARCHIVE_SYNC_MAX_CONTENT_CHARS?: string;
   NOTION_SYNC_MAX_SUBREQUESTS?: string;

@@ -32,6 +32,7 @@ type Settings = {
   ai_api_key: string;
   ai_model: string;
   ai_base_url: string;
+  notion_token: string;
   notion_data_source_id: string;
 };
 
@@ -51,7 +52,7 @@ type NotionSyncStatus = {
 };
 
 type ArchiveSourceStatus = {
-  id: "shudong" | "mearchive";
+  id: "vsdo";
   label: string;
   configured: boolean;
   nextPage: number;
@@ -95,7 +96,8 @@ const defaultSettings: Settings = {
   ai_api_key: "",
   ai_model: "deepseek-chat",
   ai_base_url: "https://api.deepseek.com",
-  notion_data_source_id: "22837041-b78c-81d8-9670-000b9d50c21b",
+  notion_token: "",
+  notion_data_source_id: "22837041-b78c-81d8-9670-000b9d50c21b,31437041-b78c-8106-abb8-000b5123246d",
 };
 
 type TabId = "general" | "profile" | "social" | "friends" | "images" | "notion" | "ai" | "advanced";
@@ -802,7 +804,7 @@ export function AdminSettings() {
                 <h2 className="text-[16px] font-semibold mb-[4px] flex items-center gap-[6px]">
                   <Database className="h-[15px] w-[15px] text-violet-400" /> 同步中心
                 </h2>
-                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">分开管理 Notion、树洞剪藏和 MeArchive 同步状态。剪藏来源会写入对应来源分类，Notion 仍写入“剪藏”。</p>
+                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">分开管理 Notion 和 vs.do 同步状态。vs.do 连接树莓派中的 web-archive 项目，Notion 仍写入“剪藏”。</p>
 
                 <div className="space-y-[14px]">
                   <SyncSourceCard
@@ -827,8 +829,9 @@ export function AdminSettings() {
                     onSync={() => runNotionSync(false)}
                     onReset={() => runNotionSync(true)}
                   >
-                    <SettingField label="Data Source ID" value={settings.notion_data_source_id} onChange={(v) => updateSetting("notion_data_source_id", v)} placeholder="22837041-b78c-81d8-9670-000b9d50c21b" />
-                    <p className="text-[11px] text-muted-foreground/35">需要配置 Worker secret：NOTION_TOKEN，并把 Notion 数据库分享给对应 Integration。为避免 Worker subrequest 超限，Notion 同步默认不转存正文图片；如确需转存，可保存高级设置 notion_sync_rewrite_images=true。</p>
+                    <SettingField label="Notion API Token" value={settings.notion_token} onChange={(v) => updateSetting("notion_token", v)} placeholder="ntn_..." secret />
+                    <SettingField label="Data Source ID" value={settings.notion_data_source_id} onChange={(v) => updateSetting("notion_data_source_id", v)} placeholder="22837041-b78c-81d8-9670-000b9d50c21b,31437041-b78c-8106-abb8-000b5123246d" />
+                    <p className="text-[11px] text-muted-foreground/35">可用逗号或换行配置多个 Notion Data Source ID，按填写顺序同步；后面的数据源遇到同标题文章会覆盖前面的。保存新的 Notion Integration Secret 后会优先使用后台配置；留空时使用服务器环境变量 NOTION_TOKEN。请把对应 Notion 数据源分享给该 Integration。</p>
                     <div className="flex flex-wrap gap-[8px]">
                       <button
                         type="button"
@@ -854,7 +857,7 @@ export function AdminSettings() {
                     <SyncSourceCard
                       key={source.id}
                       title={source.label}
-                      subtitle={source.id === "shudong" ? "来源：shudong.org，文章分类写入“树洞剪藏”。" : "来源：mearchive.com，文章分类写入“MeArchive”。"}
+                      subtitle="来源：vs.do，连接树莓派中的 web-archive 项目。"
                       configured={source.configured}
                       status={source.lastStatus}
                       lastRunAt={source.lastRunAt}
@@ -969,8 +972,8 @@ export function AdminSettings() {
   );
 }
 
-function SettingField({ label, value, onChange, placeholder, multiline }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; multiline?: boolean;
+function SettingField({ label, value, onChange, placeholder, multiline, secret }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; multiline?: boolean; secret?: boolean;
 }) {
   const inputClass = "w-full rounded-lg border border-border/20 bg-background/30 px-[14px] text-[13px] text-foreground placeholder:text-muted-foreground/20 outline-none focus:border-foreground/30 focus:bg-background/50 transition-all";
 
@@ -980,7 +983,7 @@ function SettingField({ label, value, onChange, placeholder, multiline }: {
       {multiline ? (
         <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={4} className={`${inputClass} py-[10px] resize-y leading-[1.6]`} />
       ) : (
-        <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={`${inputClass} h-[38px]`} />
+        <input type={secret ? "password" : "text"} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={`${inputClass} h-[38px]`} autoComplete={secret ? "off" : undefined} />
       )}
     </div>
   );

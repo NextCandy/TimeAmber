@@ -12,16 +12,16 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="TimeAmber" />
     <meta property="og:locale" content="zh_CN" />
-    <meta property="og:image" content="https://i.see.you/2026/04/28/jN4b/TimeAmberPNG.png" />
+    <meta property="og:image" content="https://timeamber.com/timeamber-icon.png" />
 
     <!-- Twitter Card 默认标签 -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="TimeAmber — 时光成珀，字字如初" />
     <meta name="twitter:description" content="时光琥珀，一个用文字封存瞬间的个人博客。" />
-    <meta name="twitter:image" content="https://i.see.you/2026/04/28/jN4b/TimeAmberPNG.png" />
+    <meta name="twitter:image" content="https://timeamber.com/timeamber-icon.png" />
 
     <title>TimeAmber — 时光成珀，字字如初</title>
-    <link id="dynamic-favicon" rel="icon" type="image/png" href="https://i.see.you/2026/04/28/o9fC/TimeAmberPNG-Dark.png" />
+    <link id="dynamic-favicon" rel="icon" type="image/png" href="/timeamber-icon.png" />
     <link rel="alternate" type="application/rss+xml" title="TimeAmber RSS" href="/rss.xml" />
   </head>
   <body class="min-h-full flex flex-col font-sans bg-background text-foreground">
@@ -37,9 +37,7 @@
         var m = document.querySelector('meta[name="theme-color"]');
         if (m) m.setAttribute('content', d === 'light' ? '#ffffff' : '#0a0a0f');
         var f = document.getElementById('dynamic-favicon');
-        if (f) f.setAttribute('href', d === 'light'
-          ? 'https://i.see.you/2026/04/28/jN4b/TimeAmberPNG.png'
-          : 'https://i.see.you/2026/04/28/o9fC/TimeAmberPNG-Dark.png');
+        if (f) f.setAttribute('href', '/timeamber-icon.png');
       })();
     </script>
     <div id="root" class="min-h-screen flex flex-col"></div>

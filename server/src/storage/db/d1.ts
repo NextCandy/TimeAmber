@@ -563,6 +563,7 @@ export class D1Adapter implements IDatabase {
         ...(data.seriesSlug !== undefined && { seriesSlug: data.seriesSlug }),
         ...(data.category !== undefined && { category: data.category }),
         ...(data.seriesOrder !== undefined && { seriesOrder: data.seriesOrder }),
+        ...(data.createdAt !== undefined && { createdAt: data.createdAt }),
         updatedAt: sql`datetime('now')`,
       })
       .where(eq(posts.id, existing.id))

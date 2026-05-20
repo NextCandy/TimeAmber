@@ -1,0 +1,42 @@
+services:
+  app:
+    build:
+      context: .
+    container_name: timeamber-app
+    restart: unless-stopped
+    env_file:
+      - /opt/timeamber/.env
+    environment:
+      PORT: "8787"
+      STATIC_DIR: /app/client/dist
+      DB_PROVIDER: postgres
+      DATABASE_URL: postgres://timeamber:${POSTGRES_PASSWORD}@postgres:5432/timeamber
+      STORAGE_PROVIDER: fs
+      FS_STORAGE_DIR: /data/storage
+      VS_DO_BASE_URL: http://host.docker.internal:48787
+      AUTO_SCHEMA_MIGRATION: "false"
+    ports:
+      - "49287:8787"
+    volumes:
+      - /opt/timeamber/storage:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: timeamber-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: timeamber
+      POSTGRES_USER: timeamber
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - /opt/timeamber/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timeamber -d timeamber"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

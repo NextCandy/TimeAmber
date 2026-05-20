@@ -1,11 +1,10 @@
 import type { IDatabase } from "./storage/interfaces";
 
 type ArchiveSyncEnv = {
-  SHUDONG_BASE_URL?: string;
-  SHUDONG_TOKEN?: string;
-  MEARCHIVE_BASE_URL?: string;
-  MEARCHIVE_EMAIL?: string;
-  MEARCHIVE_PASSWORD?: string;
+  VS_DO_BASE_URL?: string;
+  VS_DO_TOKEN?: string;
+  VS_DO_EMAIL?: string;
+  VS_DO_PASSWORD?: string;
   ARCHIVE_SYNC_MAX_PAGES?: string;
   ARCHIVE_SYNC_MAX_CONTENT_CHARS?: string;
 };
@@ -25,12 +24,17 @@ type ArchivePageBatch = {
 };
 
 type ArchiveSource = {
-  id: "shudong" | "mearchive";
+  id: "vsdo";
   label: string;
   baseUrl: string;
   token?: string;
   email?: string;
   password?: string;
+};
+
+type ArchiveContentSnapshot = {
+  readableText: string;
+  originalPublishedAt: string | null;
 };
 
 export type ArchiveSyncResult = {
@@ -96,17 +100,44 @@ function parseArchiveDate(value: string | undefined): string {
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }
 
-function htmlToReadableText(html: string, maxChars: number): string {
-  const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html;
-  const withoutNoise = body
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
-    .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
-    .replace(/<(h[1-6]|p|li|blockquote|pre|tr|div|section|article|br)\b[^>]*>/gi, "\n")
-    .replace(/<[^>]+>/g, " ");
+function parseSourcePublishedDate(value: string | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const numeric = Number(trimmed);
+  const date = Number.isFinite(numeric)
+    ? new Date(trimmed.length <= 10 ? numeric * 1000 : numeric)
+    : new Date(trimmed);
+  if (Number.isNaN(date.getTime())) return null;
+  const now = Date.now();
+  if (date.getTime() < 631152000000 || date.getTime() > now + 86400000) return null;
+  return date.toISOString();
+}
 
-  return withoutNoise
+function extractOriginalPublishedAt(html: string): string | null {
+  const publishedPatterns = [
+    /<meta[^>]+(?:property|name)=["'](?:article:published_time|datePublished|pubdate|publishdate|publishDate)["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:article:published_time|datePublished|pubdate|publishdate|publishDate)["']/i,
+    /"datePublished"\s*:\s*"([^"]+)"/i,
+    /"dateCreated"\s*:\s*"([^"]+)"/i,
+    /<time[^>]+datetime=["']([^"']+)["']/i,
+  ];
+
+  for (const pattern of publishedPatterns) {
+    const parsed = parseSourcePublishedDate(html.match(pattern)?.[1]);
+    if (parsed) return parsed;
+  }
+
+  const timestamps = Array.from(html.matchAll(/data-time=["']?(\d{10,13})["']?/gi))
+    .map((match) => parseSourcePublishedDate(match[1]))
+    .filter((date): date is string => Boolean(date))
+    .sort();
+
+  return timestamps[0] || null;
+}
+
+function decodeHtmlEntities(value: string): string {
+  return value
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
@@ -114,12 +145,70 @@ function htmlToReadableText(html: string, maxChars: number): string {
     .replace(/&quot;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
     .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)));
+}
+
+function cleanHtmlFragment(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
+    .replace(/<button[\s\S]*?<\/button>/gi, " ")
+    .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
+    .replace(/<header[\s\S]*?<\/header>/gi, " ")
+    .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
+    .replace(/<aside[\s\S]*?<\/aside>/gi, " ")
+    .replace(/<form[\s\S]*?<\/form>/gi, " ");
+}
+
+function fragmentToReadableText(html: string): string {
+  return decodeHtmlEntities(cleanHtmlFragment(html)
+    .replace(/<(h[1-6]|p|li|blockquote|pre|tr|div|section|article|br)\b[^>]*>/gi, "\n")
+    .replace(/<[^>]+>/g, " "))
     .replace(/[ \t]{2,}/g, " ")
     .replace(/\n[ \t]+/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
-    .trim()
-    .slice(0, maxChars);
+    .trim();
+}
+
+function extractClassBlocks(html: string, className: string, endClassName?: string): string[] {
+  const blocks: string[] = [];
+  const classPattern = `(?:\"[^\"]*\\b${className}\\b[^\"]*\"|'[^']*\\b${className}\\b[^']*'|[^\\s>]*\\b${className}\\b[^\\s>]*)`;
+  const openRe = new RegExp(`<([a-z][\\w:-]*)\\b[^>]*class=${classPattern}[^>]*>`, "gi");
+  let match: RegExpExecArray | null;
+  while ((match = openRe.exec(html))) {
+    const start = match.index + match[0].length;
+    let end = -1;
+    if (endClassName) {
+      const endRe = new RegExp(`<[a-z][\\w:-]*\\b[^>]*class=(?:\"[^\"]*\\b${endClassName}\\b[^\"]*\"|'[^']*\\b${endClassName}\\b[^']*'|[^\\s>]*\\b${endClassName}\\b[^\\s>]*)`, "i");
+      const endMatch = endRe.exec(html.slice(start));
+      if (endMatch) end = start + endMatch.index;
+    }
+    if (end < 0) {
+      const nextOpen = openRe.exec(html);
+      if (nextOpen) {
+        end = nextOpen.index;
+        openRe.lastIndex = nextOpen.index;
+      }
+    }
+    if (end > start) blocks.push(html.slice(start, end));
+  }
+  return blocks;
+}
+
+function htmlToReadableText(html: string, maxChars: number): string {
+  const discoursePosts = extractClassBlocks(html, "cooked", "cooked-selection-barrier")
+    .map(fragmentToReadableText)
+    .filter((text) => text.length > 30);
+  if (discoursePosts.length > 0) {
+    return discoursePosts.join("\n\n---\n\n").slice(0, maxChars).trim();
+  }
+
+  const articleMatch = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
+  const mainMatch = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
+  const body = articleMatch?.[1] || mainMatch?.[1] || html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html;
+  return fragmentToReadableText(body).slice(0, maxChars).trim();
 }
 
 function buildContent(source: ArchiveSource, page: ArchivePage, readableText: string): string {
@@ -127,6 +216,7 @@ function buildContent(source: ArchiveSource, page: ArchivePage, readableText: st
   const excerpt = page.pageDesc?.trim();
   const body = readableText.trim() || excerpt || "源站剪藏正文暂不可读，请通过下方链接查看原始页面或源站快照。";
   return [
+    `<!-- timeamber-archive-extractor:v2 source:${source.id} id:${page.id} -->`,
     `> 同步来源：${source.label}`,
     `> 源站剪藏 ID：${page.id}`,
     `> 原文地址：${page.pageUrl}`,
@@ -181,31 +271,28 @@ async function queryPages(source: ArchiveSource, token: string, pageNumber: numb
   };
 }
 
-async function fetchReadableContent(source: ArchiveSource, token: string, pageId: number, maxChars: number): Promise<string> {
+async function fetchReadableContent(source: ArchiveSource, token: string, pageId: number, maxChars: number): Promise<ArchiveContentSnapshot> {
   const res = await fetch(`${source.baseUrl}/api/pages/content?pageId=${pageId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(`${source.label} content ${pageId} failed with ${res.status}`);
-  return htmlToReadableText(await res.text(), maxChars);
+  const html = await res.text();
+  return {
+    readableText: htmlToReadableText(html, maxChars),
+    originalPublishedAt: extractOriginalPublishedAt(html),
+  };
 }
 
 function getSources(env: ArchiveSyncEnv): ArchiveSource[] {
   const sources: ArchiveSource[] = [];
-  if (env.SHUDONG_TOKEN) {
+  if (env.VS_DO_TOKEN || (env.VS_DO_EMAIL && env.VS_DO_PASSWORD)) {
     sources.push({
-      id: "shudong",
-      label: "树洞剪藏",
-      baseUrl: trimSlash(env.SHUDONG_BASE_URL || "https://shudong.org"),
-      token: env.SHUDONG_TOKEN,
-    });
-  }
-  if (env.MEARCHIVE_EMAIL && env.MEARCHIVE_PASSWORD) {
-    sources.push({
-      id: "mearchive",
-      label: "MeArchive",
-      baseUrl: trimSlash(env.MEARCHIVE_BASE_URL || "https://mearchive.com"),
-      email: env.MEARCHIVE_EMAIL,
-      password: env.MEARCHIVE_PASSWORD,
+      id: "vsdo",
+      label: "vs.do",
+      baseUrl: trimSlash(env.VS_DO_BASE_URL || "https://vs.do"),
+      token: env.VS_DO_TOKEN,
+      email: env.VS_DO_EMAIL,
+      password: env.VS_DO_PASSWORD,
     });
   }
   return sources;
@@ -214,22 +301,17 @@ function getSources(env: ArchiveSyncEnv): ArchiveSource[] {
 export function getArchiveSyncStatus(settings: Record<string, string>, env: ArchiveSyncEnv): ArchiveSyncStatus {
   const knownSources: ArchiveSource[] = [
     {
-      id: "shudong",
-      label: "树洞剪藏",
-      baseUrl: trimSlash(env.SHUDONG_BASE_URL || "https://shudong.org"),
-      token: env.SHUDONG_TOKEN,
-    },
-    {
-      id: "mearchive",
-      label: "MeArchive",
-      baseUrl: trimSlash(env.MEARCHIVE_BASE_URL || "https://mearchive.com"),
-      email: env.MEARCHIVE_EMAIL,
-      password: env.MEARCHIVE_PASSWORD,
+      id: "vsdo",
+      label: "vs.do",
+      baseUrl: trimSlash(env.VS_DO_BASE_URL || "https://vs.do"),
+      token: env.VS_DO_TOKEN,
+      email: env.VS_DO_EMAIL,
+      password: env.VS_DO_PASSWORD,
     },
   ];
   const sources = knownSources.map((source) => {
     const prefix = `archive_sync_${source.id}`;
-    const configured = source.id === "shudong" ? Boolean(source.token) : Boolean(source.email && source.password);
+    const configured = Boolean(source.token || (source.email && source.password));
     return {
       id: source.id,
       label: source.label,
@@ -298,14 +380,22 @@ export async function syncArchiveSources(db: IDatabase, env: ArchiveSyncEnv, opt
           const slug = stableArchiveSlug(source.id, page.id);
           const existing = await db.getPostBySlug(slug);
           const sourceUpdatedAt = parseArchiveDate(page.updatedAt || page.createdAt);
-          if (existing && existing.category === source.label && new Date(existing.updatedAt).getTime() >= new Date(sourceUpdatedAt).getTime()) {
+          if (
+            existing &&
+            existing.category === source.label &&
+            existing.published &&
+            existing.listed &&
+            existing.content.includes("timeamber-archive-extractor:v2") &&
+            new Date(existing.updatedAt).getTime() >= new Date(sourceUpdatedAt).getTime()
+          ) {
             result.skipped++;
             continue;
           }
 
-          const readableText = await fetchReadableContent(source, token, page.id, maxContentChars);
+          const snapshot = await fetchReadableContent(source, token, page.id, maxContentChars);
+          const readableText = snapshot.readableText;
           const content = buildContent(source, page, readableText);
-          const createdAt = parseArchiveDate(page.createdAt);
+          const createdAt = snapshot.originalPublishedAt || parseArchiveDate(page.createdAt);
           const tags = ["剪藏", source.label];
           const payload = {
             title: page.title.slice(0, 160),
@@ -319,6 +409,7 @@ export async function syncArchiveSources(db: IDatabase, env: ArchiveSyncEnv, opt
             publishAt: null,
             tags,
             category: source.label,
+            createdAt,
             updatedAt: sourceUpdatedAt,
           };
 

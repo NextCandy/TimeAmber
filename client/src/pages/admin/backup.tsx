@@ -1,27 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getToken } from "@/lib/api";
-import { HardDrive, Cloud, Globe, Download, Trash2, RefreshCw, Shield, Clock, Upload, Eye, FileUp, ChevronDown, ChevronUp, Database, AlertTriangle } from "lucide-react";
+import { HardDrive, Globe, Shield, Upload, FileUp, ChevronDown, ChevronUp, Database, AlertTriangle } from "lucide-react";
 import { platforms, type ImportResult, type PlatformInfo } from "@/lib/importers";
 
-type R2Backup = { key: string; name: string; size: number; uploaded: string };
-type PreviewData = { version: string; exportedAt: string; postCount: number; tagCount: number; postTitles: { title: string; slug: string }[]; settingsKeys: string[] };
 type WebdavConfig = { url: string; username: string; password: string; path: string };
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1048576).toFixed(1)} MB`;
-}
-
-function timeAgo(d: string): string {
-  const diff = Date.now() - new Date(d).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "刚刚";
-  if (mins < 60) return `${mins} 分钟前`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} 小时前`;
-  const days = Math.floor(hours / 24);
-  return days < 30 ? `${days} 天前` : new Date(d).toLocaleDateString("zh-CN");
 }
 
 function normalizeWebdavConfig(config: WebdavConfig): WebdavConfig {
@@ -36,11 +23,7 @@ function normalizeWebdavConfig(config: WebdavConfig): WebdavConfig {
 
 export function AdminBackup() {
   const [message, setMessage] = useState({ text: "", type: "" as "" | "success" | "error" });
-  const [r2Backups, setR2Backups] = useState<R2Backup[]>([]);
-  const [r2Loading, setR2Loading] = useState(false);
   const [backing, setBacking] = useState("");
-  const [preview, setPreview] = useState<{ name: string; data: PreviewData } | null>(null);
-  const [previewLoading, setPreviewLoading] = useState("");
   const [restoring, setRestoring] = useState(false);
   const [restoreMode, setRestoreMode] = useState<"merge" | "overwrite">("merge");
   const [webdavExpanded, setWebdavExpanded] = useState(false);
@@ -141,7 +124,6 @@ export function AdminBackup() {
 
   useEffect(() => {
     document.title = "备份管理 | TimeAmber";
-    loadR2Backups();
     loadWebdavConfig();
   }, []);
 
@@ -153,79 +135,6 @@ export function AdminBackup() {
 
   const authHeaders = { Authorization: `Bearer ${getToken()}` };
   const jsonHeaders = { ...authHeaders, "Content-Type": "application/json" };
-
-  // ─── R2 操作 ───
-  const loadR2Backups = async () => {
-    setR2Loading(true);
-    try {
-      const res = await fetch("/api/admin/backup/r2-list", { headers: authHeaders });
-      const data = await res.json();
-      setR2Backups(Array.isArray(data) ? data : []);
-    } catch { setR2Backups([]); }
-    setR2Loading(false);
-  };
-
-  const backupToR2 = async () => {
-    setBacking("r2");
-    try {
-      const res = await fetch("/api/admin/backup/r2", { method: "POST", headers: authHeaders });
-      const data = await res.json();
-      if (data.success) {
-        showMsg(`已备份到 R2（${formatSize(data.size)}）`, "success");
-        loadR2Backups();
-      } else showMsg("R2 备份失败", "error");
-    } catch { showMsg("R2 备份失败", "error"); }
-    setBacking("");
-  };
-
-  const deleteR2Backup = async (name: string) => {
-    if (!confirm(`确定删除备份「${name}」？`)) return;
-    try {
-      const res = await fetch("/api/admin/backup/r2-delete", {
-        method: "POST", headers: jsonHeaders, body: JSON.stringify({ name }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setR2Backups((prev) => prev.filter((b) => b.name !== name));
-        if (preview?.name === name) setPreview(null);
-        showMsg("已删除", "success");
-      } else showMsg(data.error || "删除失败", "error");
-    } catch { showMsg("删除失败", "error"); }
-  };
-
-  const previewR2Backup = async (name: string) => {
-    if (preview?.name === name) { setPreview(null); return; }
-    setPreviewLoading(name);
-    try {
-      const res = await fetch("/api/admin/backup/r2-preview", {
-        method: "POST", headers: jsonHeaders, body: JSON.stringify({ name }),
-      });
-      const data = await res.json();
-      if (data.error) { showMsg(data.error, "error"); }
-      else { setPreview({ name, data }); }
-    } catch { showMsg("预览失败", "error"); }
-    setPreviewLoading("");
-  };
-
-  const restoreFromR2 = async (name: string) => {
-    if (!confirm(`确定从「${name}」恢复数据？\n模式: ${restoreMode === "merge" ? "合并（跳过已有文章）" : "覆盖（更新已有文章）"}\n\n此操作不可撤销，建议先备份当前数据！`)) return;
-    setRestoring(true);
-    try {
-      const res = await fetch("/api/admin/backup/r2-restore", {
-        method: "POST",
-        headers: jsonHeaders,
-        body: JSON.stringify({ name, mode: restoreMode }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        showMsg(`恢复完成：导入 ${data.imported.posts} 篇文章、${data.imported.tags} 个标签`, "success");
-      } else {
-        showMsg(data.error || "恢复失败", "error");
-      }
-    } catch { showMsg("恢复请求失败，请检查网络连接", "error"); }
-    setRestoring(false);
-  };
-
 
   // ─── 本地下载 ───
   const downloadLocal = async () => {
@@ -309,7 +218,7 @@ export function AdminBackup() {
       if (data.success) {
         showMsg(`已备份到 WebDAV（${formatSize(data.size)}）`, "success");
       } else if (data.code === "webdav_ip_blocked") {
-        showMsg("建议使用 R2、本地备份，或自建 Nextcloud / Synology。", "error");
+        showMsg("建议使用本地备份，或自建 Nextcloud / Synology。", "error");
       } else {
         showMsg(data.error || "失败", "error");
       }
@@ -337,8 +246,7 @@ export function AdminBackup() {
       {/* ─── 快速备份 ─── */}
       <section className="mb-[20px]">
         <SectionTitle icon={Shield} title="快速备份" />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-[8px]">
-          <ActionCard icon={Cloud} color="orange" label="R2 云备份" desc="Cloudflare R2 存储" loading={backing === "r2"} onClick={backupToR2} disabled={!!backing} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-[8px]">
           <ActionCard icon={Globe} color="blue" label="WebDAV" desc="建议自建服务" loading={backing === "webdav"} onClick={backupToWebdav} disabled={!!backing} />
           <ActionCard icon={HardDrive} color="emerald" label="本地下载" desc="JSON 文件" loading={backing === "local"} onClick={downloadLocal} disabled={!!backing} />
         </div>
@@ -509,71 +417,6 @@ export function AdminBackup() {
         </div>
       </section>
 
-      {/* ─── R2 备份历史 ─── */}
-      <section className="mb-[20px]">
-        <div className="flex items-center justify-between mb-[10px]">
-          <SectionTitle icon={Clock} title="R2 备份历史" />
-          <button onClick={loadR2Backups} className="p-[5px] rounded-md text-muted-foreground/25 hover:text-foreground transition-colors">
-            <RefreshCw className={`h-[12px] w-[12px] ${r2Loading ? "animate-spin" : ""}`} />
-          </button>
-        </div>
-        <div className="rounded-lg border border-border/25 overflow-hidden">
-          {r2Loading ? (
-            <div className="py-[28px] text-center text-[11px] text-muted-foreground/25">加载中...</div>
-          ) : r2Backups.length === 0 ? (
-            <div className="py-[28px] text-center text-[11px] text-muted-foreground/20">还没有 R2 备份，点击上方"R2 云备份"创建第一个</div>
-          ) : (
-            r2Backups.map((backup, i) => (
-              <div key={backup.key}>
-                <div className={`flex items-center justify-between px-[14px] py-[10px] ${i < r2Backups.length - 1 && preview?.name !== backup.name ? "border-b border-border/10" : ""} hover:bg-card/10 transition-colors`}>
-                  <div className="flex items-center gap-[8px]">
-                    <Cloud className="h-[12px] w-[12px] text-orange-400/40 shrink-0" />
-                    <div>
-                      <p className="text-[11px] text-foreground/70 font-mono truncate max-w-[320px]">{backup.name}</p>
-                      <p className="text-[10px] text-muted-foreground/25">{formatSize(backup.size)} · {timeAgo(backup.uploaded)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-[1px] shrink-0">
-                    <button onClick={() => previewR2Backup(backup.name)} title="预览内容"
-                      className={`p-[5px] rounded-md transition-colors ${preview?.name === backup.name ? "text-foreground bg-accent/15" : "text-muted-foreground/20 hover:text-foreground"}`}
-                    >
-                      <Eye className={`h-[11px] w-[11px] ${previewLoading === backup.name ? "animate-pulse" : ""}`} />
-                    </button>
-                    <button onClick={() => deleteR2Backup(backup.name)} title="删除"
-                      className="p-[5px] rounded-md text-muted-foreground/20 hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 className="h-[11px] w-[11px]" />
-                    </button>
-                  </div>
-                </div>
-                {/* 预览面板 */}
-                {preview?.name === backup.name && (
-                  <div className="px-[14px] pb-[12px] pt-[4px] border-b border-border/10 bg-card/5 animate-fade-in">
-                    <div className="grid grid-cols-4 gap-[8px] mb-[8px]">
-                      <MiniStat label="版本" value={preview.data.version} />
-                      <MiniStat label="文章" value={String(preview.data.postCount)} />
-                      <MiniStat label="标签" value={String(preview.data.tagCount)} />
-                      <MiniStat label="设置项" value={String(preview.data.settingsKeys.length)} />
-                    </div>
-                    {preview.data.postTitles.length > 0 && (
-                      <div className="mb-[8px]">
-                        <p className="text-[9px] text-muted-foreground/25 uppercase tracking-wider mb-[4px]">包含文章</p>
-                        <div className="flex flex-wrap gap-[4px]">
-                          {preview.data.postTitles.map((p) => (
-                            <span key={p.slug} className="text-[10px] text-muted-foreground/40 bg-card/20 px-[6px] py-[1px] rounded">{p.title}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <p className="text-[9px] text-muted-foreground/20">备份时间: {new Date(preview.data.exportedAt).toLocaleString("zh-CN")}</p>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-
       {/* ─── WebDAV 配置（可折叠） ─── */}
       <section>
         <button onClick={() => setWebdavExpanded(!webdavExpanded)} className="flex w-full items-center justify-between mb-[10px] group">
@@ -601,7 +444,7 @@ export function AdminBackup() {
               <input value={webdavConfig.path} onChange={(e) => setWebdavConfig((p) => ({ ...p, path: e.target.value }))} placeholder="/time-amber-backups" className={inputClass} />
             </div>
             <div className="flex items-center justify-between pt-[2px]">
-              <p className="text-[10px] text-muted-foreground/20">建议使用 R2、本地下载，或自建 Nextcloud / Synology。</p>
+              <p className="text-[10px] text-muted-foreground/20">建议使用本地下载，或自建 Nextcloud / Synology。</p>
               <button onClick={saveWebdavConfig} className="h-[28px] px-[10px] rounded-md bg-foreground text-background text-[11px] font-medium hover:opacity-90 transition-opacity">保存配置</button>
             </div>
           </div>
@@ -645,11 +488,3 @@ function ActionCard({ icon: Icon, color, label, desc, loading, onClick, disabled
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md bg-card/15 px-[8px] py-[5px] text-center">
-      <p className="text-[13px] font-semibold text-foreground/70">{value}</p>
-      <p className="text-[9px] text-muted-foreground/25">{label}</p>
-    </div>
-  );
-}

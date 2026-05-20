@@ -457,6 +457,17 @@ export type AnalyticsData = {
   topPages: { path: string; count: number }[];
 };
 
+export type AnalyticsDerived = {
+  period: {
+    change: number;
+    changePercent: number | null;
+  };
+  quality: {
+    score: number;
+    label: string;
+  };
+};
+
 export async function fetchAnalytics(days = 7): Promise<AnalyticsData> {
   const res = await fetch(`${API_BASE}/api/admin/analytics?days=${days}`, {
     headers: authHeaders(),
@@ -487,6 +498,7 @@ export type AEAnalyticsData = {
   bounceRate: number;
   pagesPerVisitor: number;
   topReferersFull: { referer: string; count: number }[];
+  derived: AnalyticsDerived;
 };
 
 export type AEAnalyticsError = {

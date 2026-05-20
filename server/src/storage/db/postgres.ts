@@ -534,6 +534,7 @@ export class PostgresAdapter implements IDatabase {
         ...(data.seriesSlug !== undefined && { seriesSlug: data.seriesSlug }),
         ...(data.category !== undefined && { category: data.category }),
         ...(data.seriesOrder !== undefined && { seriesOrder: data.seriesOrder }),
+        ...(data.createdAt !== undefined && { createdAt: sql`${data.createdAt}::timestamptz` }),
         updatedAt: sql`NOW()`,
       })
       .where(eq(pgPosts.id, existing.id))
