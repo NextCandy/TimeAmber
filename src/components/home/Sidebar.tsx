@@ -10,6 +10,7 @@ import {
   Music2,
   type LucideIcon,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -324,12 +325,18 @@ export function Sidebar({
         </div>
         <ul className="flex flex-col gap-1">
           {categories.map((c) => (
-            <li
-              key={c.name}
-              className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <span>{c.name}</span>
-              <span className="text-xs tabular-nums opacity-60">{catCounts.get(c.name) ?? 0}</span>
+            <li key={c.name}>
+              {/* 原来是个只有 cursor-pointer、点了没反应的 li */}
+              <Link
+                to="/categories"
+                search={{ c: c.name }}
+                className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <span className="min-w-0 truncate">{c.name}</span>
+                <span className="ml-2 shrink-0 text-xs tabular-nums opacity-60">
+                  {catCounts.get(c.name) ?? 0}
+                </span>
+              </Link>
             </li>
           ))}
         </ul>

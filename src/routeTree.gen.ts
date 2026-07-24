@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -42,6 +43,11 @@ const FriendsRoute = FriendsRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoriesRoute = CategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArchiveRoute = ArchiveRouteImport.update({
@@ -169,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/archive': typeof ArchiveRoute
+  '/categories': typeof CategoriesRoute
   '/auth': typeof AuthRoute
   '/friends': typeof FriendsRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/archive': typeof ArchiveRoute
+  '/categories': typeof CategoriesRoute
   '/auth': typeof AuthRoute
   '/friends': typeof FriendsRoute
   '/posts/$slug': typeof PostsSlugRoute
@@ -220,6 +228,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/archive': typeof ArchiveRoute
+  '/categories': typeof CategoriesRoute
   '/auth': typeof AuthRoute
   '/friends': typeof FriendsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/archive'
+    | '/categories'
     | '/auth'
     | '/friends'
     | '/admin'
@@ -272,6 +282,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/archive'
+    | '/categories'
     | '/auth'
     | '/friends'
     | '/posts/$slug'
@@ -297,6 +308,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/archive'
+    | '/categories'
     | '/auth'
     | '/friends'
     | '/_authenticated/admin'
@@ -324,6 +336,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   ArchiveRoute: typeof ArchiveRoute
+  CategoriesRoute: typeof CategoriesRoute
   AuthRoute: typeof AuthRoute
   FriendsRoute: typeof FriendsRoute
   PostsSlugRoute: typeof PostsSlugRoute
@@ -350,6 +363,13 @@ declare module '@tanstack/react-router' {
       path: '/archive'
       fullPath: '/archive'
       preLoaderRoute: typeof ArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/categories': {
+      id: '/categories'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof CategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -562,6 +582,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   ArchiveRoute: ArchiveRoute,
+  CategoriesRoute: CategoriesRoute,
   AuthRoute: AuthRoute,
   FriendsRoute: FriendsRoute,
   PostsSlugRoute: PostsSlugRoute,
