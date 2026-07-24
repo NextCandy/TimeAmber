@@ -167,12 +167,81 @@ export const askTimeAmber = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<AskTimeAmberResult> => {
     await assertAdmin(context.supabase);
     assertRateLimit(context.userId);
+    return runAsk(data.question, rpcClient(context.supabase));
+  });
+
+// ── 前台开放版 ────────────────────────────────────────────────────────
+// 开放后每次提问都花 AI_API_KEY 的钱，所以三道闸：
+//   1. 站点设置里的 askPublicEnabled 开关，**默认关闭**；
+//   2. 全站维度的调用上限（不分访客），给成本一个硬性天花板；
+//   3. 问题长度沿用同一个 askInput 校验。
+// 没有按 IP 限流是因为这一版拿不到可信的客户端地址（站点在 Cloudflare Tunnel
+// 之后，转发头可伪造），与其做一个能绕过的假限流，不如把全局闸门收紧。
+
+const PUBLIC_LIMIT_PER_MINUTE = 6;
+const PUBLIC_LIMIT_PER_DAY = 300;
+const publicMinuteWindow: number[] = [];
+const publicDayWindow: number[] = [];
+
+function assertPublicRateLimit() {
+  const now = Date.now();
+  const minuteAgo = now - 60_000;
+  const dayAgo = now - 86_400_000;
+
+  while (publicMinuteWindow.length && publicMinuteWindow[0] < minuteAgo) publicMinuteWindow.shift();
+  while (publicDayWindow.length && publicDayWindow[0] < dayAgo) publicDayWindow.shift();
+
+  if (publicMinuteWindow.length >= PUBLIC_LIMIT_PER_MINUTE) {
+    throw new Error("当前提问的人有点多，请稍等一会儿再试");
+  }
+  if (publicDayWindow.length >= PUBLIC_LIMIT_PER_DAY) {
+    throw new Error("今天的提问额度已用完，明天再来吧");
+  }
+  publicMinuteWindow.push(now);
+  publicDayWindow.push(now);
+}
+
+async function readPublicAskEnabled(): Promise<boolean> {
+  // 动态 import：client.server 只能在服务端出现，顶层 import 会被打进客户端 bundle。
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const result = await supabaseAdmin
+    .from("app_config")
+    .select("value")
+    .eq("key", "site")
+    .maybeSingle();
+  const value = result.data?.value as { askPublicEnabled?: boolean } | null | undefined;
+  return value?.askPublicEnabled === true;
+}
+
+export type PublicAskStatus = { enabled: boolean; configured: boolean };
+
+export const getPublicAskStatus = createServerFn({ method: "GET" }).handler(
+  async (): Promise<PublicAskStatus> => {
+    const enabled = await readPublicAskEnabled().catch(() => false);
+    if (!enabled) return { enabled: false, configured: false };
+    const { getAIProviderStatus } = await import("@/lib/ask-provider.server");
+    return { enabled: true, configured: getAIProviderStatus().configured };
+  },
+);
+
+export const askPublicQuestion = createServerFn({ method: "POST" })
+  .validator((value: z.infer<typeof askInput>) => askInput.parse(value))
+  .handler(async ({ data }): Promise<AskTimeAmberResult> => {
+    if (!(await readPublicAskEnabled())) throw new Error("站内问答当前未开放");
+    assertPublicRateLimit();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    return runAsk(data.question, rpcClient(supabaseAdmin));
+  });
+
+async function runAsk(question: string, rpc: RpcClient): Promise<AskTimeAmberResult> {
+  {
+    const data = { question };
     const providerModule = await import("@/lib/ask-provider.server");
     const provider = providerModule.getAIProviderStatus();
     if (!provider.configured) throw new Error("AI Provider 尚未配置");
 
     const terms = buildSearchTerms(data.question);
-    const search = await rpcClient(context.supabase).rpc("search_timeamber_knowledge", {
+    const search = await rpc.rpc("search_timeamber_knowledge", {
       query_text: data.question,
       query_terms: terms,
       result_limit: 10,
@@ -222,4 +291,5 @@ export const askTimeAmber = createServerFn({ method: "POST" })
     const answer = sanitizeAIAnswer(rawAnswer, sources.length);
     if (!answer) throw new Error("AI 服务没有返回有效回答");
     return { answer, sources, noResults: false };
-  });
+  }
+}

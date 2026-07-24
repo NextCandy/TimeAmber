@@ -57,14 +57,78 @@ type ContactFieldConfig = {
 };
 
 const CONTACT_FIELDS: ContactFieldConfig[] = [
-  { key: "email", field: "contactEmail", label: "邮箱", icon: Mail, placeholder: "hi@example.com", validate: "email" },
-  { key: "github", field: "contactGithub", label: "GitHub", icon: Github, placeholder: "https://github.com/yourname", validate: "url" },
-  { key: "x", field: "contactX", label: "Twitter / X", icon: Twitter, placeholder: "https://x.com/yourname", validate: "url" },
-  { key: "tg", field: "contactTelegram", label: "Telegram", icon: Send, placeholder: "@yourname 或 https://t.me/yourname", validate: "urlOrHandle" },
-  { key: "wechat", field: "contactWechat", label: "微信", icon: MessageCircle, placeholder: "微信号或二维码内容", validate: "text", qrSupported: true, qrKey: "wechat" },
-  { key: "qq", field: "contactQQ", label: "QQ", icon: MessageSquare, placeholder: "QQ 号或二维码内容", validate: "text", qrSupported: true, qrKey: "qq" },
-  { key: "xhs", field: "contactXiaohongshu", label: "小红书", icon: Heart, placeholder: "主页链接或二维码内容", validate: "text", qrSupported: true, qrKey: "xiaohongshu" },
-  { key: "douyin", field: "contactDouyin", label: "抖音", icon: Music2, placeholder: "主页链接或二维码内容", validate: "text", qrSupported: true, qrKey: "douyin" },
+  {
+    key: "email",
+    field: "contactEmail",
+    label: "邮箱",
+    icon: Mail,
+    placeholder: "hi@example.com",
+    validate: "email",
+  },
+  {
+    key: "github",
+    field: "contactGithub",
+    label: "GitHub",
+    icon: Github,
+    placeholder: "https://github.com/yourname",
+    validate: "url",
+  },
+  {
+    key: "x",
+    field: "contactX",
+    label: "Twitter / X",
+    icon: Twitter,
+    placeholder: "https://x.com/yourname",
+    validate: "url",
+  },
+  {
+    key: "tg",
+    field: "contactTelegram",
+    label: "Telegram",
+    icon: Send,
+    placeholder: "@yourname 或 https://t.me/yourname",
+    validate: "urlOrHandle",
+  },
+  {
+    key: "wechat",
+    field: "contactWechat",
+    label: "微信",
+    icon: MessageCircle,
+    placeholder: "微信号或二维码内容",
+    validate: "text",
+    qrSupported: true,
+    qrKey: "wechat",
+  },
+  {
+    key: "qq",
+    field: "contactQQ",
+    label: "QQ",
+    icon: MessageSquare,
+    placeholder: "QQ 号或二维码内容",
+    validate: "text",
+    qrSupported: true,
+    qrKey: "qq",
+  },
+  {
+    key: "xhs",
+    field: "contactXiaohongshu",
+    label: "小红书",
+    icon: Heart,
+    placeholder: "主页链接或二维码内容",
+    validate: "text",
+    qrSupported: true,
+    qrKey: "xiaohongshu",
+  },
+  {
+    key: "douyin",
+    field: "contactDouyin",
+    label: "抖音",
+    icon: Music2,
+    placeholder: "主页链接或二维码内容",
+    validate: "text",
+    qrSupported: true,
+    qrKey: "douyin",
+  },
 ];
 
 function validateContact(value: string, type: ContactFieldConfig["validate"]): string | null {
@@ -122,7 +186,6 @@ function SettingsPage() {
   function setQR(qrKey: string, on: boolean) {
     setDraft({ ...draft, contactQR: { ...(draft.contactQR ?? {}), [qrKey]: on } });
   }
-
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
@@ -232,7 +295,7 @@ function SettingsPage() {
                 const Icon = f.icon;
                 const value = (draft[f.field] as string) ?? "";
                 const err = contactErrors[f.key];
-                const qrOn = f.qrKey ? !!(draft.contactQR?.[f.qrKey]) : false;
+                const qrOn = f.qrKey ? !!draft.contactQR?.[f.qrKey] : false;
                 const inputId = `field-${f.key}`;
                 return (
                   <div key={f.key}>
@@ -283,7 +346,8 @@ function SettingsPage() {
                           aria-label={`${f.label} 显示二维码`}
                         />
                         <QrCode className="h-3.5 w-3.5" aria-hidden="true" />
-                        点击图标时显示二维码（否则复制内容{f.validate === "text" ? "" : " / 跳转链接"}）
+                        点击图标时显示二维码（否则复制内容
+                        {f.validate === "text" ? "" : " / 跳转链接"}）
                       </label>
                     )}
                   </div>
@@ -305,6 +369,24 @@ function SettingsPage() {
           </div>
         </section>
 
+        <section className="rounded-xl border border-border bg-card p-6">
+          <h2 className="font-display text-base font-semibold">前台功能</h2>
+          <label className="mt-4 flex items-start gap-3">
+            <Switch
+              checked={draft.askPublicEnabled === true}
+              onCheckedChange={(v) => setDraft({ ...draft, askPublicEnabled: v })}
+              aria-label="开放站内问答到前台"
+            />
+            <span className="text-sm">
+              开放站内问答到前台 <code className="text-xs text-muted-foreground">/ask</code>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                开启后任何访客都能提问，<strong>每次提问都会消耗你配置的 AI_API_KEY</strong>。
+                已内置全站限流（每分钟 6 次、每天 300 次）作为成本上限。默认关闭。
+              </span>
+            </span>
+          </label>
+        </section>
+
         <div className="sticky bottom-4 z-10 flex justify-end">
           <Button type="submit" size="lg" className="shadow-lg">
             <Save className="mr-1.5 h-4 w-4" />
@@ -315,12 +397,13 @@ function SettingsPage() {
 
       <section className="rounded-xl border border-destructive/40 bg-destructive/5 p-6">
         <h2 className="font-display text-base font-semibold text-destructive">危险区</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          重置会清空本地所有改动并恢复示例数据。
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">重置会清空本地所有改动并恢复示例数据。</p>
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="outline" className="mt-4 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
+            <Button
+              variant="outline"
+              className="mt-4 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
               <RotateCcw className="mr-1.5 h-4 w-4" />
               重置所有数据
             </Button>

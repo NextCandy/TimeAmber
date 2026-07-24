@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CategoriesRouteImport } from './routes/categories'
+import { Route as AskRouteImport } from './routes/ask'
 import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -48,6 +49,11 @@ const AuthRoute = AuthRouteImport.update({
 const CategoriesRoute = CategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AskRoute = AskRouteImport.update({
+  id: '/ask',
+  path: '/ask',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArchiveRoute = ArchiveRouteImport.update({
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/archive': typeof ArchiveRoute
   '/categories': typeof CategoriesRoute
+  '/ask': typeof AskRoute
   '/auth': typeof AuthRoute
   '/friends': typeof FriendsRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/archive': typeof ArchiveRoute
   '/categories': typeof CategoriesRoute
+  '/ask': typeof AskRoute
   '/auth': typeof AuthRoute
   '/friends': typeof FriendsRoute
   '/posts/$slug': typeof PostsSlugRoute
@@ -229,6 +237,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/archive': typeof ArchiveRoute
   '/categories': typeof CategoriesRoute
+  '/ask': typeof AskRoute
   '/auth': typeof AuthRoute
   '/friends': typeof FriendsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -257,6 +266,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/archive'
     | '/categories'
+    | '/ask'
     | '/auth'
     | '/friends'
     | '/admin'
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/archive'
     | '/categories'
+    | '/ask'
     | '/auth'
     | '/friends'
     | '/posts/$slug'
@@ -309,6 +320,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/archive'
     | '/categories'
+    | '/ask'
     | '/auth'
     | '/friends'
     | '/_authenticated/admin'
@@ -337,6 +349,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   ArchiveRoute: typeof ArchiveRoute
   CategoriesRoute: typeof CategoriesRoute
+  AskRoute: typeof AskRoute
   AuthRoute: typeof AuthRoute
   FriendsRoute: typeof FriendsRoute
   PostsSlugRoute: typeof PostsSlugRoute
@@ -370,6 +383,13 @@ declare module '@tanstack/react-router' {
       path: '/categories'
       fullPath: '/categories'
       preLoaderRoute: typeof CategoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ask': {
+      id: '/ask'
+      path: '/ask'
+      fullPath: '/ask'
+      preLoaderRoute: typeof AskRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -583,6 +603,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   ArchiveRoute: ArchiveRoute,
   CategoriesRoute: CategoriesRoute,
+  AskRoute: AskRoute,
   AuthRoute: AuthRoute,
   FriendsRoute: FriendsRoute,
   PostsSlugRoute: PostsSlugRoute,

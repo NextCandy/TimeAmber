@@ -47,6 +47,8 @@ export type SiteSettings = {
   githubRepo?: string;
   /** GitHub 分支（留空使用默认分支） */
   githubBranch?: string;
+  /** 是否把站内 AI 问答开放到前台 /ask。默认关闭 —— 开放后每次提问都消耗 AI_API_KEY。 */
+  askPublicEnabled?: boolean;
 };
 
 export type ImageHostConfig = {
@@ -92,8 +94,12 @@ export type NotifyConfig = {
 export type CloudConfig = {
   webdav?: { url: string; username: string; password: string; filename: string };
   s3?: {
-    endpoint: string; region: string; bucket: string;
-    accessKeyId: string; secretAccessKey: string; key: string;
+    endpoint: string;
+    region: string;
+    bucket: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+    key: string;
   };
   dropbox?: { token: string; path: string };
   onedrive?: { token: string; path: string };
@@ -237,7 +243,6 @@ const DEFAULT_SETTINGS: SiteSettings = {
   githubBranch: "",
 };
 
-
 function normalizePost(p: Post): Post {
   return {
     ...p,
@@ -313,7 +318,9 @@ type AdminActions = {
   updateSchedule: (s: Partial<BackupSchedule>) => void;
   clearAudit: () => void;
   updateAI: (a: Partial<AIConfig>) => void;
-  addMedia: (item: Omit<MediaItem, "id" | "uploadedAt"> & { id?: string; uploadedAt?: string }) => MediaItem;
+  addMedia: (
+    item: Omit<MediaItem, "id" | "uploadedAt"> & { id?: string; uploadedAt?: string },
+  ) => MediaItem;
   removeMedia: (id: string) => void;
   recordAnalytics: (e: AnalyticsEvent) => void;
   addAlert: (a: Omit<AlertEntry, "id" | "at"> & { at?: string }) => void;
@@ -343,7 +350,13 @@ function coreFrom(s: AdminState): CoreData {
   };
 }
 
-export function AdminStoreProvider({ children, initialState }: { children: ReactNode; initialState?: Partial<AdminState> | null }) {
+export function AdminStoreProvider({
+  children,
+  initialState,
+}: {
+  children: ReactNode;
+  initialState?: Partial<AdminState> | null;
+}) {
   const [state, setState] = useState<AdminState>(() =>
     initialState
       ? {
@@ -453,27 +466,24 @@ export function AdminStoreProvider({ children, initialState }: { children: React
     setState((s) => ({ ...s, posts: s.posts.filter((p) => p.slug !== slug) }));
   }, []);
 
-  const setPostStatus = useCallback(
-    (slug: string, status: "draft" | "published") => {
-      // 发布状态改动走单篇专用接口（单行 UPDATE），避免整库全删全建经隧道超时；
-      // 同时抑制随后的全量 persist，防止误触发 delete-all。
-      applyingRemoteRef.current = true;
-      setState((s) => ({
-        ...s,
-        posts: s.posts.map((p) => (p.slug === slug ? { ...p, status } : p)),
-      }));
-      void setPostPublished({
-        data: { slug, published: status === "published" },
+  const setPostStatus = useCallback((slug: string, status: "draft" | "published") => {
+    // 发布状态改动走单篇专用接口（单行 UPDATE），避免整库全删全建经隧道超时；
+    // 同时抑制随后的全量 persist，防止误触发 delete-all。
+    applyingRemoteRef.current = true;
+    setState((s) => ({
+      ...s,
+      posts: s.posts.map((p) => (p.slug === slug ? { ...p, status } : p)),
+    }));
+    void setPostPublished({
+      data: { slug, published: status === "published" },
+    })
+      .catch((error) => {
+        console.error("[TimeAmber] failed to set post status", error);
       })
-        .catch((error) => {
-          console.error("[TimeAmber] failed to set post status", error);
-        })
-        .finally(() => {
-          applyingRemoteRef.current = false;
-        });
-    },
-    [],
-  );
+      .finally(() => {
+        applyingRemoteRef.current = false;
+      });
+  }, []);
 
   const addCategory = useCallback((name: string) => {
     const n = name.trim();
@@ -567,89 +577,79 @@ export function AdminStoreProvider({ children, initialState }: { children: React
 
   const resetAll = useCallback(() => setState(INITIAL_STATE), []);
 
+  const createSnapshot = useCallback((label: string, opts?: { actor?: string; auto?: boolean }) => {
+    let created!: Snapshot;
+    setState((s) => {
+      const data = coreFrom(s);
+      created = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        createdAt: new Date().toISOString(),
+        label: label.trim() || "手动快照",
+        postCount: data.posts.length,
+        data,
+        auto: opts?.auto,
+      };
+      const retention = Math.max(1, s.schedule.retention || MAX_SNAPSHOTS);
+      const cap = Math.min(MAX_SNAPSHOTS, retention);
+      const snapshots = [created, ...s.snapshots].slice(0, cap);
+      const audit: AuditEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-c`,
+        at: new Date().toISOString(),
+        actor: opts?.actor ?? "system",
+        action: "create",
+        snapshotId: created.id,
+        snapshotLabel: created.label,
+        detail: opts?.auto ? "自动" : "手动",
+      };
+      return { ...s, snapshots, audit: [audit, ...s.audit].slice(0, MAX_AUDIT) };
+    });
+    return created;
+  }, []);
 
-  const createSnapshot = useCallback(
-    (label: string, opts?: { actor?: string; auto?: boolean }) => {
-      let created!: Snapshot;
-      setState((s) => {
-        const data = coreFrom(s);
-        created = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          createdAt: new Date().toISOString(),
-          label: label.trim() || "手动快照",
-          postCount: data.posts.length,
-          data,
-          auto: opts?.auto,
-        };
-        const retention = Math.max(1, s.schedule.retention || MAX_SNAPSHOTS);
-        const cap = Math.min(MAX_SNAPSHOTS, retention);
-        const snapshots = [created, ...s.snapshots].slice(0, cap);
-        const audit: AuditEntry = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-c`,
-          at: new Date().toISOString(),
-          actor: opts?.actor ?? "system",
-          action: "create",
-          snapshotId: created.id,
-          snapshotLabel: created.label,
-          detail: opts?.auto ? "自动" : "手动",
-        };
-        return { ...s, snapshots, audit: [audit, ...s.audit].slice(0, MAX_AUDIT) };
-      });
-      return created;
-    },
-    [],
-  );
+  const restoreSnapshot = useCallback((id: string, opts?: { actor?: string }) => {
+    setState((s) => {
+      const snap = s.snapshots.find((x) => x.id === id);
+      if (!snap) return s;
+      const audit: AuditEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-r`,
+        at: new Date().toISOString(),
+        actor: opts?.actor ?? "未知用户",
+        action: "restore",
+        snapshotId: snap.id,
+        snapshotLabel: snap.label,
+        detail: `回滚至 ${snap.postCount} 篇文章`,
+      };
+      return {
+        ...s,
+        posts: snap.data.posts.map(normalizePost),
+        categories: snap.data.categories,
+        tags: snap.data.tags,
+        friends: snap.data.friends,
+        settings: { ...s.settings, ...snap.data.settings },
+        audit: [audit, ...s.audit].slice(0, MAX_AUDIT),
+      };
+    });
+  }, []);
 
-  const restoreSnapshot = useCallback(
-    (id: string, opts?: { actor?: string }) => {
-      setState((s) => {
-        const snap = s.snapshots.find((x) => x.id === id);
-        if (!snap) return s;
-        const audit: AuditEntry = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-r`,
-          at: new Date().toISOString(),
-          actor: opts?.actor ?? "未知用户",
-          action: "restore",
-          snapshotId: snap.id,
-          snapshotLabel: snap.label,
-          detail: `回滚至 ${snap.postCount} 篇文章`,
-        };
-        return {
-          ...s,
-          posts: snap.data.posts.map(normalizePost),
-          categories: snap.data.categories,
-          tags: snap.data.tags,
-          friends: snap.data.friends,
-          settings: { ...s.settings, ...snap.data.settings },
-          audit: [audit, ...s.audit].slice(0, MAX_AUDIT),
-        };
-      });
-    },
-    [],
-  );
-
-  const removeSnapshot = useCallback(
-    (id: string, opts?: { actor?: string }) => {
-      setState((s) => {
-        const snap = s.snapshots.find((x) => x.id === id);
-        if (!snap) return s;
-        const audit: AuditEntry = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-d`,
-          at: new Date().toISOString(),
-          actor: opts?.actor ?? "未知用户",
-          action: "delete",
-          snapshotId: snap.id,
-          snapshotLabel: snap.label,
-        };
-        return {
-          ...s,
-          snapshots: s.snapshots.filter((x) => x.id !== id),
-          audit: [audit, ...s.audit].slice(0, MAX_AUDIT),
-        };
-      });
-    },
-    [],
-  );
+  const removeSnapshot = useCallback((id: string, opts?: { actor?: string }) => {
+    setState((s) => {
+      const snap = s.snapshots.find((x) => x.id === id);
+      if (!snap) return s;
+      const audit: AuditEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-d`,
+        at: new Date().toISOString(),
+        actor: opts?.actor ?? "未知用户",
+        action: "delete",
+        snapshotId: snap.id,
+        snapshotLabel: snap.label,
+      };
+      return {
+        ...s,
+        snapshots: s.snapshots.filter((x) => x.id !== id),
+        audit: [audit, ...s.audit].slice(0, MAX_AUDIT),
+      };
+    });
+  }, []);
 
   const updateSchedule = useCallback((patch: Partial<BackupSchedule>) => {
     setState((s) => ({ ...s, schedule: { ...s.schedule, ...patch } }));
@@ -690,20 +690,17 @@ export function AdminStoreProvider({ children, initialState }: { children: React
     }).catch(() => {});
   }, []);
 
-  const addAlert = useCallback(
-    (a: Omit<AlertEntry, "id" | "at"> & { at?: string }) => {
-      const entry: AlertEntry = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        at: a.at ?? new Date().toISOString(),
-        level: a.level,
-        source: a.source,
-        message: a.message,
-        acknowledged: false,
-      };
-      setState((s) => ({ ...s, alerts: [entry, ...s.alerts].slice(0, MAX_ALERTS) }));
-    },
-    [],
-  );
+  const addAlert = useCallback((a: Omit<AlertEntry, "id" | "at"> & { at?: string }) => {
+    const entry: AlertEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      at: a.at ?? new Date().toISOString(),
+      level: a.level,
+      source: a.source,
+      message: a.message,
+      acknowledged: false,
+    };
+    setState((s) => ({ ...s, alerts: [entry, ...s.alerts].slice(0, MAX_ALERTS) }));
+  }, []);
 
   const ackAlert = useCallback((id: string) => {
     setState((s) => ({
@@ -716,43 +713,37 @@ export function AdminStoreProvider({ children, initialState }: { children: React
     setState((s) => ({ ...s, alerts: [] }));
   }, []);
 
-  const addNotifyReceipt = useCallback(
-    (r: Omit<NotifyReceipt, "id" | "at"> & { at?: string }) => {
-      const entry: NotifyReceipt = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        at: r.at ?? new Date().toISOString(),
-        channel: r.channel,
-        ok: r.ok,
-        title: r.title,
-        message: r.message,
-      };
-      setState((s) => ({ ...s, notifyReceipts: [entry, ...s.notifyReceipts].slice(0, 100) }));
-    },
-    [],
-  );
+  const addNotifyReceipt = useCallback((r: Omit<NotifyReceipt, "id" | "at"> & { at?: string }) => {
+    const entry: NotifyReceipt = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      at: r.at ?? new Date().toISOString(),
+      channel: r.channel,
+      ok: r.ok,
+      title: r.title,
+      message: r.message,
+    };
+    setState((s) => ({ ...s, notifyReceipts: [entry, ...s.notifyReceipts].slice(0, 100) }));
+  }, []);
 
   const clearNotifyReceipts = useCallback(() => {
     setState((s) => ({ ...s, notifyReceipts: [] }));
   }, []);
 
-  const addMediaFailure = useCallback(
-    (f: Omit<MediaFailure, "id" | "at"> & { at?: string }) => {
-      const entry: MediaFailure = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        at: f.at ?? new Date().toISOString(),
-        name: f.name,
-        size: f.size,
-        contentType: f.contentType,
-        attempts: f.attempts,
-        error: f.error,
-      };
-      setState((s) => ({
-        ...s,
-        mediaFailures: [entry, ...s.mediaFailures].slice(0, MAX_MEDIA_FAIL),
-      }));
-    },
-    [],
-  );
+  const addMediaFailure = useCallback((f: Omit<MediaFailure, "id" | "at"> & { at?: string }) => {
+    const entry: MediaFailure = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      at: f.at ?? new Date().toISOString(),
+      name: f.name,
+      size: f.size,
+      contentType: f.contentType,
+      attempts: f.attempts,
+      error: f.error,
+    };
+    setState((s) => ({
+      ...s,
+      mediaFailures: [entry, ...s.mediaFailures].slice(0, MAX_MEDIA_FAIL),
+    }));
+  }, []);
 
   const removeMediaFailure = useCallback((id: string) => {
     setState((s) => ({ ...s, mediaFailures: s.mediaFailures.filter((x) => x.id !== id) }));
@@ -822,9 +813,7 @@ export function AdminStoreProvider({ children, initialState }: { children: React
         let next = s;
         if (schedule.enabled) {
           const intervalMs =
-            schedule.frequency === "daily"
-              ? 24 * 60 * 60 * 1000
-              : 7 * 24 * 60 * 60 * 1000;
+            schedule.frequency === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
           const last = schedule.lastRunAt ? new Date(schedule.lastRunAt).getTime() : 0;
           // 时区与执行窗口校验
           let inWindow = true;
@@ -869,7 +858,10 @@ export function AdminStoreProvider({ children, initialState }: { children: React
           }
         }
         // Retention prune
-        const retention = Math.max(1, Math.min(MAX_SNAPSHOTS, next.schedule.retention || MAX_SNAPSHOTS));
+        const retention = Math.max(
+          1,
+          Math.min(MAX_SNAPSHOTS, next.schedule.retention || MAX_SNAPSHOTS),
+        );
         if (next.snapshots.length > retention) {
           const kept = next.snapshots.slice(0, retention);
           const dropped = next.snapshots.length - kept.length;

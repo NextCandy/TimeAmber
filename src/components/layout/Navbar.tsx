@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BRAND_ICON } from "@/lib/brand";
+import { useAdminStore } from "@/lib/admin-store";
 import { SearchDialog } from "./SearchDialog";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -13,9 +14,15 @@ const NAV = [
   { to: "/friends", label: "友链" },
 ] as const;
 
+const ASK_NAV = { to: "/ask", label: "问一问" } as const;
+
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const { settings } = useAdminStore();
+
+  // /ask 默认不对外，开关关着时连导航入口都不出现。
+  const navItems = settings.askPublicEnabled ? [...NAV, ASK_NAV] : NAV;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -53,7 +60,7 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {NAV.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.to}
               to={item.to}
