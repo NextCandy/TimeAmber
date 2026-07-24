@@ -117,24 +117,29 @@ async function loadPosts(admin: boolean): Promise<Post[]> {
     list.push(String(row.name));
     tagMap.set(Number(row.post_id), list);
   }
-  return rows.map((row) => ({
-    slug: String(row.slug),
-    title: String(row.title),
-    excerpt: String(row.excerpt ?? ""),
-    category: String(row.category ?? ""),
-    tags: tagMap.get(Number(row.id)) ?? [],
-    publishAt: asDate(row.publish_at ?? row.created_at),
-    readingMinutes: Number(row.reading_minutes ?? 1),
-    source: row.source ? String(row.source) : undefined,
-    content: row.content == null ? undefined : String(row.content),
-    status: row.published ? "published" : "draft",
-    cover: row.cover_image ? String(row.cover_image) : undefined,
-    type: row.post_type === "html" ? "html" : "markdown",
-    externalUrl: row.external_url ? String(row.external_url) : undefined,
-    openIn: row.open_in === "_self" ? "_self" : "_blank",
-    notionId: row.notion_id ? String(row.notion_id) : undefined,
-    notionLastEdited: row.notion_last_edited ? asDate(row.notion_last_edited) : undefined,
-  }));
+  return rows.map((row) => {
+    const post: Post = {
+      slug: String(row.slug),
+      title: String(row.title),
+      excerpt: String(row.excerpt ?? ""),
+      category: String(row.category ?? ""),
+      tags: tagMap.get(Number(row.id)) ?? [],
+      publishAt: asDate(row.publish_at ?? row.created_at),
+      readingMinutes: Number(row.reading_minutes ?? 1),
+      status: row.published ? "published" : "draft",
+      type: row.post_type === "html" ? "html" : "markdown",
+      openIn: row.open_in === "_self" ? "_self" : "_blank",
+    };
+    // 只在真有值时才挂键。这份结果会被序列化进**每个页面**的 hydration payload，
+    // 写成 `key: undefined` 序列化后是 `key:void 0`，1921 篇 × 6 个键白占约 100 KB。
+    if (row.source) post.source = String(row.source);
+    if (row.content != null) post.content = String(row.content);
+    if (row.cover_image) post.cover = String(row.cover_image);
+    if (row.external_url) post.externalUrl = String(row.external_url);
+    if (row.notion_id) post.notionId = String(row.notion_id);
+    if (row.notion_last_edited) post.notionLastEdited = asDate(row.notion_last_edited);
+    return post;
+  });
 }
 
 async function readConfig<T>(key: string, fallback: T): Promise<T> {

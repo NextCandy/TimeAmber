@@ -3,7 +3,8 @@ import { ArrowLeft, Clock, ExternalLink } from "lucide-react";
 import { useEffect, useRef } from "react";
 import mediumZoom from "medium-zoom";
 import { POSTS, formatDate } from "@/lib/sample-posts";
-import { DEFAULT_POST_COVER } from "@/lib/brand";
+import { DEFAULT_POST_COVER, SITE_URL } from "@/lib/brand";
+import { toMetaDescription } from "@/lib/strip-markdown";
 import { useAdminStore } from "@/lib/admin-store";
 import { loadPublicPost } from "@/lib/state.functions";
 import { renderMarkdownFn } from "@/lib/markdown.functions";
@@ -22,17 +23,35 @@ export const Route = createFileRoute("/posts/$slug")({
         : "";
     return { post, contentHtml };
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData?.post
-      ? [
-          { title: `${loaderData.post.title} · TimeAmber` },
-          { name: "description", content: loaderData.post.excerpt },
-          { property: "og:title", content: loaderData.post.title },
-          { property: "og:description", content: loaderData.post.excerpt },
-          { property: "og:type", content: "article" },
-        ]
-      : [{ title: "文章 · TimeAmber" }],
-  }),
+  head: ({ loaderData, params }) => {
+    const post = loaderData?.post;
+    if (!post) return { meta: [{ title: "文章 · TimeAmber" }] };
+
+    // excerpt 来自 Notion 同步，原样带着 ![](…)、``` 之类语法，
+    // 直接进 meta 会被搜索结果和社交卡片当正文显示。
+    const description = toMetaDescription(post.excerpt);
+    const canonical = `${SITE_URL}/posts/${params.slug}`;
+    const image = post.cover || `${SITE_URL}${DEFAULT_POST_COVER}`;
+
+    return {
+      meta: [
+        { title: `${post.title} · TimeAmber` },
+        { name: "description", content: description },
+        { property: "og:title", content: post.title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "article" },
+        { property: "og:url", content: canonical },
+        { property: "og:image", content: image },
+        { property: "article:published_time", content: post.publishAt },
+        { property: "article:section", content: post.category },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: post.title },
+        { name: "twitter:description", content: description },
+        { name: "twitter:image", content: image },
+      ],
+      links: [{ rel: "canonical", href: canonical }],
+    };
+  },
   component: PostPage,
 });
 
