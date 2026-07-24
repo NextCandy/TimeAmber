@@ -1,14 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { FileText, FolderTree, Tags, Users, Plus } from "lucide-react";
 import { useAdminStore } from "@/lib/admin-store";
+import { loadPublicVisitTrend } from "@/lib/state.functions";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
+  // 概览页原本只有文章/分类/标签/友链四个计数，看不到站点有没有人来。
+  loader: async () => ({
+    visitTrend: await loadPublicVisitTrend().catch(() => []),
+  }),
   component: Dashboard,
 });
 
 function Dashboard() {
+  const { visitTrend } = Route.useLoaderData();
   const { posts, categories, tags, friends } = useAdminStore();
+
+  const hasTrend = visitTrend.length > 0;
+  const total7d = visitTrend.reduce((sum, d) => sum + d.count, 0);
+  const maxPv = Math.max(...visitTrend.map((d) => d.count), 1);
 
   const stats = [
     { label: "文章", value: posts.length, icon: FileText, to: "/admin/posts" },
@@ -61,6 +71,43 @@ function Dashboard() {
           </Link>
         ))}
       </div>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold">近 7 天访问</h2>
+          <Link to="/admin/analytics" className="text-xs text-primary hover:underline">
+            详细统计 →
+          </Link>
+        </div>
+        <div className="rounded-xl border border-border/70 bg-card/40 p-5">
+          {hasTrend ? (
+            <>
+              <div className="mb-3 flex items-baseline gap-2">
+                <span className="font-display text-3xl font-semibold tabular-nums">{total7d}</span>
+                <span className="text-xs text-muted-foreground">PV</span>
+              </div>
+              <div className="flex h-14 items-end gap-1.5">
+                {visitTrend.map((d) => (
+                  <div
+                    key={d.date}
+                    className="flex-1 rounded-t bg-linear-to-t from-primary/70 to-primary/20"
+                    style={{
+                      height: d.count > 0 ? `${Math.max((d.count / maxPv) * 100, 4)}%` : "2px",
+                    }}
+                    title={`${d.date}: ${d.count} PV`}
+                  />
+                ))}
+              </div>
+              <div className="mt-2 flex justify-between text-[10px] text-muted-foreground">
+                <span>{visitTrend[0].date.slice(5)}</span>
+                <span>{visitTrend[visitTrend.length - 1].date.slice(5)}</span>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">暂无访问数据。</p>
+          )}
+        </div>
+      </section>
 
       <section>
         <div className="mb-3 flex items-center justify-between">
