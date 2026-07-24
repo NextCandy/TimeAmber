@@ -343,7 +343,7 @@ function AnswerResult({ result }: { result: AskTimeAmberResult }) {
   }
 
   return (
-    <section className="space-y-8 rounded-2xl border border-primary/15 bg-card/40 p-5 shadow-[0_18px_60px_-40px_oklch(0.78_0.16_65/0.45)] sm:p-8">
+    <section className="space-y-8 rounded-2xl border border-primary/15 bg-card/40 p-5 shadow-glow-soft sm:p-8">
       <div>
         <div className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-primary">
           <Sparkles className="h-4 w-4" />

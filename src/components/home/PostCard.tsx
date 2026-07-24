@@ -26,9 +26,12 @@ export function PostCard({ post }: { post: Post }) {
     <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 p-5 sm:p-6">
       <div>
         <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="rounded-full border border-border/80 bg-background/40 px-2 py-0.5">
-            {post.tags[0] ?? post.category}
-          </span>
+          {/* 没有标签时原来会 fallback 成 category，和右边那颗 chip 一模一样地并排显示两次 */}
+          {post.tags[0] && post.tags[0] !== post.category && (
+            <span className="rounded-full border border-border/80 bg-background/40 px-2 py-0.5">
+              {post.tags[0]}
+            </span>
+          )}
           <span className="rounded-full border border-border/80 bg-background/40 px-2 py-0.5">
             {post.category}
           </span>
@@ -59,7 +62,7 @@ export function PostCard({ post }: { post: Post }) {
   );
 
   const className =
-    "group relative flex min-w-0 w-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_20px_50px_-25px_oklch(0.78_0.16_65/0.45)] sm:flex-row";
+    "group relative flex min-w-0 w-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow sm:flex-row";
 
   if (isHtml) {
     const target = post.openIn ?? "_blank";

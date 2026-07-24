@@ -23,9 +23,7 @@ function FriendsPage() {
           Friends
         </p>
         <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">友链</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          一些值得长期关注的人和站点。
-        </p>
+        <p className="mt-3 text-sm text-muted-foreground">一些值得长期关注的人和站点。</p>
       </header>
 
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -35,7 +33,7 @@ function FriendsPage() {
               href={f.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-start justify-between gap-3 rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_15px_40px_-25px_oklch(0.78_0.16_65/0.45)]"
+              className="group flex items-start justify-between gap-3 rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow"
             >
               <div className="min-w-0">
                 <p className="font-display font-semibold transition-colors group-hover:text-primary">

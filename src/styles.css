@@ -67,6 +67,13 @@
   --font-display: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
   --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
   --font-brand: "A Song For Jennifer", "JetBrains Mono", cursive;
+
+  /* 琥珀光晕。原先散落在 6 个组件里写成 shadow-[0_20px_50px_-25px_oklch(...)]，
+     三种参数互不一致且颜色写死；收敛成两档并用 color-mix 引用 --primary，跟随主题。 */
+  --shadow-glow: 0 20px 50px -25px color-mix(in oklch, var(--primary) 45%, transparent);
+  --shadow-glow-soft: 0 18px 60px -40px color-mix(in oklch, var(--primary) 45%, transparent);
+  --drop-shadow-brand: 0 12px 18px color-mix(in oklch, var(--amber-1) 35%, transparent);
+  --drop-shadow-brand-sm: 0 4px 8px color-mix(in oklch, var(--amber-1) 35%, transparent);
 }
 
 :root,
@@ -152,7 +159,12 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-sans);
     letter-spacing: -0.01em;
   }

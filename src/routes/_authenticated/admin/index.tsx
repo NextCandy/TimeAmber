@@ -22,9 +22,7 @@ function Dashboard() {
     { label: "友链", value: friends.length, icon: Users, to: "/admin/friends" },
   ] as const;
 
-  const recent = [...posts]
-    .sort((a, b) => (a.publishAt < b.publishAt ? 1 : -1))
-    .slice(0, 5);
+  const recent = [...posts].sort((a, b) => (a.publishAt < b.publishAt ? 1 : -1)).slice(0, 5);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -48,7 +46,7 @@ function Dashboard() {
           <Link
             key={s.label}
             to={s.to}
-            className="group relative overflow-hidden rounded-xl border border-border/70 bg-linear-to-br from-card via-card to-card/60 p-5 transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[0_18px_50px_-20px_oklch(0.78_0.16_65/0.45)]"
+            className="group relative overflow-hidden rounded-xl border border-border/70 bg-linear-to-br from-card via-card to-card/60 p-5 transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-glow"
           >
             <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-primary/5 blur-2xl transition-all group-hover:bg-primary/15" />
             <div className="relative flex items-center justify-between">
@@ -67,10 +65,7 @@ function Dashboard() {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">最近文章</h2>
-          <Link
-            to="/admin/posts"
-            className="text-xs text-primary hover:underline"
-          >
+          <Link to="/admin/posts" className="text-xs text-primary hover:underline">
             查看全部 →
           </Link>
         </div>

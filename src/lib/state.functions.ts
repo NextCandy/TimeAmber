@@ -1,9 +1,4 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  randomBytes,
-} from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import postgres from "postgres";
 import { z } from "zod";
@@ -37,10 +32,7 @@ function cryptoKey() {
 function encryptJson(value: unknown) {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", cryptoKey(), iv);
-  const encrypted = Buffer.concat([
-    cipher.update(JSON.stringify(value), "utf8"),
-    cipher.final(),
-  ]);
+  const encrypted = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
   return [
     "v1",
     iv.toString("base64url"),
@@ -54,11 +46,7 @@ function decryptJson<T>(value: string | undefined, fallback: T): T {
   try {
     const [version, iv, tag, payload] = value.split(".");
     if (version !== "v1" || !iv || !tag || !payload) return fallback;
-    const decipher = createDecipheriv(
-      "aes-256-gcm",
-      cryptoKey(),
-      Buffer.from(iv, "base64url"),
-    );
+    const decipher = createDecipheriv("aes-256-gcm", cryptoKey(), Buffer.from(iv, "base64url"));
     decipher.setAuthTag(Buffer.from(tag, "base64url"));
     const plain = Buffer.concat([
       decipher.update(Buffer.from(payload, "base64url")),
@@ -103,13 +91,17 @@ async function loadMediaItems(): Promise<AdminState["media"]> {
 
 async function loadPosts(admin: boolean): Promise<Post[]> {
   const sql = db();
+  // 公开查询刻意不取 source / notion_id / notion_last_edited：
+  // 这份结果会被 root loader 序列化进**每一个页面**的 hydration payload（1921 篇），
+  // 而这三个字段前台列表一个都用不到 —— notion_* 只有后台 backup 页在用（走 admin 分支的
+  // select *），文章页的「原文」链接来自 posts.$slug 自己的 loadPublicPost。
   const rows = admin
     ? await sql`select * from public.posts order by pinned desc, created_at desc`
     : await sql`
         select
           id, slug, title, excerpt, category, publish_at, created_at,
-          reading_minutes, source, published, cover_image, post_type,
-          external_url, open_in, notion_id, notion_last_edited
+          reading_minutes, published, cover_image, post_type,
+          external_url, open_in
         from public.posts
         where published = true and (publish_at is null or publish_at <= now())
         order by pinned desc, created_at desc
@@ -141,37 +133,32 @@ async function loadPosts(admin: boolean): Promise<Post[]> {
     externalUrl: row.external_url ? String(row.external_url) : undefined,
     openIn: row.open_in === "_self" ? "_self" : "_blank",
     notionId: row.notion_id ? String(row.notion_id) : undefined,
-    notionLastEdited: row.notion_last_edited
-      ? asDate(row.notion_last_edited)
-      : undefined,
+    notionLastEdited: row.notion_last_edited ? asDate(row.notion_last_edited) : undefined,
   }));
 }
 
 async function readConfig<T>(key: string, fallback: T): Promise<T> {
-  const [row] =
-    await db()`select value from public.app_config where key = ${key}`;
+  const [row] = await db()`select value from public.app_config where key = ${key}`;
   return (row?.value as T | undefined) ?? fallback;
 }
 
 async function readSecret<T>(key: string, fallback: T): Promise<T> {
-  const [row] =
-    await db()`select encrypted_value from public.secret_config where key = ${key}`;
+  const [row] = await db()`select encrypted_value from public.secret_config where key = ${key}`;
   return decryptJson<T>(row?.encrypted_value as string | undefined, fallback);
 }
 
 async function loadCore(admin: boolean): Promise<Partial<AdminState>> {
   const sql = db();
-  const [posts, categories, tags, friends, settings, schedule] =
-    await Promise.all([
-      loadPosts(admin),
-      sql`select name from public.categories order by name`,
-      sql`select name from public.tags order by name`,
-      admin
-        ? sql`select * from public.friends order by sort_order, name`
-        : sql`select * from public.friends where published = true order by sort_order, name`,
-      readConfig("site", {}),
-      readConfig("backup_schedule", {}),
-    ]);
+  const [posts, categories, tags, friends, settings, schedule] = await Promise.all([
+    loadPosts(admin),
+    sql`select name from public.categories order by name`,
+    sql`select name from public.tags order by name`,
+    admin
+      ? sql`select * from public.friends order by sort_order, name`
+      : sql`select * from public.friends where published = true order by sort_order, name`,
+    readConfig("site", {}),
+    readConfig("backup_schedule", {}),
+  ]);
 
   return {
     posts,
@@ -191,8 +178,7 @@ async function assertAdmin(userId: string) {
   const [profile] = await db()`
     select role from public.profiles where user_id = ${userId}::uuid
   `;
-  if (profile?.role !== "admin")
-    throw new Error("Administrator access required");
+  if (profile?.role !== "admin") throw new Error("Administrator access required");
 }
 
 export const loadPublicState = createServerFn({ method: "GET" }).handler(
@@ -231,9 +217,7 @@ export const loadPublicVisitTrend = createServerFn({ method: "GET" }).handler(
 const publicPostInput = z.object({ slug: z.string().min(1).max(300) });
 
 export const loadPublicPost = createServerFn({ method: "GET" })
-  .inputValidator((value: z.infer<typeof publicPostInput>) =>
-    publicPostInput.parse(value),
-  )
+  .inputValidator((value: z.infer<typeof publicPostInput>) => publicPostInput.parse(value))
   .handler(async ({ data }): Promise<Post | null> => {
     const sql = db();
     const [row] = await sql`
@@ -268,9 +252,7 @@ export const loadPublicPost = createServerFn({ method: "GET" })
       externalUrl: row.external_url ? String(row.external_url) : undefined,
       openIn: row.open_in === "_self" ? "_self" : "_blank",
       notionId: row.notion_id ? String(row.notion_id) : undefined,
-      notionLastEdited: row.notion_last_edited
-        ? asDate(row.notion_last_edited)
-        : undefined,
+      notionLastEdited: row.notion_last_edited ? asDate(row.notion_last_edited) : undefined,
     };
   });
 
@@ -337,10 +319,7 @@ export const loadAdminState = createServerFn({ method: "GET" })
         at: asDate(row.created_at),
         actor: String(row.actor),
         action: row.action,
-        snapshotId:
-          row.entity_type === "snapshot"
-            ? String(row.entity_id ?? "")
-            : undefined,
+        snapshotId: row.entity_type === "snapshot" ? String(row.entity_id ?? "") : undefined,
         detail: row.detail?.message,
       })),
       analytics: analytics.map((row) => ({
@@ -420,9 +399,7 @@ const stateInput = z.object({ state: z.any() });
 
 export const persistAdminState = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((value: z.infer<typeof stateInput>) =>
-    stateInput.parse(value),
-  )
+  .inputValidator((value: z.infer<typeof stateInput>) => stateInput.parse(value))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const state = data.state as AdminState;
@@ -502,10 +479,23 @@ export const persistAdminState = createServerFn({ method: "POST" })
         const savedPosts = await tx`
           insert into public.posts ${tx(
             postRows,
-            "slug", "title", "content", "excerpt", "cover_image", "published",
-            "listed", "publish_at", "category", "post_type", "external_url",
-            "open_in", "source", "notion_id", "notion_last_edited",
-            "reading_minutes", "updated_at",
+            "slug",
+            "title",
+            "content",
+            "excerpt",
+            "cover_image",
+            "published",
+            "listed",
+            "publish_at",
+            "category",
+            "post_type",
+            "external_url",
+            "open_in",
+            "source",
+            "notion_id",
+            "notion_last_edited",
+            "reading_minutes",
+            "updated_at",
           )}
           on conflict (slug) do update set
             title = excluded.title,
@@ -606,9 +596,7 @@ const setPublishedInput = z.object({
 
 export const setPostPublished = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((value: z.infer<typeof setPublishedInput>) =>
-    setPublishedInput.parse(value),
-  )
+  .inputValidator((value: z.infer<typeof setPublishedInput>) => setPublishedInput.parse(value))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const sql = db();
@@ -630,9 +618,7 @@ const singlePostInput = z.object({ post: z.any() });
 
 export const upsertSinglePost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((value: z.infer<typeof singlePostInput>) =>
-    singlePostInput.parse(value),
-  )
+  .inputValidator((value: z.infer<typeof singlePostInput>) => singlePostInput.parse(value))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const post = data.post as Post;
@@ -672,10 +658,23 @@ export const upsertSinglePost = createServerFn({ method: "POST" })
               updated_at: nowIso,
             },
           ],
-          "slug", "title", "content", "excerpt", "cover_image", "published",
-          "listed", "publish_at", "category", "post_type", "external_url",
-          "open_in", "source", "notion_id", "notion_last_edited",
-          "reading_minutes", "updated_at",
+          "slug",
+          "title",
+          "content",
+          "excerpt",
+          "cover_image",
+          "published",
+          "listed",
+          "publish_at",
+          "category",
+          "post_type",
+          "external_url",
+          "open_in",
+          "source",
+          "notion_id",
+          "notion_last_edited",
+          "reading_minutes",
+          "updated_at",
         )}
         on conflict (slug) do update set
           title = excluded.title,
@@ -697,9 +696,7 @@ export const upsertSinglePost = createServerFn({ method: "POST" })
       `;
       const postId = Number(saved.id);
 
-      const uniqueTags = [
-        ...new Set(Array.isArray(post.tags) ? post.tags : []),
-      ];
+      const uniqueTags = [...new Set(Array.isArray(post.tags) ? post.tags : [])];
       const tagIdByName = new Map<string, number>();
       if (uniqueTags.length) {
         const savedTags = await tx`
@@ -710,8 +707,7 @@ export const upsertSinglePost = createServerFn({ method: "POST" })
           on conflict (name) do update set name = excluded.name
           returning id, name
         `;
-        for (const row of savedTags)
-          tagIdByName.set(String(row.name), Number(row.id));
+        for (const row of savedTags) tagIdByName.set(String(row.name), Number(row.id));
       }
 
       await tx`delete from public.post_tags where post_id = ${postId}`;
@@ -745,9 +741,7 @@ const telemetryInput = z.object({
 });
 
 export const recordTelemetry = createServerFn({ method: "POST" })
-  .inputValidator((value: z.infer<typeof telemetryInput>) =>
-    telemetryInput.parse(value),
-  )
+  .inputValidator((value: z.infer<typeof telemetryInput>) => telemetryInput.parse(value))
   .handler(async ({ data }) => {
     if (data.type === "contact" && data.channel) {
       await db()`
