@@ -66,6 +66,21 @@ function rehypeLazyImages() {
   };
 }
 
+// 渲染前的内容预处理：
+// 1) 统一换行为 LF —— 部分 Notion 内容是 CRLF，会让下面的空行匹配失效。
+// 2) Notion 同步在每行之间插入空行，而 GFM 表格要求表头/分隔/数据行连续无空行，
+//    否则每行会被当成独立段落、表格无法成形。去掉相邻表格行之间的空行即可恢复。
+//    非表格内容不受影响。
+function preprocessMarkdown(md: string): string {
+  let out = md.replace(/\r\n?/g, "\n");
+  let prev: string;
+  do {
+    prev = out;
+    out = out.replace(/^([ \t]*\|.*\|[ \t]*)\n[ \t]*\n(?=[ \t]*\|)/gm, "$1\n");
+  } while (out !== prev);
+  return out;
+}
+
 function build() {
   return unified()
     .use(remarkParse)
@@ -102,7 +117,7 @@ export async function renderMarkdown(markdown: string): Promise<string> {
   }
 
   processor ??= build();
-  const html = String(await processor.process(md));
+  const html = String(await processor.process(preprocessMarkdown(md)));
 
   cache.set(md, html);
   if (cache.size > CACHE_MAX) {
