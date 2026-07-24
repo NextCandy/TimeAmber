@@ -1,4 +1,8 @@
 import { useEffect, useState } from "react";
+import { slugify } from "@/lib/slugify";
+
+// 保持既有导入路径可用（历史上 slugify 从本模块导出）。
+export { slugify };
 
 export type TocItem = { id: string; text: string; level: 1 | 2 };
 
@@ -20,16 +24,6 @@ export function extractToc(markdown: string): TocItem[] {
     }
   }
   return items;
-}
-
-export function slugify(text: string) {
-  return (
-    "h-" +
-    text
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}]+/gu, "-")
-      .replace(/(^-|-$)/g, "")
-  );
 }
 
 export function TableOfContents({ items }: { items: TocItem[] }) {

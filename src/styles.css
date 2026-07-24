@@ -193,3 +193,211 @@
     inset 0 0 0 1px oklch(0.78 0.16 65 / 35%),
     0 10px 30px -15px oklch(0.78 0.16 65 / 25%);
 }
+
+/* ── 文章正文排版（/posts/*）────────────────────────────────────────
+   HTML 由服务端 Markdown 渲染器输出；颜色 / 字体 / 圆角全部走 token。
+   字号与行高由 ReadingControls 通过内联 style 注入到 .article-prose 上，
+   本处一律用 em 以随之缩放。 */
+.article-prose {
+  color: var(--color-foreground);
+  overflow-wrap: anywhere;
+}
+
+.article-prose h1,
+.article-prose h2,
+.article-prose h3,
+.article-prose h4,
+.article-prose h5,
+.article-prose h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.3;
+  scroll-margin-top: 6rem;
+  margin: 1.8em 0 0.6em;
+}
+.article-prose h1 {
+  font-size: 1.9em;
+}
+.article-prose h2 {
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--color-border);
+}
+.article-prose h3 {
+  font-size: 1.25em;
+}
+.article-prose h4 {
+  font-size: 1.08em;
+}
+
+.article-prose p {
+  margin: 1.1em 0;
+}
+
+.article-prose a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+.article-prose a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.article-prose strong {
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+
+.article-prose ul,
+.article-prose ol {
+  margin: 1.1em 0;
+  padding-left: 1.5em;
+}
+.article-prose ul {
+  list-style: disc;
+}
+.article-prose ol {
+  list-style: decimal;
+}
+.article-prose li {
+  margin: 0.35em 0;
+}
+.article-prose li::marker {
+  color: var(--color-muted-foreground);
+}
+
+.article-prose blockquote {
+  margin: 1.2em 0;
+  border-left: 3px solid var(--color-primary);
+  padding: 0.2em 0 0.2em 1em;
+  color: var(--color-muted-foreground);
+  font-style: italic;
+}
+
+.article-prose hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin: 2em 0;
+}
+
+/* 行内代码 */
+.article-prose :not(pre) > code {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  background: var(--color-muted);
+  color: var(--color-primary);
+  padding: 0.15em 0.4em;
+  border-radius: 0.35em;
+  word-break: break-word;
+}
+
+/* 图片：宽度自适应 + 点击放大光标 */
+.article-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  margin: 1em 0;
+  cursor: zoom-in;
+}
+
+/* 表格：窄屏可横向滚动 */
+.article-prose table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 1.2em 0;
+  font-size: 0.92em;
+}
+.article-prose th,
+.article-prose td {
+  border: 1px solid var(--color-border);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.article-prose thead th {
+  background: var(--color-muted);
+  font-weight: 600;
+}
+
+/* 任务列表 */
+.article-prose li:has(> input[type="checkbox"]) {
+  list-style: none;
+  margin-left: -1.25em;
+}
+.article-prose li > input[type="checkbox"] {
+  margin-right: 0.5em;
+  translate: 0 1px;
+  accent-color: var(--color-primary);
+}
+
+/* 脚注 */
+.article-prose section[data-footnotes],
+.article-prose .footnotes {
+  margin-top: 2.5em;
+  padding-top: 1em;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.88em;
+  color: var(--color-muted-foreground);
+}
+
+/* ── 代码块 ──────────────────────────────────────────────────────
+   前端为每个 <pre> 包一层 .code-block 并加语言标签 + 复制按钮；
+   SSR 首帧 / 无 JS 时裸 pre.shiki 也保持圆角与内边距。 */
+.article-prose .code-block {
+  margin: 1.3em 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.article-prose .code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4em 0.85em;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in oklab, var(--color-muted) 60%, transparent);
+}
+.article-prose .code-lang {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--color-muted-foreground);
+}
+.article-prose .code-copy {
+  font-size: 0.72rem;
+  color: var(--color-muted-foreground);
+  padding: 0.2em 0.65em;
+  border-radius: 0.4em;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.article-prose .code-copy:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.article-prose pre {
+  margin: 0;
+  padding: 1em;
+  overflow-x: auto;
+  font-size: 0.85em;
+  line-height: 1.6;
+}
+/* 裸 pre（未被 .code-block 包裹）需要自己的外边距与圆角 */
+.article-prose > div > pre,
+.article-prose > pre {
+  margin: 1.3em 0;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+.article-prose pre code {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}

@@ -1,27 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Clock, ExternalLink } from "lucide-react";
+import { useEffect, useRef } from "react";
+import mediumZoom from "medium-zoom";
 import { POSTS, formatDate } from "@/lib/sample-posts";
 import { DEFAULT_POST_COVER } from "@/lib/brand";
 import { useAdminStore } from "@/lib/admin-store";
 import { loadPublicPost } from "@/lib/state.functions";
-import {
-  TableOfContents,
-  extractToc,
-  slugify,
-} from "@/components/post/TableOfContents";
-import {
-  ReadingControls,
-  useReadingPrefs,
-} from "@/components/post/ReadingControls";
+import { renderMarkdownFn } from "@/lib/markdown.functions";
+import { TableOfContents, extractToc } from "@/components/post/TableOfContents";
+import { ReadingControls, useReadingPrefs } from "@/components/post/ReadingControls";
 
 export const Route = createFileRoute("/posts/$slug")({
   loader: async ({ params }) => {
-    try {
-      const post = await loadPublicPost({ data: { slug: params.slug } });
-      return { post: post ?? POSTS.find((p) => p.slug === params.slug) ?? null };
-    } catch {
-      return { post: POSTS.find((p) => p.slug === params.slug) ?? null };
-    }
+    const dbPost = await loadPublicPost({
+      data: { slug: params.slug },
+    }).catch(() => null);
+    const post = dbPost ?? POSTS.find((p) => p.slug === params.slug) ?? null;
+    const contentHtml =
+      post && post.type !== "html" && post.content
+        ? await renderMarkdownFn({ data: { md: post.content } })
+        : "";
+    return { post, contentHtml };
   },
   head: ({ loaderData }) => ({
     meta: loaderData?.post
@@ -39,10 +38,71 @@ export const Route = createFileRoute("/posts/$slug")({
 
 function PostPage() {
   const { slug } = Route.useParams();
-  const { post: loaderPost } = Route.useLoaderData();
+  const { post: loaderPost, contentHtml } = Route.useLoaderData();
   const { posts } = useAdminStore();
   const summary = posts.find((p) => p.slug === slug);
   const [prefs, setPrefs] = useReadingPrefs();
+
+  // 正文增强（仅客户端）：图片点击放大 + 代码块语言标签与复制按钮。
+  // 内容由服务端 dangerouslySetInnerHTML 注入，这里对其 DOM 做非侵入增强。
+  const articleRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = articleRef.current;
+    if (!root) return;
+
+    const zoom = mediumZoom(root.querySelectorAll("img"), {
+      background: "rgba(0,0,0,0.9)",
+      margin: 24,
+    });
+
+    const cleanups: Array<() => void> = [];
+    root.querySelectorAll("pre").forEach((pre) => {
+      const parent = pre.parentElement;
+      if (parent && parent.classList.contains("code-block")) return;
+
+      const code = pre.querySelector("code");
+      const cls = `${code?.className ?? ""} ${pre.className}`;
+      const langMatch = cls.match(/language-([\w-]+)/);
+      const lang = (langMatch?.[1] ?? "text").toUpperCase();
+
+      const wrap = document.createElement("div");
+      wrap.className = "code-block";
+      const head = document.createElement("div");
+      head.className = "code-head";
+      const label = document.createElement("span");
+      label.className = "code-lang";
+      label.textContent = lang;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "code-copy";
+      btn.textContent = "复制";
+
+      const onClick = () => {
+        navigator.clipboard?.writeText(pre.innerText).then(
+          () => {
+            btn.textContent = "已复制";
+            window.setTimeout(() => {
+              btn.textContent = "复制";
+            }, 1500);
+          },
+          () => {},
+        );
+      };
+      btn.addEventListener("click", onClick);
+      head.appendChild(label);
+      head.appendChild(btn);
+
+      pre.parentNode?.insertBefore(wrap, pre);
+      wrap.appendChild(head);
+      wrap.appendChild(pre);
+      cleanups.push(() => btn.removeEventListener("click", onClick));
+    });
+
+    return () => {
+      zoom.detach();
+      cleanups.forEach((fn) => fn());
+    };
+  }, [contentHtml]);
 
   const post = loaderPost ?? summary;
 
@@ -92,10 +152,7 @@ function PostPage() {
                 {post.category}
               </span>
               {post.tags.map((t: string) => (
-                <span
-                  key={t}
-                  className="rounded-full border border-border/80 px-2 py-0.5"
-                >
+                <span key={t} className="rounded-full border border-border/80 px-2 py-0.5">
                   #{t}
                 </span>
               ))}
@@ -134,14 +191,15 @@ function PostPage() {
           />
 
           <div
-            className="text-foreground/90"
+            ref={articleRef}
+            className="article-prose text-foreground/90"
             style={{
               fontSize: `${prefs.fontSize}px`,
               lineHeight: prefs.lineHeight,
             }}
           >
-            {post.content ? (
-              <SimpleMarkdown markdown={post.content} />
+            {contentHtml ? (
+              <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
             ) : (
               <>
                 <p className="text-lg text-muted-foreground">{post.excerpt}</p>
@@ -175,110 +233,4 @@ function PostPage() {
       </div>
     </div>
   );
-}
-
-/**
- * Lightweight Markdown renderer with heading IDs so the TOC can scroll.
- */
-function SimpleMarkdown({ markdown }: { markdown: string }) {
-  const lines = markdown.split("\n");
-  const out: React.ReactNode[] = [];
-  let listBuffer: string[] = [];
-
-  const flushList = () => {
-    if (listBuffer.length) {
-      out.push(
-        <ul key={`l-${out.length}`} className="my-4 list-disc space-y-1 pl-6">
-          {listBuffer.map((item, i) => (
-            <li key={i}>{renderInline(item)}</li>
-          ))}
-        </ul>,
-      );
-      listBuffer = [];
-    }
-  };
-
-  for (const raw of lines) {
-    const line = raw.trimEnd();
-    if (line.startsWith("# ")) {
-      flushList();
-      const text = line.slice(2);
-      out.push(
-        <h1
-          key={out.length}
-          id={slugify(text)}
-          className="mt-8 mb-4 scroll-mt-24 font-display text-3xl font-bold"
-        >
-          {text}
-        </h1>,
-      );
-    } else if (line.startsWith("## ")) {
-      flushList();
-      const text = line.slice(3);
-      out.push(
-        <h2
-          key={out.length}
-          id={slugify(text)}
-          className="mt-8 mb-3 scroll-mt-24 font-display text-2xl font-semibold"
-        >
-          {text}
-        </h2>,
-      );
-    } else if (line.startsWith("> ")) {
-      flushList();
-      out.push(
-        <blockquote
-          key={out.length}
-          className="my-4 border-l-2 border-primary pl-4 text-muted-foreground italic"
-        >
-          {line.slice(2)}
-        </blockquote>,
-      );
-    } else if (line.startsWith("- ")) {
-      listBuffer.push(line.slice(2));
-    } else if (line === "") {
-      flushList();
-    } else {
-      flushList();
-      out.push(
-        <p key={out.length} className="my-4">
-          {renderInline(line)}
-        </p>,
-      );
-    }
-  }
-  flushList();
-
-  return <>{out}</>;
-}
-
-function renderInline(text: string): React.ReactNode {
-  const parts: React.ReactNode[] = [];
-  const re = /(\*\*[^*]+\*\*|`[^`]+`)/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  let key = 0;
-  while ((match = re.exec(text))) {
-    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
-    const token = match[0];
-    if (token.startsWith("**")) {
-      parts.push(
-        <strong key={key++} className="font-semibold text-foreground">
-          {token.slice(2, -2)}
-        </strong>,
-      );
-    } else {
-      parts.push(
-        <code
-          key={key++}
-          className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-primary"
-        >
-          {token.slice(1, -1)}
-        </code>,
-      );
-    }
-    lastIndex = match.index + token.length;
-  }
-  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
-  return parts;
 }
