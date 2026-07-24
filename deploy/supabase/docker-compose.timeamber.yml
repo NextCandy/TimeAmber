@@ -1,0 +1,150 @@
+services:
+  timeamber-app:
+    container_name: timeamber-app
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${SUPABASE_PUBLIC_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      kong:
+        condition: service_healthy
+    ports:
+      - "49287:3000"
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      COOKIE_SECURE: "false"
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SESSION_SECRET: ${SESSION_SECRET}
+      TIMEAMBER_SECRET_KEY: ${TIMEAMBER_SECRET_KEY}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      WORKER_URL: http://timeamber-worker:3001
+      WORKER_SECRET: ${WORKER_SECRET}
+      MEDIA_ROOT: /data/media
+    volumes:
+      - ${LEGACY_MEDIA_PATH}:/data/media:ro
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  timeamber-worker:
+    container_name: timeamber-worker
+    build:
+      context: ../..
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
+      MEDIA_ROOT: /data/media
+      BACKUP_ROOT: /data/backups
+      BACKUP_ENABLED: "true"
+      BACKUP_RETENTION: "30"
+      SYNC_ENABLED: "true"
+      WORKER_SECRET: ${WORKER_SECRET}
+      NOTION_TOKEN: ${NOTION_TOKEN:-}
+      NOTION_DATA_SOURCE_ID: ${NOTION_DATA_SOURCE_ID:-}
+      VS_DO_BASE_URL: ${VS_DO_BASE_URL:-}
+      VS_DO_TOKEN: ${VS_DO_TOKEN:-}
+      VS_DO_EMAIL: ${VS_DO_EMAIL:-}
+      VS_DO_PASSWORD: ${VS_DO_PASSWORD:-}
+      VS_DO_ARCHIVE_FOLDER_ID: ${VS_DO_ARCHIVE_FOLDER_ID:-}
+      KNOWLEDGE_INDEX_BATCH_SIZE: ${KNOWLEDGE_INDEX_BATCH_SIZE:-100}
+    volumes:
+      - ${LEGACY_MEDIA_PATH}:/data/media
+      - ./volumes/timeamber-backups:/data/backups
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3001/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  timeamber-migrate:
+    image: postgres:16-alpine
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ../../supabase/migrations:/migrations:ro
+      - ./volumes/import:/import:ro
+    entrypoint:
+      - /bin/bash
+      - -lc
+      - |
+        set -euo pipefail
+        if [ -f /import/legacy.dump ]; then
+          pg_restore --host db --port ${POSTGRES_PORT} --username postgres --dbname ${POSTGRES_DB} \
+            --no-owner --no-acl --clean --if-exists /import/legacy.dump
+        fi
+        for migration in /migrations/*.sql; do
+          echo "Applying $$(basename "$$migration")"
+          psql --host db --username postgres --dbname ${POSTGRES_DB} \
+            --port ${POSTGRES_PORT} \
+            --set ON_ERROR_STOP=1 --file "$$migration"
+        done
+
+  timeamber-bootstrap:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    profiles: ["tools"]
+    depends_on:
+      auth:
+        condition: service_healthy
+    environment:
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-955555@gmail.com}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD}
+    volumes:
+      - ../bootstrap.mjs:/app/bootstrap.mjs:ro
+    command: ["node", "/app/bootstrap.mjs"]
+
+  timeamber-media-import:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    profiles: ["tools"]
+    depends_on:
+      storage:
+        condition: service_healthy
+    environment:
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      LEGACY_MEDIA_ROOT: /legacy-media
+    volumes:
+      - ${LEGACY_MEDIA_PATH}:/legacy-media:ro
+      - ../migrate-media.mjs:/app/migrate-media.mjs:ro
+    command: ["node", "/app/migrate-media.mjs"]

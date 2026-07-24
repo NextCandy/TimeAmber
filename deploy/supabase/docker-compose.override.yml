@@ -1,0 +1,14 @@
+# 优化:2026-06-15 将应用运行时不依赖的管理/未使用服务移入 admin profile,
+# 默认 `docker compose up -d` 不再启动它们。需要管理界面时:
+#   docker compose --profile admin up -d
+# kong 原本仅 depends_on studio,这里解除该依赖(kong 网关功能不需要 studio 在线)。
+# 删除本文件即完全还原。
+services:
+  studio:
+    profiles: ["admin"]
+  meta:
+    profiles: ["admin"]
+  supavisor:
+    profiles: ["admin"]
+  kong:
+    depends_on: !reset null

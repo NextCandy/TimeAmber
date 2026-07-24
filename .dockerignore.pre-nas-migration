@@ -1,0 +1,14 @@
+.git
+.env
+.vendor
+backups
+dist
+HANDOFF-*.md
+legacy-current
+node_modules
+repo-main-extracted
+repo-main.zip
+legacy-current.tar.gz
+timeamber-*.tar.gz
+deploy/.env
+deploy/supabase/volumes

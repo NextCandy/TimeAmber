@@ -1,0 +1,459 @@
+/* Generated Unicode-range subsets for fast incremental Chinese font loading. */
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-latin.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-024F;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-symbols.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+2000-33FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u3400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+3400-37FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u3800.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+3800-3BFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u3c00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+3C00-3FFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u4000.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+4000-43FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u4400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+4400-47FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u4800.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+4800-4BFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u4c00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+4C00-4DBF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u4e00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+4E00-4FFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u5000.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+5000-51FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u5200.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+5200-53FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u5400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+5400-55FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u5600.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+5600-57FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u5800.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+5800-59FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u5a00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+5A00-5BFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u5c00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+5C00-5DFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u5e00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+5E00-5FFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u6000.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+6000-61FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u6200.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+6200-63FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u6400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+6400-65FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u6600.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+6600-67FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u6800.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+6800-69FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u6a00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+6A00-6BFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u6c00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+6C00-6DFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u6e00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+6E00-6FFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u7000.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+7000-71FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u7200.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+7200-73FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u7400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+7400-75FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u7600.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+7600-77FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u7800.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+7800-79FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u7a00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+7A00-7BFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u7c00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+7C00-7DFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u7e00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+7E00-7FFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u8000.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+8000-81FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u8200.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+8200-83FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u8400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+8400-85FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u8600.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+8600-87FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u8800.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+8800-89FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u8a00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+8A00-8BFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u8c00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+8C00-8DFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u8e00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+8E00-8FFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u9000.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+9000-91FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u9200.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+9200-93FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u9400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+9400-95FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u9600.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+9600-97FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u9800.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+9800-99FF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u9a00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+9A00-9BFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u9c00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+9C00-9DFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-u9e00.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+9E00-9FFF;
+}
+
+@font-face {
+  font-family: "Tsanger HuaXin";
+  src: url("/fonts/tsanger/TsangerHuaXin-fullwidth.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+FF00-FFEF;
+}

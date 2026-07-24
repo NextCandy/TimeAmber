@@ -1,0 +1,22 @@
+.git
+.env
+.vendor
+backups
+dist
+HANDOFF-*.md
+legacy-current
+node_modules
+repo-main-extracted
+repo-main.zip
+legacy-current.tar.gz
+timeamber-*.tar.gz
+deploy/.env
+deploy/supabase/volumes
+
+# NAS runtime data (never include in image build context)
+legacy-media/
+backups/
+deploy/supabase/volumes/db/data/
+deploy/supabase/volumes/storage/
+deploy/supabase/volumes/timeamber-backups/
+*.log

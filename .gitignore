@@ -1,0 +1,58 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+.output
+.vinxi
+.tanstack/**
+.nitro
+*.local
+.env
+.vendor/
+HANDOFF-*.md
+timeamber-*.tar.gz
+repo-main.zip
+repo-main-extracted/
+legacy-current.tar.gz
+legacy-current/
+deploy/.env
+deploy/supabase/volumes/
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- P0 baseline additions (secrets, runtime data, large media) ---
+supabase.env
+*.env
+legacy-media/
+backups/
+cloudflared/
+analytics-backup-*/
+perf-backup-*/
+nas-migration-backups-*/
+*.tar.gz
+
+# env-backup hardening (real JWT keys live in these)
+.env.*
+*.env.bak*
+deploy/supabase/.env*

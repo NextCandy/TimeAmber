@@ -1,0 +1,745 @@
+import type { IDatabase, Post } from "./storage/interfaces";
+
+const NOTION_API_BASE = "https://api.notion.com/v1";
+const NOTION_VERSION = "2026-03-11";
+const DEFAULT_DATA_SOURCE_ID = "22837041-b78c-81d8-9670-000b9d50c21b";
+const DEFAULT_NOTION_CATEGORY = "剪藏";
+const DEFAULT_METADATA_SYNC_PAGE_SIZE = 10;
+const DEFAULT_BODY_SYNC_PAGE_SIZE = 1;
+const DEFAULT_SYNC_MAX_PAGES = 1;
+const DEFAULT_MAX_NOTION_SUBREQUESTS = 40;
+const DEFAULT_POST_COVER = "/brand/timeamber-default-cover.png";
+const NOTION_DELETED_SLUGS_KEY = "notion_sync_deleted_slugs";
+const MAX_DELETED_NOTION_SLUGS = 5000;
+
+type NotionEnv = {
+  NOTION_TOKEN?: string;
+  NOTION_DATA_SOURCE_ID?: string;
+  NOTION_SYNC_MAX_SUBREQUESTS?: string;
+};
+
+type PostWithTags = Post & { tags: string[] };
+
+type RichText = {
+  plain_text?: string;
+  href?: string | null;
+  annotations?: {
+    bold?: boolean;
+    italic?: boolean;
+    strikethrough?: boolean;
+    code?: boolean;
+  };
+};
+
+type NotionPage = {
+  id: string;
+  created_time?: string;
+  last_edited_time?: string;
+  properties?: Record<string, NotionProperty>;
+};
+
+type NotionBlock = {
+  id: string;
+  type: string;
+  has_children?: boolean;
+  [key: string]: unknown;
+};
+
+type NotionProperty = {
+  type?: string;
+  title?: RichText[];
+  rich_text?: RichText[];
+  url?: string | null;
+  date?: { start?: string | null } | null;
+  created_time?: string;
+  last_edited_time?: string;
+  multi_select?: { name?: string }[];
+  relation?: { id: string }[];
+};
+
+type NotionSyncPost = {
+  slug: string;
+  legacySlug: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  tags: string[];
+  category: string;
+  createdAt: string;
+};
+
+export type NotionSyncResult = {
+  success: boolean;
+  created: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  processed: number;
+  hasMore: boolean;
+  nextCursor: string;
+  errors: string[];
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+};
+
+type RewriteImages = (content: string) => Promise<string>;
+
+type SyncOptions = {
+  db: IDatabase;
+  env: NotionEnv;
+  settings: Record<string, string>;
+  rewriteImages: RewriteImages;
+  pageSize?: number;
+  maxPages?: number;
+  resetCursor?: boolean;
+  repairOnly?: boolean;
+  maxBodyPages?: number;
+};
+
+export function getNotionDataSourceId(env: NotionEnv, settings: Record<string, string>): string {
+  return (settings.notion_data_source_id || env.NOTION_DATA_SOURCE_ID || DEFAULT_DATA_SOURCE_ID).trim();
+}
+
+function normalizeNotionId(value: string): string {
+  const cleaned = value.trim().replace(/-/g, "");
+  if (!/^[a-f0-9]{32}$/i.test(cleaned)) return value.trim();
+  return `${cleaned.slice(0, 8)}-${cleaned.slice(8, 12)}-${cleaned.slice(12, 16)}-${cleaned.slice(16, 20)}-${cleaned.slice(20)}`;
+}
+
+function getNotionDataSourceIds(env: NotionEnv, settings: Record<string, string>): string[] {
+  const raw = getNotionDataSourceId(env, settings);
+  const values = raw
+    .split(/[\s,;]+/)
+    .map((item) => normalizeNotionId(item))
+    .filter(Boolean);
+  return Array.from(new Set(values));
+}
+
+function getNotionToken(env: NotionEnv, settings: Record<string, string>): string {
+  return (settings.notion_token || env.NOTION_TOKEN || "").trim();
+}
+
+function normalizeTitle(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function notionCursorKey(baseKey: string, dataSourceId: string, index: number): string {
+  if (index === 0) return baseKey;
+  return `${baseKey}_${dataSourceId.replace(/-/g, "").slice(0, 12)}`;
+}
+
+export function getNotionSyncStatus(settings: Record<string, string>, env: NotionEnv) {
+  return {
+    configured: Boolean(getNotionToken(env, settings)),
+    dataSourceId: getNotionDataSourceIds(env, settings).join(", "),
+    lastRunAt: settings.notion_sync_last_run_at || "",
+    lastStatus: settings.notion_sync_last_status || "never",
+    lastError: settings.notion_sync_last_error || "",
+    lastCreated: Number(settings.notion_sync_last_created || 0),
+    lastUpdated: Number(settings.notion_sync_last_updated || 0),
+    lastSkipped: Number(settings.notion_sync_last_skipped || 0),
+    lastFailed: Number(settings.notion_sync_last_failed || 0),
+    lastProcessed: Number(settings.notion_sync_last_processed || 0),
+    hasMore: settings.notion_sync_has_more === "true",
+    lastDurationMs: Number(settings.notion_sync_last_duration_ms || 0),
+  };
+}
+
+export function isNotionSyncedSlug(slug: string): boolean {
+  return /^notion-[a-f0-9]{12,32}$/i.test(slug);
+}
+
+export async function rememberDeletedNotionSlugs(db: IDatabase, slugs: string[]): Promise<void> {
+  const notionSlugs = slugs.map(String).filter(isNotionSyncedSlug);
+  if (notionSlugs.length === 0) return;
+
+  const settings = await db.getSettings();
+  const deletedSlugs = parseDeletedNotionSlugs(settings);
+  for (const slug of notionSlugs) {
+    deletedSlugs.add(slug);
+  }
+
+  await db.saveSettings({
+    [NOTION_DELETED_SLUGS_KEY]: JSON.stringify(Array.from(deletedSlugs).slice(-MAX_DELETED_NOTION_SLUGS)),
+  });
+}
+
+export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncResult> {
+  const startedAt = new Date().toISOString();
+  const startedMs = Date.now();
+  const token = getNotionToken(options.env, options.settings);
+  const dataSourceIds = getNotionDataSourceIds(options.env, options.settings);
+
+  if (!token) {
+    const result = finishResult(startedAt, startedMs, {
+      success: false,
+      created: 0,
+      updated: 0,
+      skipped: 0,
+      failed: 1,
+      processed: 0,
+      hasMore: false,
+      nextCursor: options.settings.notion_sync_next_cursor || "",
+      errors: ["NOTION_TOKEN is not configured."],
+    });
+    await saveSyncStatus(options.db, result);
+    return result;
+  }
+
+  if (dataSourceIds.length === 0) {
+    const result = finishResult(startedAt, startedMs, {
+      success: false,
+      created: 0,
+      updated: 0,
+      skipped: 0,
+      failed: 1,
+      processed: 0,
+      hasMore: false,
+      nextCursor: "",
+      errors: ["NOTION_DATA_SOURCE_ID is not configured."],
+    });
+    await saveSyncStatus(options.db, result);
+    return result;
+  }
+
+  const client = new NotionClient(token);
+  client.setRequestBudget(clampInt(Number(options.env.NOTION_SYNC_MAX_SUBREQUESTS), 10, 45, DEFAULT_MAX_NOTION_SUBREQUESTS));
+  const includePageBody = options.settings.notion_sync_include_page_body !== "false";
+  const defaultPageSize = options.repairOnly ? DEFAULT_METADATA_SYNC_PAGE_SIZE : includePageBody ? DEFAULT_BODY_SYNC_PAGE_SIZE : DEFAULT_METADATA_SYNC_PAGE_SIZE;
+  const pageSize = clampInt(options.pageSize, 1, 20, defaultPageSize);
+  const maxPages = clampInt(options.maxPages, 1, 25, DEFAULT_SYNC_MAX_PAGES);
+  const baseCursorKey = options.repairOnly ? "notion_repair_next_cursor" : "notion_sync_next_cursor";
+  const deletedNotionSlugs = parseDeletedNotionSlugs(options.settings);
+  const maxBodyPages = clampInt(options.maxBodyPages, 1, 5, options.repairOnly ? 1 : 5);
+  let bodyPagesProcessed = 0;
+  const existingTitleMap = new Map<string, PostWithTags>();
+  const initialPosts = await options.db.getAllPosts();
+  for (const post of initialPosts) {
+    if (isNotionSyncedSlug(post.slug)) {
+      existingTitleMap.set(normalizeTitle(post.title), post);
+    }
+  }
+  const resultBase = {
+    success: true,
+    created: 0,
+    updated: 0,
+    skipped: 0,
+    failed: 0,
+    processed: 0,
+    hasMore: false,
+    nextCursor: "",
+    errors: [] as string[],
+  };
+
+  try {
+    for (let sourceIndex = 0; sourceIndex < dataSourceIds.length; sourceIndex++) {
+      const dataSourceId = dataSourceIds[sourceIndex];
+      const cursorKey = notionCursorKey(baseCursorKey, dataSourceId, sourceIndex);
+      let cursor = options.resetCursor ? undefined : options.settings[cursorKey] || undefined;
+      try {
+        for (let pageIndex = 0; pageIndex < maxPages; pageIndex++) {
+        const pageBatch = await client.queryDataSource(dataSourceId, {
+          startCursor: cursor,
+          pageSize,
+        });
+        resultBase.hasMore = pageBatch.hasMore;
+        resultBase.nextCursor = pageBatch.nextCursor || "";
+
+        for (const page of pageBatch.pages) {
+          try {
+            const pageSlug = notionSlug(page.id);
+            const pageLegacySlug = legacyNotionSlug(page.id);
+            let existing = await options.db.getPostBySlug(pageSlug);
+            if (!existing && pageLegacySlug !== pageSlug) {
+              const legacy = await options.db.getPostBySlug(pageLegacySlug);
+              if (legacy) existing = legacy;
+            }
+
+            if (options.repairOnly) {
+              resultBase.processed++;
+              if (!existing || !isLinkShellContent(existing.content) || bodyPagesProcessed >= maxBodyPages) {
+                resultBase.skipped++;
+                continue;
+              }
+              bodyPagesProcessed++;
+            }
+
+            const post = await notionPageToPost(client, page, {
+              includePageBody,
+            });
+            if (!options.repairOnly) resultBase.processed++;
+            if (!post.title) {
+              resultBase.skipped++;
+              continue;
+            }
+
+            existing = await options.db.getPostBySlug(post.slug);
+            if (!existing && post.legacySlug !== post.slug) {
+              const legacy = await options.db.getPostBySlug(post.legacySlug);
+              if (legacy?.title === post.title) existing = legacy;
+            }
+            if (!existing && sourceIndex > 0) {
+              existing = existingTitleMap.get(normalizeTitle(post.title)) || null;
+            }
+            if (!existing && deletedNotionSlugs.has(post.slug)) {
+              resultBase.skipped++;
+              continue;
+            }
+            if (!existing && deletedNotionSlugs.has(post.legacySlug)) {
+              resultBase.skipped++;
+              continue;
+            }
+
+            post.content = await options.rewriteImages(post.content);
+            if (existing) {
+              await options.db.updatePost(existing.slug, {
+                title: post.title,
+                content: post.content,
+                excerpt: post.excerpt,
+                tags: post.tags,
+                category: post.category,
+                coverImage: extractFirstImage(post.content) || existing.coverImage || DEFAULT_POST_COVER,
+              });
+              resultBase.updated++;
+              existingTitleMap.set(normalizeTitle(post.title), { ...existing, title: post.title, content: post.content, excerpt: post.excerpt, category: post.category, tags: post.tags });
+            } else {
+              const created = await options.db.createPost({
+                slug: post.slug,
+                title: post.title,
+                content: post.content,
+                excerpt: post.excerpt,
+                tags: post.tags,
+                coverImage: extractFirstImage(post.content) || DEFAULT_POST_COVER,
+                coverColor: "from-cyan-500/20 to-blue-600/20",
+                published: false,
+                listed: true,
+                pinned: false,
+                publishAt: null,
+                category: post.category,
+                createdAt: post.createdAt,
+                updatedAt: page.last_edited_time || new Date().toISOString(),
+              });
+              existingTitleMap.set(normalizeTitle(post.title), { ...created, tags: post.tags });
+              resultBase.created++;
+            }
+          } catch (error) {
+            resultBase.failed++;
+            resultBase.errors.push(`${page.id}: ${errorToMessage(error)}`);
+          }
+        }
+
+        await options.db.saveSettings({
+          [cursorKey]: pageBatch.nextCursor || "",
+        });
+        if (!pageBatch.hasMore || !pageBatch.nextCursor || pageBatch.pages.length === 0) break;
+        cursor = pageBatch.nextCursor;
+        }
+      } catch (error) {
+        resultBase.success = false;
+        resultBase.failed++;
+        resultBase.errors.push(`${dataSourceId}: ${errorToMessage(error)}`);
+      }
+    }
+  } catch (error) {
+    resultBase.success = false;
+    resultBase.failed++;
+    resultBase.errors.push(errorToMessage(error));
+  }
+
+  const result = finishResult(startedAt, startedMs, resultBase);
+  await saveSyncStatus(options.db, result, baseCursorKey, options.repairOnly);
+  return result;
+}
+
+function isLinkShellContent(content: string): boolean {
+  const trimmed = content.trim();
+  if (trimmed.length < 260) return true;
+  if (trimmed.length < 900 && /原文地址/.test(trimmed)) return true;
+  return false;
+}
+
+function parseDeletedNotionSlugs(settings: Record<string, string>): Set<string> {
+  try {
+    const parsed = JSON.parse(settings[NOTION_DELETED_SLUGS_KEY] || "[]");
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.map(String).filter(isNotionSyncedSlug));
+  } catch {
+    return new Set();
+  }
+}
+
+function clampInt(value: number | undefined, min: number, max: number, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(min, Math.min(max, Math.floor(value as number)));
+}
+
+function firstProperty(properties: Record<string, NotionProperty>, names: string[]): NotionProperty | undefined {
+  for (const name of names) {
+    const property = properties[name];
+    if (property) return property;
+  }
+  return undefined;
+}
+
+async function notionPageToPost(client: NotionClient, page: NotionPage, options: { includePageBody: boolean }): Promise<NotionSyncPost> {
+  const properties = page.properties || {};
+  const title = truncate(getTitle(firstProperty(properties, ["标题", "Name"])) || "未命名文章", 160);
+  const excerpt = truncate(getRichText(firstProperty(properties, ["摘要", "Excerpt"])), 300);
+  const sourceUrl = firstProperty(properties, ["原文地址", "URL"])?.url || "";
+  const createdAt = firstProperty(properties, ["发布日期", "Created", "创建时间"])?.date?.start || page.created_time || new Date().toISOString();
+  const authorText = getRichText(firstProperty(properties, ["Author"])).trim();
+  const authorTags = [
+    ...((firstProperty(properties, ["作者"])?.multi_select || [])
+      .map((item) => item.name?.trim())
+      .filter((name): name is string => Boolean(name))),
+    ...(authorText ? [authorText] : []),
+    ...((firstProperty(properties, ["Tags"])?.multi_select || [])
+      .map((item) => item.name?.trim())
+      .filter((name): name is string => Boolean(name))),
+  ];
+  const blocks = options.includePageBody ? await client.listBlockChildren(page.id) : [];
+  const markdown = blocks.length > 0 ? await blocksToMarkdown(client, blocks, 0) : "";
+  const externalText = !markdown.trim() && sourceUrl ? await fetchExternalReadableText(sourceUrl) : "";
+  const fallbackContent = buildClippingFallback(title, excerpt, sourceUrl);
+  const content = [
+    markdown.trim() || externalText.trim() || fallbackContent,
+    sourceUrl && (markdown.trim() || externalText.trim()) ? `\n\n> 原文地址: [${sourceUrl}](${sourceUrl})` : "",
+  ].join("").trim();
+  const normalizedTags = Array.from(new Set([DEFAULT_NOTION_CATEGORY, ...authorTags])).slice(0, 20);
+
+  return {
+    slug: notionSlug(page.id),
+    legacySlug: legacyNotionSlug(page.id),
+    title,
+    content,
+    excerpt: excerpt || truncate(stripMarkdown(content), 220),
+    tags: normalizedTags,
+    category: DEFAULT_NOTION_CATEGORY,
+    createdAt,
+  };
+}
+
+async function fetchExternalReadableText(url: string): Promise<string> {
+  if (!/^https?:\/\//i.test(url)) return "";
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; TimeAmberBot/1.0; +https://timeamber.com)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.5",
+      },
+    });
+    const contentType = res.headers.get("content-type") || "";
+    if (!res.ok || !/text\/html|text\/plain|application\/xhtml\+xml/i.test(contentType)) return "";
+    const text = await res.text();
+    return htmlToReadableText(text, 60000);
+  } catch {
+    return "";
+  }
+}
+
+function htmlToReadableText(html: string, maxChars: number): string {
+  const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || html;
+  return body
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
+    .replace(/<(h[1-6]|p|li|blockquote|pre|tr|div|section|article|br)\b[^>]*>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, maxChars);
+}
+
+function notionSlug(pageId: string): string {
+  return `notion-${pageId.replace(/-/g, "").slice(0, 32)}`;
+}
+
+function legacyNotionSlug(pageId: string): string {
+  return `notion-${pageId.replace(/-/g, "").slice(0, 12)}`;
+}
+
+function buildClippingFallback(title: string, excerpt: string, sourceUrl: string): string {
+  const lines = [`# ${title}`];
+  if (excerpt) lines.push(excerpt);
+  if (sourceUrl) lines.push(`> 原文地址: [${sourceUrl}](${sourceUrl})`);
+  return lines.join("\n\n");
+}
+
+function budgetNotice(): string {
+  return "> Notion 页面内容较长，本次同步已接近单次任务请求上限，剩余子块将在后续同步中继续尝试更新。";
+}
+
+async function blocksToMarkdown(client: NotionClient, blocks: NotionBlock[], depth: number): Promise<string> {
+  const lines: string[] = [];
+  for (const block of blocks) {
+    const line = await blockToMarkdown(client, block, depth);
+    if (line) lines.push(line);
+  }
+  return lines.join("\n\n");
+}
+
+async function blockToMarkdown(client: NotionClient, block: NotionBlock, depth: number): Promise<string> {
+  const data = (block[block.type] || {}) as Record<string, unknown>;
+  const text = richTextToMarkdown((data.rich_text || []) as RichText[]);
+  let current = "";
+
+  switch (block.type) {
+    case "paragraph":
+      current = text;
+      break;
+    case "heading_1":
+      current = `# ${text}`;
+      break;
+    case "heading_2":
+      current = `## ${text}`;
+      break;
+    case "heading_3":
+      current = `### ${text}`;
+      break;
+    case "bulleted_list_item":
+      current = `${"  ".repeat(depth)}- ${text}`;
+      break;
+    case "numbered_list_item":
+      current = `${"  ".repeat(depth)}1. ${text}`;
+      break;
+    case "quote":
+      current = text.split("\n").map((line) => `> ${line}`).join("\n");
+      break;
+    case "callout":
+      current = text ? `> ${text}` : "";
+      break;
+    case "to_do":
+      current = `${(data.checked as boolean) ? "- [x]" : "- [ ]"} ${text}`;
+      break;
+    case "toggle":
+      current = `<details>\n<summary>${escapeHtml(text || "展开")}</summary>`;
+      break;
+    case "code":
+      current = `\`\`\`${String(data.language || "")}\n${plainText((data.rich_text || []) as RichText[])}\n\`\`\``;
+      break;
+    case "divider":
+      current = "---";
+      break;
+    case "image":
+      current = imageToMarkdown(data);
+      break;
+    case "bookmark":
+    case "embed":
+    case "video":
+    case "file":
+    case "pdf":
+      current = fileLikeToMarkdown(data, text || block.type);
+      break;
+    default:
+      current = text;
+  }
+
+  if (block.has_children && depth < 3) {
+    const children = await client.listBlockChildren(block.id);
+    const childMarkdown = await blocksToMarkdown(client, children, block.type.endsWith("_list_item") ? depth + 1 : depth);
+    if (childMarkdown) {
+      current = current ? `${current}\n\n${childMarkdown}` : childMarkdown;
+    }
+  }
+
+  if (block.type === "toggle" && current) {
+    current = `${current}\n</details>`;
+  }
+
+  return current.trim();
+}
+
+function imageToMarkdown(data: Record<string, unknown>): string {
+  const caption = richTextToMarkdown((data.caption || []) as RichText[]);
+  const file = data.file as { url?: string } | undefined;
+  const external = data.external as { url?: string } | undefined;
+  const url = external?.url || file?.url || "";
+  if (!url) return "";
+  return `![${caption || "Notion image"}](${url})`;
+}
+
+function fileLikeToMarkdown(data: Record<string, unknown>, label: string): string {
+  const url = (data.url as string | undefined)
+    || (data.external as { url?: string } | undefined)?.url
+    || (data.file as { url?: string } | undefined)?.url
+    || "";
+  return url ? `[${label}](${url})` : "";
+}
+
+function getTitle(property: NotionProperty | undefined): string {
+  return plainText(property?.title || []);
+}
+
+function getRichText(property: NotionProperty | undefined): string {
+  return plainText(property?.rich_text || []);
+}
+
+function richTextToMarkdown(text: RichText[]): string {
+  return text.map((part) => {
+    let value = part.plain_text || "";
+    if (!value) return "";
+    if (part.annotations?.code) value = `\`${value}\``;
+    if (part.annotations?.bold) value = `**${value}**`;
+    if (part.annotations?.italic) value = `*${value}*`;
+    if (part.annotations?.strikethrough) value = `~~${value}~~`;
+    if (part.href) value = `[${value}](${part.href})`;
+    return value;
+  }).join("");
+}
+
+function plainText(text: RichText[]): string {
+  return text.map((part) => part.plain_text || "").join("");
+}
+
+function stripMarkdown(value: string): string {
+  return value
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[#>*_`~-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractFirstImage(markdown: string): string {
+  const md = markdown.match(/!\[[^\]]*\]\(([^\s)]+)/);
+  return md?.[1] || "";
+}
+
+function truncate(value: string, length: number): string {
+  return value.trim().slice(0, length);
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;",
+  }[char] || char));
+}
+
+function finishResult(startedAt: string, startedMs: number, result: Omit<NotionSyncResult, "startedAt" | "finishedAt" | "durationMs">): NotionSyncResult {
+  return {
+    ...result,
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    durationMs: Date.now() - startedMs,
+  };
+}
+
+async function saveSyncStatus(db: IDatabase, result: NotionSyncResult, cursorKey = "notion_sync_next_cursor", repairOnly = false): Promise<void> {
+  await db.saveSettings({
+    notion_sync_last_run_at: result.finishedAt,
+    notion_sync_last_status: result.success && result.failed === 0 ? repairOnly ? "repair-success" : "success" : "error",
+    notion_sync_last_error: result.errors.slice(0, 3).join("\n").slice(0, 500),
+    notion_sync_last_created: String(result.created),
+    notion_sync_last_updated: String(result.updated),
+    notion_sync_last_skipped: String(result.skipped),
+    notion_sync_last_failed: String(result.failed),
+    notion_sync_last_processed: String(result.processed),
+    notion_sync_has_more: String(result.hasMore),
+    [cursorKey]: result.nextCursor,
+    notion_sync_last_duration_ms: String(result.durationMs),
+  });
+}
+
+function errorToMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+class NotionClient {
+  private requestCount = 0;
+  private maxRequests = DEFAULT_MAX_NOTION_SUBREQUESTS;
+
+  constructor(private readonly token: string) {}
+
+  setRequestBudget(maxRequests: number) {
+    this.maxRequests = maxRequests;
+  }
+
+  isBudgetExhausted(): boolean {
+    return this.requestCount >= this.maxRequests;
+  }
+
+  async queryDataSource(dataSourceId: string, options: { startCursor?: string; pageSize: number }): Promise<{
+    pages: NotionPage[];
+    hasMore: boolean;
+    nextCursor: string;
+  }> {
+    const body: Record<string, unknown> = {
+      page_size: Math.max(1, Math.min(options.pageSize, 20)),
+      sorts: [{ timestamp: "last_edited_time", direction: "descending" }],
+    };
+    if (options.startCursor) body.start_cursor = options.startCursor;
+
+    const data = await this.request<{ results?: NotionPage[]; has_more?: boolean; next_cursor?: string | null }>(
+      `/data_sources/${encodeURIComponent(dataSourceId)}/query`,
+      { method: "POST", body: JSON.stringify(body) },
+    );
+
+    return {
+      pages: data.results || [],
+      hasMore: Boolean(data.has_more),
+      nextCursor: data.has_more ? data.next_cursor || "" : "",
+    };
+  }
+
+  async listBlockChildren(blockId: string): Promise<NotionBlock[]> {
+    const blocks: NotionBlock[] = [];
+    let cursor: string | undefined;
+    do {
+      if (this.isBudgetExhausted()) {
+        blocks.push({
+          id: `${blockId}-budget-notice`,
+          type: "paragraph",
+          paragraph: { rich_text: [{ plain_text: budgetNotice() }] },
+        });
+        break;
+      }
+      const query = new URLSearchParams({ page_size: "100" });
+      if (cursor) query.set("start_cursor", cursor);
+      const data = await this.request<{ results?: NotionBlock[]; has_more?: boolean; next_cursor?: string | null }>(
+        `/blocks/${encodeURIComponent(blockId)}/children?${query.toString()}`,
+      );
+      blocks.push(...(data.results || []));
+      cursor = data.has_more ? data.next_cursor || undefined : undefined;
+    } while (cursor && blocks.length < 300);
+    return blocks;
+  }
+
+  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    if (this.isBudgetExhausted()) {
+      throw new Error("Notion sync reached the per-invocation subrequest budget.");
+    }
+    this.requestCount++;
+    const res = await fetch(`${NOTION_API_BASE}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        "Content-Type": "application/json",
+        "Notion-Version": NOTION_VERSION,
+        ...(init.headers || {}),
+      },
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Notion API ${res.status}: ${text.slice(0, 300)}`);
+    }
+
+    return res.json() as Promise<T>;
+  }
+}
