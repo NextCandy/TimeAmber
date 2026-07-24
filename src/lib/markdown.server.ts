@@ -66,6 +66,71 @@ function rehypeLazyImages() {
   };
 }
 
+function classNamesOf(el: Element | undefined): string {
+  const raw = el?.properties?.className;
+  if (Array.isArray(raw)) return raw.join(" ");
+  if (typeof raw === "string") return raw;
+  return "";
+}
+
+// 代码块外框：把每个 <pre> 包进 .code-block，并直出语言标签与复制按钮。
+//
+// 这一步刻意放在服务端而不是客户端 useEffect：正文是 dangerouslySetInnerHTML 注入的，
+// React 任何一次重新提交该节点都会重设 innerHTML、抹掉客户端插入的 DOM。
+// 结构由 HTML 自带就不存在这个时序问题，客户端只需用事件委托绑定复制行为。
+// 必须排在 sanitize 之后，否则 button 会被白名单过滤掉。
+function rehypeCodeChrome() {
+  return (tree: Root) => {
+    const walk = (node: Root | Element) => {
+      const children = node.children;
+      for (let i = 0; i < children.length; i += 1) {
+        const child = children[i];
+        if (child.type !== "element") continue;
+
+        if (child.tagName === "pre") {
+          const code = child.children.find(
+            (c): c is Element => c.type === "element" && c.tagName === "code",
+          );
+          const cls = `${classNamesOf(code)} ${classNamesOf(child)}`;
+          const lang = (cls.match(/language-([\w-]+)/)?.[1] ?? "text").toUpperCase();
+
+          children[i] = {
+            type: "element",
+            tagName: "div",
+            properties: { className: ["code-block"] },
+            children: [
+              {
+                type: "element",
+                tagName: "div",
+                properties: { className: ["code-head"] },
+                children: [
+                  {
+                    type: "element",
+                    tagName: "span",
+                    properties: { className: ["code-lang"] },
+                    children: [{ type: "text", value: lang }],
+                  },
+                  {
+                    type: "element",
+                    tagName: "button",
+                    properties: { type: "button", className: ["code-copy"] },
+                    children: [{ type: "text", value: "复制" }],
+                  },
+                ],
+              },
+              child,
+            ],
+          };
+          continue; // <pre> 内部无需再遍历
+        }
+
+        walk(child);
+      }
+    };
+    walk(tree);
+  };
+}
+
 // 渲染前的内容预处理：
 // 1) 统一换行为 LF —— 部分 Notion 内容是 CRLF，会让下面的空行匹配失效。
 // 2) Notion 同步在每行之间插入空行，而 GFM 表格要求表头/分隔/数据行连续无空行，
@@ -95,6 +160,7 @@ function build() {
       defaultLanguage: "text",
       fallbackLanguage: "text",
     })
+    .use(rehypeCodeChrome)
     .use(rehypeStringify);
 }
 

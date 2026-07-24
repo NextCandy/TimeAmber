@@ -43,64 +43,54 @@ function PostPage() {
   const summary = posts.find((p) => p.slug === slug);
   const [prefs, setPrefs] = useReadingPrefs();
 
-  // 正文增强（仅客户端）：图片点击放大 + 代码块语言标签与复制按钮。
-  // 内容由服务端 dangerouslySetInnerHTML 注入，这里对其 DOM 做非侵入增强。
+  // 正文增强（仅客户端）：图片点击放大 + 代码块复制。
+  //
+  // 代码块的外框/语言标签/复制按钮由服务端直出（见 markdown.server.ts 的 rehypeCodeChrome）——
+  // 正文经 dangerouslySetInnerHTML 注入，React 一旦重新提交该节点就会重设 innerHTML，
+  // 客户端插入的 DOM 会被整片抹掉。所以这里只做两件不怕被重设的事：
+  //   1. 复制用事件委托挂在 React 管理的稳定容器上，天然幂等；
+  //   2. medium-zoom 必须持有真实 img 节点，用 MutationObserver 在正文被换掉后重新 attach。
   const articleRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const root = articleRef.current;
     if (!root) return;
 
-    const zoom = mediumZoom(root.querySelectorAll("img"), {
-      background: "rgba(0,0,0,0.9)",
-      margin: 24,
-    });
+    let zoom: ReturnType<typeof mediumZoom> | null = null;
+    const attachZoom = () => {
+      zoom?.detach();
+      zoom = mediumZoom(root.querySelectorAll("img"), {
+        background: "rgba(0,0,0,0.9)",
+        margin: 24,
+      });
+    };
+    attachZoom();
 
-    const cleanups: Array<() => void> = [];
-    root.querySelectorAll("pre").forEach((pre) => {
-      const parent = pre.parentElement;
-      if (parent && parent.classList.contains("code-block")) return;
+    // 只观察 childList：medium-zoom 自己会改 img 的 class，观察 attributes 会自激。
+    const observer = new MutationObserver(attachZoom);
+    observer.observe(root, { childList: true, subtree: true });
 
-      const code = pre.querySelector("code");
-      const cls = `${code?.className ?? ""} ${pre.className}`;
-      const langMatch = cls.match(/language-([\w-]+)/);
-      const lang = (langMatch?.[1] ?? "text").toUpperCase();
+    const onClick = (event: MouseEvent) => {
+      const btn = (event.target as HTMLElement | null)?.closest?.(".code-copy");
+      if (!(btn instanceof HTMLElement)) return;
+      const pre = btn.closest(".code-block")?.querySelector("pre");
+      if (!pre) return;
 
-      const wrap = document.createElement("div");
-      wrap.className = "code-block";
-      const head = document.createElement("div");
-      head.className = "code-head";
-      const label = document.createElement("span");
-      label.className = "code-lang";
-      label.textContent = lang;
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "code-copy";
-      btn.textContent = "复制";
-
-      const onClick = () => {
-        navigator.clipboard?.writeText(pre.innerText).then(
-          () => {
-            btn.textContent = "已复制";
-            window.setTimeout(() => {
-              btn.textContent = "复制";
-            }, 1500);
-          },
-          () => {},
-        );
-      };
-      btn.addEventListener("click", onClick);
-      head.appendChild(label);
-      head.appendChild(btn);
-
-      pre.parentNode?.insertBefore(wrap, pre);
-      wrap.appendChild(head);
-      wrap.appendChild(pre);
-      cleanups.push(() => btn.removeEventListener("click", onClick));
-    });
+      navigator.clipboard?.writeText(pre.textContent ?? "").then(
+        () => {
+          btn.textContent = "已复制";
+          window.setTimeout(() => {
+            btn.textContent = "复制";
+          }, 1500);
+        },
+        () => {},
+      );
+    };
+    root.addEventListener("click", onClick);
 
     return () => {
-      zoom.detach();
-      cleanups.forEach((fn) => fn());
+      observer.disconnect();
+      zoom?.detach();
+      root.removeEventListener("click", onClick);
     };
   }, [contentHtml]);
 
