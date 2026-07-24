@@ -66,11 +66,18 @@ function rehypeLazyImages() {
   };
 }
 
+// hast 规范用 className，但 @shikijs/rehype 写的是 class（pre 上是字符串、code 上是数组），
+// 两个键、两种形态都要认，否则语言标签一律退化成 TEXT。
 function classNamesOf(el: Element | undefined): string {
-  const raw = el?.properties?.className;
-  if (Array.isArray(raw)) return raw.join(" ");
-  if (typeof raw === "string") return raw;
-  return "";
+  const props = el?.properties;
+  if (!props) return "";
+  const parts: string[] = [];
+  for (const key of ["className", "class"] as const) {
+    const raw = props[key];
+    if (Array.isArray(raw)) parts.push(raw.join(" "));
+    else if (typeof raw === "string") parts.push(raw);
+  }
+  return parts.join(" ");
 }
 
 // 代码块外框：把每个 <pre> 包进 .code-block，并直出语言标签与复制按钮。
@@ -79,22 +86,34 @@ function classNamesOf(el: Element | undefined): string {
 // React 任何一次重新提交该节点都会重设 innerHTML、抹掉客户端插入的 DOM。
 // 结构由 HTML 自带就不存在这个时序问题，客户端只需用事件委托绑定复制行为。
 // 必须排在 sanitize 之后，否则 button 会被白名单过滤掉。
+// @shikijs/rehype 把高亮结果作为一个**嵌套的 root 片段**插回父节点，官方 hast 类型里
+// 没有这种形态（Root.children 是 RootContent[]，不含 Root），所以遍历时放宽到结构类型，
+// 并且必须同时下钻 root —— 只认 element 会把整个代码块跳过去。
+type Walkable = { type: string; tagName?: string; children?: Walkable[] };
+
 function rehypeCodeChrome() {
   return (tree: Root) => {
-    const walk = (node: Root | Element) => {
+    const walk = (node: Walkable) => {
       const children = node.children;
+      if (!children) return;
+
       for (let i = 0; i < children.length; i += 1) {
         const child = children[i];
+        if (child.type === "root") {
+          walk(child);
+          continue;
+        }
         if (child.type !== "element") continue;
 
         if (child.tagName === "pre") {
-          const code = child.children.find(
+          const pre = child as unknown as Element;
+          const code = pre.children.find(
             (c): c is Element => c.type === "element" && c.tagName === "code",
           );
-          const cls = `${classNamesOf(code)} ${classNamesOf(child)}`;
+          const cls = `${classNamesOf(code)} ${classNamesOf(pre)}`;
           const lang = (cls.match(/language-([\w-]+)/)?.[1] ?? "text").toUpperCase();
 
-          children[i] = {
+          const wrapped: Element = {
             type: "element",
             tagName: "div",
             properties: { className: ["code-block"] },
@@ -118,9 +137,10 @@ function rehypeCodeChrome() {
                   },
                 ],
               },
-              child,
+              pre,
             ],
           };
+          children[i] = wrapped as unknown as Walkable;
           continue; // <pre> 内部无需再遍历
         }
 
