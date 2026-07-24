@@ -14,10 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { useAdminStore } from "@/lib/admin-store";
-import {
-  loadPublicVisitTrend,
-  type VisitTrendPoint,
-} from "@/lib/state.functions";
+import { loadPublicVisitTrend, type VisitTrendPoint } from "@/lib/state.functions";
 import {
   Dialog,
   DialogContent,
@@ -35,10 +32,18 @@ type ContactItem = {
   qr?: string;
 };
 
-export function Sidebar() {
+// 骨架柱的高度：写死而不是随机，否则 SSR 与客户端两次渲染不一致会触发 hydration mismatch。
+const SKELETON_BARS = [38, 62, 48, 78, 54, 68, 44];
+
+export function Sidebar({
+  initialTrend = [],
+}: {
+  /** 由首页 loader 在服务端取好，保证访问趋势首屏直出而不是等客户端异步填充。 */
+  initialTrend?: VisitTrendPoint[];
+}) {
   const { categories, posts, settings, recordContactClick } = useAdminStore();
-  const [trend, setTrend] = useState<VisitTrendPoint[]>([]);
-  const [trendLoading, setTrendLoading] = useState(true);
+  const [trend, setTrend] = useState<VisitTrendPoint[]>(initialTrend);
+  const [trendLoading, setTrendLoading] = useState(initialTrend.length === 0);
   const [qr, setQr] = useState<ContactItem | null>(null);
   const catCounts = new Map<string, number>();
   for (const p of posts) {
@@ -66,6 +71,7 @@ export function Sidebar() {
     };
   }, []);
 
+  const hasTrend = trend.length > 0;
   const max = Math.max(...trend.map((d) => d.count), 1);
   const total7d = trend.reduce((a, b) => a + b.count, 0);
 
@@ -205,10 +211,7 @@ export function Sidebar() {
         <p className="relative mt-4 text-sm text-muted-foreground">仓鼠症</p>
 
         {contacts.length > 0 && (
-          <nav
-            className="relative mt-4 border-t border-border/60 pt-3"
-            aria-label="联系方式"
-          >
+          <nav className="relative mt-4 border-t border-border/60 pt-3" aria-label="联系方式">
             <ul className="flex flex-wrap gap-2">
               {contacts.map((c) => {
                 const Icon = c.icon;
@@ -271,37 +274,53 @@ export function Sidebar() {
             <TrendingUp className="h-3.5 w-3.5 text-primary" /> 近 7 天访问
           </p>
           <span className="text-xs text-muted-foreground tabular-nums">
-            {trendLoading ? "..." : total7d}
+            {hasTrend ? total7d : "—"}
           </span>
         </div>
+
         <div className="flex h-16 items-end gap-1">
-          {trend.map((d) => (
-            <div
-              key={d.date}
-              className="flex-1 rounded-t bg-linear-to-t from-primary/70 to-primary/20"
-              style={{
-                height:
-                  d.count > 0 ? `${Math.max((d.count / max) * 100, 4)}%` : 0,
-              }}
-              title={`${d.date}: ${d.count} PV`}
-            />
-          ))}
+          {hasTrend
+            ? trend.map((d) => (
+                <div
+                  key={d.date}
+                  className="flex-1 rounded-t bg-linear-to-t from-primary/70 to-primary/20"
+                  style={{
+                    height: d.count > 0 ? `${Math.max((d.count / max) * 100, 4)}%` : "2px",
+                  }}
+                  title={`${d.date}: ${d.count} PV`}
+                />
+              ))
+            : // 取数失败或仍在加载：给骨架，别留一片空白。
+              SKELETON_BARS.map((h, i) => (
+                <div
+                  key={i}
+                  className={`flex-1 rounded-t bg-muted ${trendLoading ? "animate-pulse" : "opacity-40"}`}
+                  style={{ height: `${h}%` }}
+                />
+              ))}
         </div>
+
         <div className="mt-2 flex justify-between text-[10px] text-muted-foreground">
-          <span>{trend.length > 0 ? trend[0].date.slice(5) : ""}</span>
-          <span>
-            {trend.length > 0 ? trend[trend.length - 1].date.slice(5) : ""}
-          </span>
+          {hasTrend ? (
+            <>
+              <span>{trend[0].date.slice(5)}</span>
+              <span>{trend[trend.length - 1].date.slice(5)}</span>
+            </>
+          ) : (
+            <span>{trendLoading ? "正在读取访问数据…" : "暂无访问数据"}</span>
+          )}
         </div>
+
+        {hasTrend && total7d === 0 && (
+          <p className="mt-2 text-[10px] text-muted-foreground">近 7 天暂无访问记录</p>
+        )}
       </div>
 
       {/* Categories */}
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm font-semibold">分类</p>
-          <span className="text-xs text-muted-foreground">
-            {categories.length}
-          </span>
+          <span className="text-xs text-muted-foreground">{categories.length}</span>
         </div>
         <ul className="flex flex-col gap-1">
           {categories.map((c) => (
@@ -310,9 +329,7 @@ export function Sidebar() {
               className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <span>{c.name}</span>
-              <span className="text-xs tabular-nums opacity-60">
-                {catCounts.get(c.name) ?? 0}
-              </span>
+              <span className="text-xs tabular-nums opacity-60">{catCounts.get(c.name) ?? 0}</span>
             </li>
           ))}
         </ul>
@@ -340,9 +357,7 @@ export function Sidebar() {
         >
           <DialogHeader>
             <DialogTitle>{qr?.label} 二维码</DialogTitle>
-            <DialogDescription className="break-all text-xs">
-              {qr?.qr}
-            </DialogDescription>
+            <DialogDescription className="break-all text-xs">{qr?.qr}</DialogDescription>
           </DialogHeader>
           {qr?.qr && (
             <div
@@ -357,9 +372,7 @@ export function Sidebar() {
               type="button"
               className="mt-2 inline-flex h-10 items-center justify-center rounded-md border border-border bg-background px-3 text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               onClick={() => {
-                navigator.clipboard
-                  .writeText(qr.qr!)
-                  .then(() => toast.success("已复制"));
+                navigator.clipboard.writeText(qr.qr!).then(() => toast.success("已复制"));
               }}
             >
               复制内容
