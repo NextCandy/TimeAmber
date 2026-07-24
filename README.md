@@ -8,7 +8,15 @@ TanStack Start 构建前后台，数据、认证和媒体由自托管 Supabase �
 
 ## 功能
 
-- 博客首页、文章、归档、分类、标签、友链和全文搜索
+- 博客首页、文章、归档、分类、标签、友链
+- **服务端 Markdown 渲染**：GFM（表格、任务列表、脚注）+ Shiki 语法高亮 + rehype-sanitize，
+  代码块外框与复制按钮由服务端直出，客户端只做事件委托与图片放大
+- **⌘K / Ctrl+K 全站搜索**：一次命中文章、分类与标签
+- **分类页** `/categories`：按文章数排序的分类卡片与标签云，支持 `?c=` / `?tag=` 筛选
+- **归档按年折叠**，避免上千篇文章一次铺开
+- **sitemap.xml 与 RSS**：sitemap 覆盖全部已发布文章（带 lastmod），RSS 输出最新 50 篇
+- **SEO head**：canonical、Open Graph、Twitter Card、`article:published_time`，
+  描述统一去除 Markdown 语法
 - Supabase Auth 管理员登录与 HttpOnly 加密会话
 - Markdown 文章和 HTML 跳转文章
 - Notion 数据源增量导入与图片修复
@@ -59,6 +67,9 @@ NAS 项目目录：
 
 ```text
 src/                         TanStack Start 前后台
+src/lib/markdown.server.ts   服务端 Markdown 管线（GFM + Shiki + sanitize + 代码块外框）
+src/lib/feeds.server.ts      sitemap.xml / rss.xml 生成
+src/lib/strip-markdown.ts    meta description 与 RSS 共用的去语法工具
 server/                      Node 生产入口、静态资源和媒体代理
 worker/                      Notion、web-archive、备份任务
 supabase/migrations/         数据库结构、RLS 和 Storage 策略
@@ -124,6 +135,20 @@ cp .env.example .env
 
 Ask TimeAmber 位于管理员后台 `/admin/ask`，复用现有 Supabase Auth 与 HttpOnly 管理员会话。
 它不会把私人正文写入客户端静态文件；浏览器只收到最终回答和有限的来源摘要。
+
+### 前台开放（默认关闭）
+
+前台 `/ask` 提供同一套问答能力，但**默认不对外**，开关在 `/admin/settings` 的「前台功能」区块
+（`settings.askPublicEnabled`）。关闭时前台页面只显示「站内问答暂未开放」，导航里也不会出现入口。
+
+开放后每次提问都会消耗所配置的 `AI_API_KEY`，因此内置了成本闸门：
+
+- 全站维度限流：每分钟 6 次、每天 300 次（给成本一个硬上限）。
+- 问题长度 2–1000 字。
+- 检索与作答逻辑与后台版完全一致，没有足够资料时同样不会编造。
+
+之所以是全站限流而不是按 IP：站点部署在反向代理/隧道之后，转发头可伪造，
+与其做一个能被绕过的按 IP 限流，不如把全局闸门收紧。
 
 检索层继续使用现有 PostgreSQL：
 

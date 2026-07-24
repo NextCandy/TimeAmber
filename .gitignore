@@ -56,3 +56,8 @@ nas-migration-backups-*/
 .env.*
 *.env.bak*
 deploy/supabase/.env*
+
+# 开发过程留下的备份副本，不进版本控制
+*.bak
+*.bak-*
+*.pre-*
