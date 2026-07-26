@@ -413,3 +413,23 @@
   padding: 0;
   color: inherit;
 }
+
+/* ── 可访问性 (WCAG AA) ─────────────────────────────────────── */
+/* 键盘导航时统一琥珀色焦点环；鼠标点击不触发（:focus-visible）。 */
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* 尊重系统「减少动态效果」：关掉非必要动画/过渡，滚动改为瞬时。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
