@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Clock, ExternalLink } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ArrowLeft, Clock, ExternalLink, Copy, Share2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import mediumZoom from "medium-zoom";
-import { POSTS, formatDate } from "@/lib/sample-posts";
+import { POSTS, formatDate, type Post } from "@/lib/sample-posts";
 import { DEFAULT_POST_COVER, SITE_URL } from "@/lib/brand";
 import { toMetaDescription } from "@/lib/strip-markdown";
 import { useAdminStore } from "@/lib/admin-store";
@@ -70,6 +71,102 @@ export const Route = createFileRoute("/posts/$slug")({
   component: PostPage,
 });
 
+// 顶部阅读进度条：宽度 = 已滚动百分比。
+function ReadingProgress() {
+  const [pct, setPct] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const el = document.documentElement;
+      const max = el.scrollHeight - el.clientHeight;
+      setPct(max > 0 ? Math.min(100, (el.scrollTop / max) * 100) : 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+  return (
+    <div className="fixed inset-x-0 top-0 z-50 h-0.5">
+      <div
+        className="h-full bg-primary transition-[width] duration-150 ease-out"
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+// 分享：复制链接 + Twitter/Telegram/微博。
+function SharePost({ url, title }: { url: string; title: string }) {
+  const enc = encodeURIComponent;
+  const links = [
+    { label: "Twitter / X", href: `https://twitter.com/intent/tweet?text=${enc(title)}&url=${enc(url)}` },
+    { label: "Telegram", href: `https://t.me/share/url?url=${enc(url)}&text=${enc(title)}` },
+    { label: "微博", href: `https://service.weibo.com/share/share.php?url=${enc(url)}&title=${enc(title)}` },
+  ];
+  function copy() {
+    navigator.clipboard?.writeText(url).then(
+      () => toast.success("链接已复制"),
+      () => toast.error("复制失败，请手动复制"),
+    );
+  }
+  return (
+    <div className="mt-10 flex flex-wrap items-center gap-2 border-t border-border/60 pt-6">
+      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Share2 className="h-3.5 w-3.5" /> 分享
+      </span>
+      <button
+        type="button"
+        onClick={copy}
+        className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+      >
+        <Copy className="h-3 w-3" /> 复制链接
+      </button>
+      {links.map((l) => (
+        <a
+          key={l.label}
+          href={l.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+        >
+          {l.label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+// 相关文章：优先共同标签（权重更高），其次同分类，取前 6 篇。
+function RelatedPosts({ items }: { items: Post[] }) {
+  if (!items.length) return null;
+  return (
+    <section className="mt-12 border-t border-border/60 pt-8">
+      <h2 className="mb-4 font-display text-lg font-semibold">相关文章</h2>
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {items.map((p) => (
+          <li key={p.slug}>
+            <Link
+              to="/posts/$slug"
+              params={{ slug: p.slug }}
+              className="group flex flex-col gap-1 rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow"
+            >
+              <span className="line-clamp-2 font-medium leading-snug transition-colors group-hover:text-primary">
+                {p.title}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {p.category} · {formatDate(p.publishAt)}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function PostPage() {
   const { slug } = Route.useParams();
   const { post: loaderPost, contentHtml } = Route.useLoaderData();
@@ -130,6 +227,21 @@ function PostPage() {
 
   const post = loaderPost ?? summary;
 
+  // 相关文章：共同标签计 2 分、同分类计 1 分，取得分最高的前 6 篇。
+  // useMemo 必须在早返回之前调用（hooks 规则）；post 为空时返回空数组。
+  const related = useMemo(() => {
+    if (!post) return [];
+    const scored = posts
+      .filter((p) => p.slug !== post.slug && (p.status ?? "published") === "published")
+      .map((p) => {
+        const shared = p.tags.filter((t) => post.tags.includes(t)).length;
+        return { p, score: shared * 2 + (p.category === post.category ? 1 : 0) };
+      })
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score);
+    return scored.slice(0, 6).map((x) => x.p);
+  }, [posts, post]);
+
   if (!post || (post.status ?? "published") !== "published") {
     return (
       <div className="mx-auto max-w-2xl px-6 pt-24 text-center">
@@ -181,6 +293,7 @@ function PostPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 pt-10 pb-16">
+      <ReadingProgress />
       <script
         type="application/ld+json"
         // 转义 < 防止标题里出现 </script> 提前断出脚本。
@@ -271,6 +384,9 @@ function PostPage() {
               </>
             )}
           </div>
+
+          <SharePost url={`${SITE_URL}/posts/${slug}`} title={post.title} />
+          <RelatedPosts items={related} />
         </article>
 
         <aside className="lg:block">

@@ -86,16 +86,23 @@ function Dashboard() {
                 <span className="font-display text-3xl font-semibold tabular-nums">{total7d}</span>
                 <span className="text-xs text-muted-foreground">PV</span>
               </div>
-              <div className="flex h-14 items-end gap-1.5">
+              <div className="flex h-24 items-end gap-1.5">
                 {visitTrend.map((d) => (
                   <div
                     key={d.date}
-                    className="flex-1 rounded-t bg-linear-to-t from-primary/70 to-primary/20"
-                    style={{
-                      height: d.count > 0 ? `${Math.max((d.count / maxPv) * 100, 4)}%` : "2px",
-                    }}
+                    className="flex h-full flex-1 flex-col items-center justify-end"
                     title={`${d.date}: ${d.count} PV`}
-                  />
+                  >
+                    <span className="mb-1 text-[10px] tabular-nums text-muted-foreground">
+                      {d.count || ""}
+                    </span>
+                    <div
+                      className="w-full rounded-t bg-linear-to-t from-primary/70 to-primary/20"
+                      style={{
+                        height: `${d.count > 0 ? Math.max((d.count / maxPv) * 100, 4) : 1}%`,
+                      }}
+                    />
+                  </div>
                 ))}
               </div>
               <div className="mt-2 flex justify-between text-[10px] text-muted-foreground">
