@@ -1,5 +1,5 @@
-import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { createFileRoute, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
@@ -91,6 +91,107 @@ function AlertAutoPush() {
   return null;
 }
 
+// 后台键盘快捷键：g p/a/s/m 跳转、c 新建文章、? 打开面板。
+// 只做导航，不触发任何写操作；输入框内与带修饰键时一律不拦截。
+const SHORTCUTS: Array<{ keys: string; label: string; to: string }> = [
+  { keys: "g p", label: "文章", to: "/admin/posts" },
+  { keys: "g a", label: "访客分析", to: "/admin/analytics" },
+  { keys: "g s", label: "站点设置", to: "/admin/settings" },
+  { keys: "g m", label: "媒体库", to: "/admin/media" },
+  { keys: "c", label: "新建文章", to: "/admin/posts/new" },
+];
+
+function AdminShortcuts() {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let pendingG = false;
+    let timer: number | undefined;
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      const typing =
+        !!el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.tagName === "SELECT" ||
+          el.isContentEditable);
+      if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === "?") {
+        e.preventDefault();
+        setOpen((v) => !v);
+        return;
+      }
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (pendingG) {
+        const hit = SHORTCUTS.find((s) => s.keys === `g ${e.key.toLowerCase()}`);
+        pendingG = false;
+        window.clearTimeout(timer);
+        if (hit) {
+          e.preventDefault();
+          navigate({ to: hit.to });
+        }
+        return;
+      }
+      if (e.key.toLowerCase() === "g") {
+        pendingG = true;
+        // 1.2s 内没接上第二个键就作废，避免误触。
+        timer = window.setTimeout(() => {
+          pendingG = false;
+        }, 1200);
+        return;
+      }
+      if (e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        navigate({ to: "/admin/posts/new" });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.clearTimeout(timer);
+    };
+  }, [navigate]);
+
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={() => setOpen(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-label="键盘快捷键"
+    >
+      <div
+        className="w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="mb-3 font-display text-lg font-semibold">键盘快捷键</h2>
+        <ul className="space-y-2 text-sm">
+          {SHORTCUTS.map((s) => (
+            <li key={s.keys} className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">{s.label}</span>
+              <kbd className="rounded border border-border bg-background px-2 py-0.5 font-mono text-xs">
+                {s.keys}
+              </kbd>
+            </li>
+          ))}
+          <li className="flex items-center justify-between gap-4 border-t border-border/60 pt-2">
+            <span className="text-muted-foreground">显示/关闭本面板</span>
+            <kbd className="rounded border border-border bg-background px-2 py-0.5 font-mono text-xs">
+              ?
+            </kbd>
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function AdminLayout() {
   const matches = useRouterState({ select: (s) => s.matches });
   const last = matches[matches.length - 1];
@@ -116,6 +217,7 @@ function AdminLayout() {
   return (
     <SidebarProvider>
       <AlertAutoPush />
+      <AdminShortcuts />
       <div className="flex min-h-screen w-full bg-background">
         <AdminSidebar />
         <div className="flex flex-1 flex-col">
