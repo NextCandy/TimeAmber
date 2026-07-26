@@ -11,6 +11,15 @@ import { renderMarkdownFn } from "@/lib/markdown.functions";
 import { TableOfContents, extractToc } from "@/components/post/TableOfContents";
 import { ReadingControls, useReadingPrefs } from "@/components/post/ReadingControls";
 
+// og:image / JSON-LD 里的图必须是绝对地址：社交平台与搜索引擎不解析相对路径，
+// 而封面可能是站内相对路径（/supabase/...）、绝对 URL 或 data: URL（后者无法被抓取，回退默认封面）。
+function absolutePostImage(cover?: string): string {
+  if (!cover) return `${SITE_URL}${DEFAULT_POST_COVER}`;
+  if (cover.startsWith("http")) return cover;
+  if (cover.startsWith("/")) return `${SITE_URL}${cover}`;
+  return `${SITE_URL}${DEFAULT_POST_COVER}`;
+}
+
 export const Route = createFileRoute("/posts/$slug")({
   loader: async ({ params }) => {
     const dbPost = await loadPublicPost({
@@ -31,7 +40,7 @@ export const Route = createFileRoute("/posts/$slug")({
     // 直接进 meta 会被搜索结果和社交卡片当正文显示。
     const description = toMetaDescription(post.excerpt);
     const canonical = `${SITE_URL}/posts/${params.slug}`;
-    const image = post.cover || `${SITE_URL}${DEFAULT_POST_COVER}`;
+    const image = absolutePostImage(post.cover);
 
     return {
       meta: [
@@ -42,12 +51,18 @@ export const Route = createFileRoute("/posts/$slug")({
         { property: "og:type", content: "article" },
         { property: "og:url", content: canonical },
         { property: "og:image", content: image },
+        { property: "og:image:alt", content: post.title },
         { property: "article:published_time", content: post.publishAt },
+        { property: "article:modified_time", content: post.notionLastEdited ?? post.publishAt },
+        { property: "article:author", content: "TimeAmber" },
         { property: "article:section", content: post.category },
+        // 每个标签一条 article:tag，社交平台与搜索引擎据此归类。
+        ...post.tags.map((tag: string) => ({ property: "article:tag", content: tag })),
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: post.title },
         { name: "twitter:description", content: description },
         { name: "twitter:image", content: image },
+        { name: "twitter:image:alt", content: post.title },
       ],
       links: [{ rel: "canonical", href: canonical }],
     };
@@ -144,8 +159,33 @@ function PostPage() {
 
   const toc = post.content ? extractToc(post.content) : [];
 
+  // JSON-LD 结构化数据（Article）：正文末尾直出，让搜索引擎识别标题/时间/作者/分类/标签。
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: toMetaDescription(post.excerpt),
+    image: [absolutePostImage(post.cover)],
+    datePublished: post.publishAt,
+    dateModified: post.notionLastEdited ?? post.publishAt,
+    author: { "@type": "Person", name: "TimeAmber" },
+    publisher: {
+      "@type": "Organization",
+      name: "TimeAmber",
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/brand/icon-512.png` },
+    },
+    mainEntityOfPage: `${SITE_URL}/posts/${slug}`,
+    articleSection: post.category,
+    keywords: post.tags.join(", "),
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-6 pt-10 pb-16">
+      <script
+        type="application/ld+json"
+        // 转义 < 防止标题里出现 </script> 提前断出脚本。
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+      />
       <Link
         to="/"
         className="mb-6 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"

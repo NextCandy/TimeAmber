@@ -11,6 +11,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { SITE_URL } from "../lib/brand";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
@@ -102,21 +103,32 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       return { publicState: null };
     }
   },
-  head: () => ({
+  head: () => {
+    const description =
+      "时光成珀，字字如初。一个关于剪藏、自建服务与 AI Agent 实践的中文博客。";
+    // 社交平台不解析相对路径，og:image 用绝对地址。子路由（如文章页）会覆盖同名标签。
+    const ogImage = `${SITE_URL}/brand/timeamber-default-cover.png`;
+    return {
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "TimeAmber · 时光琥珀" },
-      { name: "description", content: "时光成珀，字字如初。一个关于剪藏、自建服务与 AI Agent 实践的中文博客。" },
+      { name: "description", content: description },
       { name: "author", content: "TimeAmber" },
-      { property: "og:title", content: "TimeAmber · 时光琥珀" },
-      { property: "og:description", content: "时光成珀，字字如初。一个关于剪藏、自建服务与 AI Agent 实践的中文博客。" },
+      { property: "og:site_name", content: "TimeAmber" },
+      { property: "og:locale", content: "zh_CN" },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:title", content: "TimeAmber · 时光琥珀" },
+      { property: "og:description", content: description },
+      { property: "og:image", content: ogImage },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "TimeAmber · 时光琥珀" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "TimeAmber · 时光琥珀" },
-      { name: "twitter:description", content: "时光成珀，字字如初。一个关于剪藏、自建服务与 AI Agent 实践的中文博客。" },
-      { property: "og:image", content: "/brand/timeamber-default-cover.png" },
-      { name: "twitter:image", content: "/brand/timeamber-default-cover.png" },
+      { name: "twitter:description", content: description },
+      { name: "twitter:image", content: ogImage },
+      { name: "twitter:image:alt", content: "TimeAmber · 时光琥珀" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -126,7 +138,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", sizes: "180x180", href: "/brand/apple-touch-icon.png" },
       { rel: "manifest", href: "/site.webmanifest" },
     ],
-  }),
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

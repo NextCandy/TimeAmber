@@ -37,20 +37,49 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   });
 }
 
+// 站点走 Cloudflare Tunnel，转发后的 request.url 可能是内网地址，
+// 以代理头里的原始 host 为准，否则 sitemap/robots 里会写出 127.0.0.1。
+function resolveOrigin(request: Request): string {
+  const url = new URL(request.url);
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const host = forwardedHost ?? request.headers.get("host") ?? url.host;
+  const proto =
+    forwardedProto ?? (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+// robots.txt：允许全站抓取、屏蔽后台/登录，并指向 sitemap。
+// 注意：本站前置 Cloudflare，若在 CF 侧开了「托管 robots.txt / AI 抓取信号」，
+// 边缘可能直接顶替这里的响应；origin 侧仍按规范提供，便于直连与关掉 CF 托管后生效。
+function robotsResponse(request: Request): Response | null {
+  const url = new URL(request.url);
+  if (url.pathname !== "/robots.txt") return null;
+  const origin = resolveOrigin(request);
+  const body = [
+    "User-agent: *",
+    "Allow: /",
+    "Disallow: /admin",
+    "Disallow: /auth",
+    "",
+    `Sitemap: ${origin}/sitemap.xml`,
+    "",
+  ].join("\n");
+  return new Response(body, {
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "public, max-age=3600",
+    },
+  });
+}
+
 // sitemap / RSS 在这里拦截而不是做成文件路由：它们是 XML 而非 HTML，
 // 走页面路由会被 SSR 外壳包住。动态 import 保证不影响正常请求的启动开销。
 async function feedResponse(request: Request): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname !== "/sitemap.xml" && url.pathname !== "/rss.xml") return null;
 
-  // 站点走 Cloudflare Tunnel，转发后的 request.url 可能是内网地址，
-  // 以代理头里的原始 host 为准，否则 sitemap 里会写出 127.0.0.1。
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const host = forwardedHost ?? request.headers.get("host") ?? url.host;
-  const proto =
-    forwardedProto ?? (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
-  const origin = `${proto}://${host}`;
+  const origin = resolveOrigin(request);
 
   try {
     const feeds = await import("./lib/feeds.server");
@@ -73,6 +102,9 @@ async function feedResponse(request: Request): Promise<Response | null> {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const robots = robotsResponse(request);
+      if (robots) return robots;
+
       const feed = await feedResponse(request);
       if (feed) return feed;
 

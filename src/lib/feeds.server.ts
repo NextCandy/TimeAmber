@@ -12,6 +12,7 @@ type FeedPost = {
   title: string;
   excerpt: string;
   publishAt: Date;
+  cover?: string;
 };
 
 let database: ReturnType<typeof postgres> | undefined;
@@ -55,14 +56,14 @@ async function listPosts(limit?: number): Promise<FeedPost[]> {
   const sql = db();
   const rows = limit
     ? await sql`
-        select slug, title, excerpt, coalesce(publish_at, created_at) as published_at
+        select slug, title, excerpt, cover_image, coalesce(publish_at, created_at) as published_at
         from public.posts
         where published = true and (publish_at is null or publish_at <= now())
         order by coalesce(publish_at, created_at) desc
         limit ${limit}
       `
     : await sql`
-        select slug, title, excerpt, coalesce(publish_at, created_at) as published_at
+        select slug, title, excerpt, cover_image, coalesce(publish_at, created_at) as published_at
         from public.posts
         where published = true and (publish_at is null or publish_at <= now())
         order by coalesce(publish_at, created_at) desc
@@ -71,6 +72,7 @@ async function listPosts(limit?: number): Promise<FeedPost[]> {
     slug: String(row.slug),
     title: String(row.title ?? ""),
     excerpt: String(row.excerpt ?? ""),
+    cover: row.cover_image ? String(row.cover_image) : undefined,
     publishAt:
       row.published_at instanceof Date ? row.published_at : new Date(String(row.published_at)),
   }));
@@ -106,22 +108,48 @@ export function buildSitemap(origin: string): Promise<string> {
 
 const RSS_LIMIT = 50;
 
+// RSS enclosure 需要可抓取的绝对图片地址；data: URL 与无法定位的相对路径直接略过。
+function feedImage(cover: string | undefined, origin: string): string | null {
+  if (!cover) return null;
+  if (cover.startsWith("http")) return cover;
+  if (cover.startsWith("/")) return origin + cover;
+  return null;
+}
+
+function guessImageMime(u: string): string {
+  const s = u.toLowerCase().split("?")[0];
+  if (s.endsWith(".jpg") || s.endsWith(".jpeg")) return "image/jpeg";
+  if (s.endsWith(".webp")) return "image/webp";
+  if (s.endsWith(".gif")) return "image/gif";
+  if (s.endsWith(".svg")) return "image/svg+xml";
+  return "image/png";
+}
+
 export function buildRss(origin: string): Promise<string> {
   return cached(`rss:${origin}`, async () => {
     const posts = await listPosts(RSS_LIMIT);
     const items = posts.map((post) => {
       const link = `${origin}/posts/${post.slug}`;
       const summary = stripMarkdown(post.excerpt).slice(0, 300);
+      const img = feedImage(post.cover, origin);
+      // content:encoded 走 CDATA；防止正文里出现 ]]> 提前闭合。
+      const encoded = (
+        `<p>${xmlEscape(summary)}</p>` +
+        `<p><a href="${xmlEscape(link)}">阅读全文 →</a></p>`
+      ).replace(/]]>/g, "]]&gt;");
       return (
         `    <item>\n      <title>${xmlEscape(post.title)}</title>\n` +
         `      <link>${xmlEscape(link)}</link>\n      <guid isPermaLink="true">${xmlEscape(link)}</guid>\n` +
+        `      <dc:creator>TimeAmber</dc:creator>\n` +
         `      <pubDate>${post.publishAt.toUTCString()}</pubDate>\n` +
-        `      <description>${xmlEscape(summary)}</description>\n    </item>`
+        (img ? `      <enclosure url="${xmlEscape(img)}" type="${guessImageMime(img)}"/>\n` : "") +
+        `      <description>${xmlEscape(summary)}</description>\n` +
+        `      <content:encoded><![CDATA[${encoded}]]></content:encoded>\n    </item>`
       );
     });
     const updated = posts[0]?.publishAt ?? new Date(0);
     return (
-      `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n  <channel>\n` +
+      `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/">\n  <channel>\n` +
       `    <title>TimeAmber · 时光琥珀</title>\n` +
       `    <link>${xmlEscape(origin)}</link>\n` +
       `    <description>时光成珀，字字如初。最新剪藏、自建服务与 AI Agent 笔记。</description>\n` +

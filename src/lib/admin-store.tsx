@@ -22,7 +22,7 @@ import { getAuthState } from "./auth.functions";
 
 export type Category = { name: string };
 export type Tag = { name: string };
-export type Friend = { name: string; url: string; desc: string };
+export type Friend = { name: string; url: string; desc: string; group?: string };
 
 export type SiteSettings = {
   siteTitle: string;

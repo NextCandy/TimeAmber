@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Post } from "@/lib/sample-posts";
 import { PostCard } from "./PostCard";
 
@@ -19,10 +19,29 @@ export function PostList({ posts, query = "" }: { posts: Post[]; query?: string 
     });
   }, [posts, query]);
   const visible = filtered.slice(0, visibleCount);
+  const hasMore = visible.length < filtered.length;
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [query]);
+
+  // 触底自动加载更多：哨兵进入视口（提前 600px）就再显示一批。
+  // 依赖里带 visibleCount，使每次加载后重新观察、连续触发直到哨兵离开视口；
+  // 下方按钮保留为可访问性 / 无 IO 环境的回退。
+  useEffect(() => {
+    if (!hasMore) return;
+    const el = sentinelRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) setVisibleCount((c) => c + PAGE_SIZE);
+      },
+      { rootMargin: "600px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, visibleCount, filtered.length]);
 
   return (
     <section className="min-w-0">
@@ -51,14 +70,17 @@ export function PostList({ posts, query = "" }: { posts: Post[]; query?: string 
               <PostCard key={p.slug} post={p} />
             ))}
           </div>
-          {visible.length < filtered.length && (
-            <button
-              type="button"
-              className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-card text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:bg-accent hover:text-foreground"
-              onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-            >
-              加载更多（已显示 {visible.length} / {filtered.length}）
-            </button>
+          {hasMore && (
+            <>
+              <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
+              <button
+                type="button"
+                className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-xl border border-border bg-card text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:bg-accent hover:text-foreground"
+                onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+              >
+                加载更多（已显示 {visible.length} / {filtered.length}）
+              </button>
+            </>
           )}
         </>
       )}

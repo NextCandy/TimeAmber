@@ -26,7 +26,7 @@ function FriendsPage() {
   );
 
   function openNew() {
-    setEditing({ friend: { name: "", url: "https://", desc: "" } });
+    setEditing({ friend: { name: "", url: "https://", desc: "", group: "" } });
   }
   function openEdit(f: Friend) {
     setEditing({ friend: { ...f }, original: f.name });
@@ -74,7 +74,14 @@ function FriendsPage() {
                 className="flex items-center justify-between gap-3 px-5 py-3"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium">{f.name}</p>
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    {f.name}
+                    {f.group && (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-normal text-primary">
+                        {f.group}
+                      </span>
+                    )}
+                  </p>
                   <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
                     <ExternalLink className="h-3 w-3 shrink-0" />
                     <span className="truncate">{f.url}</span>
@@ -156,6 +163,22 @@ function FriendsPage() {
                   }
                   className="mt-1.5"
                   maxLength={200}
+                />
+              </div>
+              <div>
+                <Label htmlFor="fgroup">分组（可选）</Label>
+                <Input
+                  id="fgroup"
+                  value={editing.friend.group ?? ""}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      friend: { ...editing.friend, group: e.target.value },
+                    })
+                  }
+                  placeholder="留空则归入「默认」组"
+                  className="mt-1.5"
+                  maxLength={40}
                 />
               </div>
             </div>

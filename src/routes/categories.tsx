@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { FolderTree, Tag, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { FolderTree, Tag, X, Search } from "lucide-react";
 import { PostCard } from "@/components/home/PostCard";
 import { useAdminStore } from "@/lib/admin-store";
 import { isPublished } from "@/lib/sample-posts";
@@ -123,27 +123,154 @@ function CategoriesPage() {
             </ul>
           </section>
 
-          <section>
-            <h2 className="mb-4 inline-flex items-center gap-2 font-display text-lg font-semibold">
-              <Tag className="h-4 w-4 text-primary" /> 按标签
-            </h2>
-            <ul className="flex flex-wrap gap-2">
-              {tagCounts.map(([name, count]) => (
-                <li key={name}>
-                  <Link
-                    to="/categories"
-                    search={{ tag: name }}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-                  >
-                    {name}
-                    <span className="text-xs tabular-nums opacity-60">{count}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <TagCloud tags={tagCounts} />
         </div>
       )}
     </div>
+  );
+}
+
+// ── 标签云 ─────────────────────────────────────────────────────────────
+const TOP_N = 30;
+const THRESHOLDS = [0, 5, 10, 30] as const;
+const PREFS_KEY = "timeamber.tagcloud";
+
+type TagPrefs = { expanded: boolean; min: number };
+
+function useTagCloudPrefs() {
+  const [prefs, setPrefs] = useState<TagPrefs>({ expanded: false, min: 0 });
+  // 首屏用默认值（与 SSR 一致），挂载后再从 localStorage 补齐，避免水合不一致。
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PREFS_KEY);
+      if (raw) setPrefs((prev) => ({ ...prev, ...(JSON.parse(raw) as Partial<TagPrefs>) }));
+    } catch {
+      /* localStorage 不可用时忽略 */
+    }
+  }, []);
+  const update = useCallback((patch: Partial<TagPrefs>) => {
+    setPrefs((prev) => {
+      const next = { ...prev, ...patch };
+      try {
+        localStorage.setItem(PREFS_KEY, JSON.stringify(next));
+      } catch {
+        /* 忽略写入失败 */
+      }
+      return next;
+    });
+  }, []);
+  return [prefs, update] as const;
+}
+
+// 字号按文章数（sqrt 压缩长尾）映射到 12–18px。
+function fontSizeFor(count: number, min: number, max: number): number {
+  if (max <= min) return 15;
+  const t = (Math.sqrt(count) - Math.sqrt(min)) / (Math.sqrt(max) - Math.sqrt(min));
+  return 12 + t * 6;
+}
+
+function highlightMatch(text: string, q: string): ReactNode {
+  if (!q) return text;
+  const i = text.toLowerCase().indexOf(q.toLowerCase());
+  if (i < 0) return text;
+  return (
+    <>
+      {text.slice(0, i)}
+      <mark className="rounded bg-primary/25 px-0.5 text-primary">{text.slice(i, i + q.length)}</mark>
+      {text.slice(i + q.length)}
+    </>
+  );
+}
+
+function TagCloud({ tags }: { tags: Array<[string, number]> }) {
+  const [query, setQuery] = useState("");
+  const [prefs, update] = useTagCloudPrefs();
+  const q = query.trim();
+
+  const [minCount, maxCount] = useMemo(() => {
+    if (!tags.length) return [0, 0];
+    const counts = tags.map(([, c]) => c);
+    return [Math.min(...counts), Math.max(...counts)];
+  }, [tags]);
+
+  const searched = useMemo(() => {
+    const byThreshold = tags.filter(([, c]) => c >= prefs.min);
+    if (!q) return byThreshold;
+    const lower = q.toLowerCase();
+    return byThreshold.filter(([name]) => name.toLowerCase().includes(lower));
+  }, [tags, prefs.min, q]);
+
+  // 搜索或设了阈值时展示全部结果；否则默认 Top N，可展开/收起。
+  const showAll = Boolean(q) || prefs.min > 0 || prefs.expanded;
+  const visible = showAll ? searched : searched.slice(0, TOP_N);
+  const collapsible = !q && prefs.min === 0 && searched.length > TOP_N;
+
+  return (
+    <section>
+      <h2 className="mb-4 inline-flex items-center gap-2 font-display text-lg font-semibold">
+        <Tag className="h-4 w-4 text-primary" /> 按标签
+      </h2>
+
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative sm:max-w-xs sm:flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="搜索标签…"
+            className="w-full rounded-full border border-border bg-card py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary/50"
+          />
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {THRESHOLDS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => update({ min: t })}
+              className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                prefs.min === t
+                  ? "border-primary/50 bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+              }`}
+            >
+              {t === 0 ? "全部" : `≥ ${t} 篇`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {visible.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border/80 bg-card/40 p-8 text-center text-sm text-muted-foreground">
+          没有匹配的标签。
+        </p>
+      ) : (
+        <ul className="flex flex-wrap items-center gap-2">
+          {visible.map(([name, count]) => (
+            <li key={name}>
+              <Link
+                to="/categories"
+                search={{ tag: name }}
+                style={{ fontSize: `${fontSizeFor(count, minCount, maxCount).toFixed(1)}px` }}
+                className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-border bg-card px-3 py-1 leading-tight text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:text-primary hover:shadow-glow"
+              >
+                {highlightMatch(name, q)}
+                <span className="text-[10px] tabular-nums opacity-50">{count}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {collapsible && (
+        <button
+          type="button"
+          onClick={() => update({ expanded: !prefs.expanded })}
+          className="mt-4 text-xs text-primary transition-opacity hover:opacity-70"
+        >
+          {prefs.expanded ? "收起" : `展开全部（${searched.length}）`}
+        </button>
+      )}
+    </section>
   );
 }
