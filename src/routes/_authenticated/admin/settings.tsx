@@ -17,6 +17,7 @@ import {
   QrCode,
   AlertCircle,
   CheckCircle2,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
 import { useAdminStore, type SiteSettings } from "@/lib/admin-store";
@@ -25,6 +26,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAuthorInitial, resolveAuthorProfile } from "@/lib/author-profile";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -161,6 +164,7 @@ function validateContact(value: string, type: ContactFieldConfig["validate"]): s
 function SettingsPage() {
   const { settings, updateSettings, resetAll } = useAdminStore();
   const [draft, setDraft] = useState(settings);
+  const authorProfile = resolveAuthorProfile(draft);
 
   useEffect(() => setDraft(settings), [settings]);
 
@@ -235,6 +239,79 @@ function SettingsPage() {
                 maxLength={300}
                 rows={3}
               />
+            </div>
+          </div>
+        </section>
+
+        {/* 个人资料 */}
+        <section
+          className="rounded-xl border border-border/70 bg-card/40 p-6"
+          data-testid="author-profile-settings"
+        >
+          <div className="mb-4 flex items-center gap-2">
+            <UserRound className="h-4 w-4 text-primary" />
+            <h2 className="font-display text-base font-semibold">个人资料</h2>
+          </div>
+          <div className="space-y-5">
+            <div className="flex items-center gap-4 rounded-lg border border-border/60 bg-background/40 p-4">
+              <Avatar className="h-16 w-16 rounded-xl border border-border/70">
+                <AvatarImage
+                  src={authorProfile.authorAvatar || undefined}
+                  alt={`${authorProfile.authorName} 的头像预览`}
+                  className="object-cover"
+                />
+                <AvatarFallback className="rounded-xl bg-linear-to-br from-primary to-primary-glow font-display text-xl font-bold text-primary-foreground">
+                  {getAuthorInitial(authorProfile.authorName)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate font-semibold">{authorProfile.authorName}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                  {authorProfile.authorBio || "未填写个人简介"}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="authorName">用户名</Label>
+              <Input
+                id="authorName"
+                value={draft.authorName}
+                onChange={(e) => setDraft({ ...draft, authorName: e.target.value })}
+                className="mt-1.5"
+                maxLength={60}
+                placeholder="例如：TA"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="authorAvatar">头像</Label>
+              <Input
+                id="authorAvatar"
+                value={draft.authorAvatar}
+                onChange={(e) => setDraft({ ...draft, authorAvatar: e.target.value })}
+                className="mt-1.5"
+                maxLength={500}
+                placeholder="图片 URL 或站内路径，例如 /brand/icon-192.png"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                可在媒体库上传后粘贴图片地址；留空时显示用户名首字。
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="authorBio">用户简介</Label>
+              <Textarea
+                id="authorBio"
+                value={draft.authorBio}
+                onChange={(e) => setDraft({ ...draft, authorBio: e.target.value })}
+                className="mt-1.5"
+                rows={3}
+                maxLength={240}
+                placeholder="简单介绍一下自己"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">留空时首页作者卡不显示简介。</p>
             </div>
           </div>
         </section>

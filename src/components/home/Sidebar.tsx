@@ -23,6 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAuthorInitial, resolveAuthorProfile } from "@/lib/author-profile";
 
 type ContactItem = {
   key: string;
@@ -43,6 +45,7 @@ export function Sidebar({
   initialTrend?: VisitTrendPoint[];
 }) {
   const { categories, posts, settings, recordContactClick } = useAdminStore();
+  const authorProfile = resolveAuthorProfile(settings);
   const [trend, setTrend] = useState<VisitTrendPoint[]>(initialTrend);
   const [trendLoading, setTrendLoading] = useState(initialTrend.length === 0);
   const [qr, setQr] = useState<ContactItem | null>(null);
@@ -201,15 +204,24 @@ export function Sidebar({
       <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5">
         <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/20 blur-3xl" />
         <div className="relative flex items-center gap-3">
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary-glow font-display text-lg font-bold text-primary-foreground">
-            T
-          </span>
-          <div>
-            <p className="font-semibold">TA</p>
+          <Avatar className="h-11 w-11 rounded-lg border border-border/70">
+            <AvatarImage
+              src={authorProfile.authorAvatar || undefined}
+              alt={`${authorProfile.authorName} 的头像`}
+              className="object-cover"
+            />
+            <AvatarFallback className="rounded-lg bg-linear-to-br from-primary to-primary-glow font-display text-lg font-bold text-primary-foreground">
+              {getAuthorInitial(authorProfile.authorName)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <p className="truncate font-semibold">{authorProfile.authorName}</p>
             <p className="text-xs text-muted-foreground">Owner</p>
           </div>
         </div>
-        <p className="relative mt-4 text-sm text-muted-foreground">仓鼠症</p>
+        {authorProfile.authorBio && (
+          <p className="relative mt-4 text-sm text-muted-foreground">{authorProfile.authorBio}</p>
+        )}
 
         {contacts.length > 0 && (
           <nav className="relative mt-4 border-t border-border/60 pt-3" aria-label="联系方式">

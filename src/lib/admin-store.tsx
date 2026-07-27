@@ -19,12 +19,13 @@ import {
   upsertSinglePost,
 } from "./state.functions";
 import { getAuthState } from "./auth.functions";
+import { DEFAULT_AUTHOR_PROFILE, type AuthorProfile } from "./author-profile";
 
 export type Category = { name: string };
 export type Tag = { name: string };
 export type Friend = { name: string; url: string; desc: string; group?: string };
 
-export type SiteSettings = {
+export type SiteSettings = AuthorProfile & {
   siteTitle: string;
   siteTagline: string;
   siteDescription: string;
@@ -220,6 +221,7 @@ export type AdminState = CoreData & {
 };
 
 const DEFAULT_SETTINGS: SiteSettings = {
+  ...DEFAULT_AUTHOR_PROFILE,
   siteTitle: "TimeAmber",
   siteTagline: "时光琥珀",
   siteDescription: "时光成珀，字字如初。",
