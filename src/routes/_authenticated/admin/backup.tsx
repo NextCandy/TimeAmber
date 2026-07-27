@@ -1522,7 +1522,7 @@ function AlertsSection() {
                   : a.level === "error"
                     ? "border-destructive/40 bg-destructive/5"
                     : a.level === "warning"
-                      ? "border-amber-500/40 bg-amber-500/5"
+                      ? "border-warning/40 bg-warning/5"
                       : "border-border/60 bg-background/40")
               }
             >

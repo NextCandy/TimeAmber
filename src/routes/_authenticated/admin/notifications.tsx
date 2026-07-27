@@ -444,7 +444,7 @@ function NotificationsPage() {
             }
           />
         </header>
-        <p className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5 text-xs text-amber-700 dark:text-amber-300">
+        <p className="mb-3 rounded-md border border-warning/30 bg-warning/5 p-2.5 text-xs text-warning-foreground">
           因边缘运行时限制，SMTP 通过 Webhook 中转执行。请填写一个可访问的 webhook URL
           （例如自建的 smtp-relay）；下方 host/port/账号会作为 JSON 负载 POST 给该 URL。
         </p>

@@ -303,7 +303,7 @@ function SettingsPage() {
                       <Icon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
                       <span>{f.label}</span>
                       {value && !err && (
-                        <CheckCircle2 className="h-3 w-3 text-emerald-500" aria-label="格式有效" />
+                        <CheckCircle2 className="h-3 w-3 text-success" aria-label="格式有效" />
                       )}
                     </Label>
                     <Input

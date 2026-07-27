@@ -19,6 +19,8 @@ import { AdminStoreProvider, useAdminStore } from "../lib/admin-store";
 import { loadPublicState } from "../lib/state.functions";
 import { Toaster } from "../components/ui/sonner";
 import { installDiagnostics, recordRouteChange } from "../lib/diagnostics";
+import { DEFAULT_THEME_PREFERENCE, THEME_BOOTSTRAP_SCRIPT, resolveTheme } from "../lib/theme";
+import { loadThemePreference } from "../lib/theme.functions";
 
 function AnalyticsRecorder() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -96,6 +98,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: async () => ({
+    themePreference: await loadThemePreference().catch(() => DEFAULT_THEME_PREFERENCE),
+  }),
   loader: async () => {
     try {
       return { publicState: await loadPublicState() };
@@ -147,9 +152,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const { themePreference } = Route.useRouteContext();
+  const initialTheme = resolveTheme(themePreference);
+
   return (
-    <html lang="zh-CN" className="dark">
+    <html
+      lang="zh-CN"
+      className={initialTheme}
+      data-theme-preference={themePreference}
+      suppressHydrationWarning
+    >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
         <HeadContent />
       </head>
       <body>
@@ -161,7 +175,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
+  const { queryClient, themePreference } = Route.useRouteContext();
   const { publicState } = Route.useLoaderData();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isChrome = !(pathname.startsWith("/admin") || pathname.startsWith("/auth"));
@@ -171,7 +185,7 @@ function RootComponent() {
       <AdminStoreProvider initialState={publicState}>
         <AnalyticsRecorder />
         <div className="flex min-h-screen flex-col">
-          {isChrome && <Navbar />}
+          {isChrome && <Navbar initialThemePreference={themePreference} />}
           <main className="flex-1">
             <Outlet />
           </main>

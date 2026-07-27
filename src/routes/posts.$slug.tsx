@@ -345,7 +345,7 @@ function PostPage() {
           <img
             src={post.cover || DEFAULT_POST_COVER}
             alt=""
-            className={`mb-10 h-64 w-full rounded-xl bg-background/70 dark:bg-black/20 ${
+            className={`mb-10 h-64 w-full rounded-xl bg-background/70 dark:bg-overlay/20 ${
               !post.cover || post.cover === DEFAULT_POST_COVER
                 ? "object-contain p-8"
                 : "object-cover"

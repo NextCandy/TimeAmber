@@ -9,7 +9,7 @@ export function PostCard({ post }: { post: Post }) {
   const coverUrl = post.cover || DEFAULT_POST_COVER;
 
   const cover = (
-    <div className="relative flex h-36 w-full shrink-0 items-center justify-center overflow-hidden bg-background/70 sm:h-auto sm:w-36 dark:bg-black/20">
+    <div className="relative flex h-36 w-full shrink-0 items-center justify-center overflow-hidden bg-background/70 sm:h-auto sm:w-36 dark:bg-overlay/20">
       <img
         src={coverUrl}
         alt=""

@@ -128,7 +128,7 @@ function GithubPanel() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 {status?.ok ? (
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  <CheckCircle2 className="h-5 w-5 text-success" />
                 ) : query.isLoading ? (
                   <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
                 ) : (
@@ -196,7 +196,7 @@ function GithubPanel() {
                 <div className="text-xs text-muted-foreground">推送结果</div>
                 <div className="mt-1 text-sm">
                   {status?.ok ? (
-                    <span className="text-emerald-500">成功</span>
+                    <span className="text-success">成功</span>
                   ) : (
                     <span className="text-destructive">失败</span>
                   )}

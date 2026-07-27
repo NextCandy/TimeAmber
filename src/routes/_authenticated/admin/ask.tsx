@@ -250,8 +250,8 @@ function StatusPanel({
   }
   if (!status.provider.configured) {
     return (
-      <Alert className="border-amber-500/30 bg-amber-500/5">
-        <AlertCircle className="h-4 w-4 text-amber-400" />
+      <Alert className="border-warning/30 bg-warning/5">
+        <AlertCircle className="h-4 w-4 text-warning" />
         <AlertTitle>AI Provider 尚未配置</AlertTitle>
         <AlertDescription>
           在 TimeAmber 应用容器中配置 {status.provider.missing.join("、")}{" "}

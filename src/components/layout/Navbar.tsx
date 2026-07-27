@@ -5,6 +5,7 @@ import { BRAND_ICON } from "@/lib/brand";
 import { useAdminStore } from "@/lib/admin-store";
 import { SearchDialog } from "./SearchDialog";
 import { ThemeToggle } from "./ThemeToggle";
+import type { ThemePreference } from "@/lib/theme";
 
 const NAV = [
   { to: "/", label: "首页" },
@@ -16,7 +17,7 @@ const NAV = [
 
 const ASK_NAV = { to: "/ask", label: "问一问" } as const;
 
-export function Navbar() {
+export function Navbar({ initialThemePreference }: { initialThemePreference: ThemePreference }) {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { settings } = useAdminStore();
@@ -91,7 +92,7 @@ export function Navbar() {
           >
             <Search className="h-4 w-4" />
           </button>
-          <ThemeToggle />
+          <ThemeToggle initialPreference={initialThemePreference} />
         </div>
       </div>
 

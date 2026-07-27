@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "start": "node server/node.mjs",
     "worker": "tsx worker/index.ts",
-    "test": "tsx --test tests/ask-core.test.ts tests/archive-knowledge.test.ts tests/ask-provider.test.ts",
+    "test": "tsx --test tests/ask-core.test.ts tests/archive-knowledge.test.ts tests/ask-provider.test.ts tests/theme.test.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

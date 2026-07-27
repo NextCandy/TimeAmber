@@ -349,7 +349,7 @@ function DiagnosticsPage() {
             <Bug className="h-4 w-4 text-primary" />
             <h2 className="font-display text-base font-semibold">运行时日志（{logs.length}）</h2>
             <Badge variant="destructive" className="text-[10px]">error {counts.error}</Badge>
-            <Badge className="bg-amber-500/20 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 text-[10px]">
+            <Badge className="bg-warning/20 text-warning-foreground hover:bg-warning/20 text-[10px]">
               warn {counts.warn}
             </Badge>
           </div>
@@ -384,7 +384,7 @@ function DiagnosticsPage() {
                   l.level === "error"
                     ? "border-destructive/40 bg-destructive/5"
                     : l.level === "warn"
-                    ? "border-amber-500/40 bg-amber-500/5"
+                    ? "border-warning/40 bg-warning/5"
                     : "border-border/60 bg-background/40"
                 }`}
               >
@@ -450,7 +450,7 @@ function DiagnosticsPage() {
                     <td>{a.perfs}</td>
                     <td>{a.logs}</td>
                     <td className="text-destructive">{a.errorCount}</td>
-                    <td className="text-amber-600 dark:text-amber-400">{a.warnCount}</td>
+                    <td className="text-warning">{a.warnCount}</td>
                     <td className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -500,7 +500,7 @@ function Metric({
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
       <p
         className={`mt-1 font-display text-lg font-semibold ${
-          !hasVal ? "text-muted-foreground" : ok ? "text-primary" : "text-amber-600 dark:text-amber-400"
+          !hasVal ? "text-muted-foreground" : ok ? "text-primary" : "text-warning"
         }`}
       >
         {hasVal ? value.toFixed(fixed) : "—"}
