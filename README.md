@@ -1,4 +1,17 @@
+<div align="center">
+
+<img src="./public/brand/icon-512.png" width="96" height="96" alt="TimeAmber" />
+
 # TimeAmber
+
+**时光成珀，字字如初**
+
+[![TanStack Start](https://img.shields.io/badge/TanStack_Start-v1-6d6ee8)](https://tanstack.com/start)
+[![React](https://img.shields.io/badge/React-19-61dafb)](https://react.dev)
+[![Tailwind](https://img.shields.io/badge/Tailwind-v4-38bdf8)](https://tailwindcss.com)
+[![Supabase](https://img.shields.io/badge/Supabase-self--hosted-3ecf8e)](https://supabase.com)
+
+</div>
 
 TimeAmber 是部署在群晖 NAS 上的个人博客、剪藏归档和内容管理系统。项目使用
 TanStack Start 构建前后台，数据、认证和媒体由自托管 Supabase 提供，独立 worker
@@ -8,7 +21,9 @@ TanStack Start 构建前后台，数据、认证和媒体由自托管 Supabase �
 
 ## 功能
 
-- 博客首页、文章、归档、分类、标签、友链
+- **首页**：顶栏（首页 / 归档 / 关于居中，搜索、后台、主题切换为图标）→ 最新文章卡片
+  → 主理人区（站点标语、归档数、头像卡）→ 近 7 天访问 → 页脚，服务端直出、无客户端筛选
+- 文章、归档、分类、标签、友链页
 - **服务端 Markdown 渲染**：GFM（表格、任务列表、脚注）+ Shiki 语法高亮 + rehype-sanitize，
   代码块外框与复制按钮由服务端直出，客户端只做事件委托与图片放大
 - **⌘K / Ctrl+K 全站搜索**：一次命中文章、分类与标签
@@ -57,7 +72,7 @@ timeamber-app :49287
 NAS 项目目录：
 
 ```text
-/volume1/docker/timeamber-next
+/volume1/docker/timeamber
 ```
 
 应用容器与 Supabase 使用同一个 Compose 项目和网络。生产应用映射
@@ -68,6 +83,8 @@ NAS 项目目录：
 ```text
 src/                         TanStack Start 前后台
 src/lib/markdown.server.ts   服务端 Markdown 管线（GFM + Shiki + sanitize + 代码块外框）
+src/lib/home.functions.ts    首页取数（最新文章 + 归档总数，服务端清洗摘要）
+src/components/home/         首页区块：文章卡片、主理人区、近 7 天访问
 src/lib/feeds.server.ts      sitemap.xml / rss.xml 生成
 src/lib/strip-markdown.ts    meta description 与 RSS 共用的去语法工具
 server/                      Node 生产入口、静态资源和媒体代理
@@ -167,7 +184,7 @@ Ask TimeAmber 位于管理员后台 `/admin/ask`，复用现有 Supabase Auth �
 ## NAS 部署
 
 ```bash
-cd /volume1/docker/timeamber-next/deploy/supabase
+cd /volume1/docker/timeamber/deploy/supabase
 
 docker compose \
   --env-file .env \

@@ -1,46 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
 
 import { ArticleCard } from "@/components/home/ArticleCard";
 import { SectionHeader } from "@/components/home/SectionHeader";
-import { useReveal } from "@/hooks/use-reveal";
-import type { HomeCategory, HomePost } from "@/lib/home.functions";
+import type { HomePost } from "@/lib/home.functions";
 
-const ALL = "全部";
-const VISIBLE = 9;
-
-/**
- * 最新文章区：分类胶囊 + 响应式网格。
- * 分类来自真实数据统计，不写死；筛选在客户端即时完成。
- */
-export function ArticleSection({
-  posts,
-  byCategory,
-  categories,
-}: {
-  posts: HomePost[];
-  byCategory: Record<string, HomePost[]>;
-  categories: HomeCategory[];
-}) {
-  const [active, setActive] = useState(ALL);
-  const revealRef = useReveal<HTMLElement>();
-
-  // 只保留真正取到文章的分类，避免出现点了必空的胶囊。
-  const chips = useMemo(
-    () => [ALL, ...categories.filter((c) => byCategory[c.name]?.length).map((c) => c.name)],
-    [categories, byCategory],
-  );
-  const filtered = useMemo(
-    () => (active === ALL ? posts : (byCategory[active] ?? [])).slice(0, VISIBLE),
-    [posts, byCategory, active],
-  );
-
+/** 最新文章：响应式网格，首卡描边强调。 */
+export function ArticleSection({ posts }: { posts: HomePost[] }) {
   return (
-    <section
-      ref={revealRef}
-      aria-labelledby="articles-title"
-      className="mx-auto max-w-6xl px-6 py-14"
-    >
+    <section aria-labelledby="articles-title" className="mx-auto max-w-6xl px-6 pt-10 pb-14">
       <div id="articles-title">
         <SectionHeader
           kicker="Articles"
@@ -56,40 +23,15 @@ export function ArticleSection({
         />
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-3" role="group" aria-label="按分类筛选文章">
-        {chips.map((name) => {
-          const selected = name === active;
-          return (
-            <button
-              key={name}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => setActive(name)}
-              className={`h-9 rounded-[20px] px-4 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${
-                selected
-                  ? "bg-primary font-bold text-primary-foreground"
-                  : "border border-border bg-card text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {name}
-            </button>
-          );
-        })}
-      </div>
-
-      {filtered.length > 0 ? (
+      {posts.length > 0 ? (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((post, index) => (
-            <ArticleCard key={post.slug} post={post} priority={active === ALL && index === 0} />
+          {posts.map((post, index) => (
+            <ArticleCard key={post.slug} post={post} priority={index === 0} />
           ))}
         </div>
       ) : (
         <p className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          「{active}」暂时没有最新文章，去
-          <Link to="/archive" className="mx-1 text-primary hover:underline">
-            归档
-          </Link>
-          看看历史内容。
+          还没有已发布的文章。
         </p>
       )}
     </section>

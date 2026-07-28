@@ -1,37 +1,40 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 
+import { useReveal } from "@/hooks/use-reveal";
 import { BRAND_AUTHOR_AVATAR } from "@/lib/brand";
 import { getAuthorInitial } from "@/lib/author-profile";
 import { useAdminStore } from "@/lib/admin-store";
 
 /**
- * 双栏 Hero：左侧文案与入口，右侧主理人头像卡。
- * 标题与副文案取自后台站点设置，不写死在组件里。
+ * 主理人区，放在页脚上方。
+ * 文案取自后台站点设置，不写死在组件里。
  */
-export function HeroTwoPane({ totalPosts }: { totalPosts: number }) {
+export function AuthorPane({ totalPosts }: { totalPosts: number }) {
   const { settings } = useAdminStore();
+  const revealRef = useReveal<HTMLElement>();
   const avatar = settings.authorAvatar?.trim() || BRAND_AUTHOR_AVATAR;
   const authorName = settings.authorName?.trim() || settings.siteTitle;
 
   return (
     <section
-      aria-labelledby="hero-title"
-      className="mx-auto flex max-w-6xl flex-col items-center gap-10 px-6 py-14 md:flex-row md:gap-14 md:py-20"
+      ref={revealRef}
+      aria-labelledby="author-title"
+      className="mx-auto flex max-w-6xl flex-col items-center gap-10 px-6 py-14 md:flex-row md:gap-14"
     >
       <div className="min-w-0 flex-1 text-center md:text-left">
         <p className="font-latin text-xs font-medium tracking-[0.2em] text-primary uppercase">
           Personal Archive · 个人档案馆
         </p>
 
-        <h1
-          id="hero-title"
-          className="mt-4 text-3xl leading-tight font-black tracking-tight text-balance text-foreground sm:text-4xl md:text-5xl"
+        <h2
+          id="author-title"
+          className="mt-4 text-2xl leading-tight font-black tracking-tight text-balance text-foreground sm:text-3xl"
         >
           {settings.siteTagline}
-        </h1>
+        </h2>
 
-        <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground max-md:mx-auto">
+        <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground max-md:mx-auto">
           {settings.siteDescription}
         </p>
 
@@ -39,7 +42,7 @@ export function HeroTwoPane({ totalPosts }: { totalPosts: number }) {
           {totalPosts.toLocaleString("en-US")} 篇归档 · 持续更新
         </p>
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3 md:justify-start">
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3 md:justify-start">
           <Link
             to="/archive"
             className="inline-flex h-11 items-center gap-1.5 rounded-[10px] bg-primary px-5 text-sm font-bold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -55,7 +58,7 @@ export function HeroTwoPane({ totalPosts }: { totalPosts: number }) {
         </div>
       </div>
 
-      {/* 头像卡：封面区放圆形头像，下方铭牌栏 */}
+      {/* 主理人卡片：封面区放圆形头像，下方铭牌栏 */}
       <div className="w-full max-w-[320px] shrink-0 overflow-hidden rounded-3xl border border-border bg-card">
         <div className="cover-gradient flex aspect-square items-center justify-center p-8">
           {avatar ? (
@@ -65,7 +68,7 @@ export function HeroTwoPane({ totalPosts }: { totalPosts: number }) {
               width={512}
               height={512}
               className="h-full w-full rounded-full object-cover"
-              loading="eager"
+              loading="lazy"
               decoding="async"
             />
           ) : (

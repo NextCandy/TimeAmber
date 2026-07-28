@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { ArticleSection } from "@/components/home/ArticleSection";
-import { FeaturedCarousel } from "@/components/home/FeaturedCarousel";
-import { HeroTwoPane } from "@/components/home/HeroTwoPane";
-import { SubscribeSection } from "@/components/home/SubscribeSection";
+import { AuthorPane } from "@/components/home/AuthorPane";
 import { VisitPulse } from "@/components/home/VisitPulse";
 import { loadHomeData } from "@/lib/home.functions";
 import { loadPublicVisitTrend } from "@/lib/state.functions";
@@ -33,21 +31,13 @@ function Index() {
 
   return (
     <div className="flex flex-col">
-      <HeroTwoPane totalPosts={home.totalPosts} />
+      <ArticleSection posts={home.latest} />
 
-      <div className="mx-auto w-full max-w-6xl px-6">
+      <AuthorPane totalPosts={home.totalPosts} />
+
+      <div className="mx-auto w-full max-w-6xl px-6 pb-14">
         <VisitPulse trend={visitTrend} />
       </div>
-
-      <ArticleSection
-        posts={home.latest}
-        byCategory={home.byCategory}
-        categories={home.categories}
-      />
-
-      <FeaturedCarousel posts={home.featured} />
-
-      <SubscribeSection />
     </div>
   );
 }

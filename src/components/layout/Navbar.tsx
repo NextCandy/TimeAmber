@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Search } from "lucide-react";
+import { LayoutDashboard, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BRAND_ICON } from "@/lib/brand";
 import { useAdminStore } from "@/lib/admin-store";
@@ -9,10 +9,8 @@ import type { ThemePreference } from "@/lib/theme";
 
 const NAV = [
   { to: "/", label: "首页" },
-  { to: "/categories", label: "分类" },
   { to: "/archive", label: "归档" },
   { to: "/about", label: "关于" },
-  { to: "/friends", label: "友链" },
 ] as const;
 
 const ASK_NAV = { to: "/ask", label: "问一问" } as const;
@@ -44,6 +42,9 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  const iconButton =
+    "inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+
   return (
     <header
       className={`sticky top-0 z-40 w-full transition-all duration-300 ${
@@ -52,15 +53,16 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
           : "border-b border-transparent bg-transparent"
       }`}
     >
-      <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-6">
-        <Link to="/" className="group flex items-center gap-2.5">
+      {/* 三栏等分栅格：导航始终居中，不受左右两侧宽度影响 */}
+      <div className="mx-auto grid h-[72px] max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-6">
+        <Link to="/" className="group flex items-center gap-2.5 justify-self-start">
           <img src={BRAND_ICON} alt="" className="h-8 w-8 object-contain drop-shadow-brand-sm" />
-          <span className="font-brand text-2xl font-normal leading-none tracking-tight">
+          <span className="font-brand text-2xl leading-none font-normal tracking-tight">
             TimeAmber
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 justify-self-center md:flex">
           {navItems.map((item) => (
             <Link
               key={item.to}
@@ -76,23 +78,20 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
           ))}
         </nav>
 
-        <div className="flex items-center gap-1">
-          <Link
-            to="/admin"
-            className="hidden rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:inline-flex"
-          >
-            后台
-          </Link>
+        <div className="flex items-center gap-1 justify-self-end">
           <button
             type="button"
             aria-label="搜索（⌘K）"
             title="搜索（⌘K / Ctrl+K）"
             onClick={() => setSearchOpen(true)}
-            className="inline-flex h-9 items-center gap-2 rounded-[20px] bg-[var(--surface-deep)] px-3 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:w-56"
+            className="inline-flex h-9 items-center gap-2 rounded-[20px] bg-[var(--surface-deep)] px-3 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:w-52"
           >
             <Search className="h-4 w-4 shrink-0" />
-            <span className="hidden truncate text-sm sm:inline">搜索文章、标签…</span>
+            <span className="hidden truncate text-sm lg:inline">搜索文章、标签…</span>
           </button>
+          <Link to="/admin" aria-label="后台" title="后台" className={iconButton}>
+            <LayoutDashboard className="h-4 w-4" />
+          </Link>
           <ThemeToggle initialPreference={initialThemePreference} />
         </div>
       </div>
