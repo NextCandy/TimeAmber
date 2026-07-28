@@ -173,6 +173,7 @@ async function loadCore(admin: boolean): Promise<Partial<AdminState>> {
       name: String(row.name),
       url: String(row.url),
       desc: String(row.description ?? ""),
+      icon: row.icon ? String(row.icon) : undefined,
       group: row.group_name ? String(row.group_name) : undefined,
     })),
     settings: settings as AdminState["settings"],
@@ -469,11 +470,11 @@ export const persistAdminState = createServerFn({ method: "POST" })
 
       for (const friend of state.friends) {
         await tx`
-          insert into public.friends (name, url, description, group_name, updated_at)
-          values (${friend.name}, ${friend.url}, ${friend.desc}, ${friend.group ?? null}, now())
+          insert into public.friends (name, url, description, icon, group_name, updated_at)
+          values (${friend.name}, ${friend.url}, ${friend.desc}, ${friend.icon ?? null}, ${friend.group ?? null}, now())
           on conflict (name) do update
             set url = excluded.url, description = excluded.description,
-                group_name = excluded.group_name, updated_at = now()
+                icon = excluded.icon, group_name = excluded.group_name, updated_at = now()
         `;
       }
       const friendNames = state.friends.map((item) => item.name);

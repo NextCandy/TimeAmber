@@ -11,6 +11,7 @@ const NAV = [
   { to: "/", label: "首页" },
   { to: "/archive", label: "归档" },
   { to: "/about", label: "关于" },
+  { to: "/friends", label: "友链" },
 ] as const;
 
 const ASK_NAV = { to: "/ask", label: "问一问" } as const;
@@ -84,10 +85,9 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
             aria-label="搜索（⌘K）"
             title="搜索（⌘K / Ctrl+K）"
             onClick={() => setSearchOpen(true)}
-            className="inline-flex h-9 items-center gap-2 rounded-[20px] bg-[var(--surface-deep)] px-3 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:w-52"
+            className={iconButton}
           >
-            <Search className="h-4 w-4 shrink-0" />
-            <span className="hidden truncate text-sm lg:inline">搜索文章、标签…</span>
+            <Search className="h-4 w-4" />
           </button>
           <Link to="/admin" aria-label="后台" title="后台" className={iconButton}>
             <LayoutDashboard className="h-4 w-4" />

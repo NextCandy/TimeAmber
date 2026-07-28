@@ -23,7 +23,7 @@ import { DEFAULT_AUTHOR_PROFILE, type AuthorProfile } from "./author-profile";
 
 export type Category = { name: string };
 export type Tag = { name: string };
-export type Friend = { name: string; url: string; desc: string; group?: string };
+export type Friend = { name: string; url: string; desc: string; icon?: string; group?: string };
 
 export type SiteSettings = AuthorProfile & {
   siteTitle: string;
@@ -400,6 +400,10 @@ export function AdminStoreProvider({
         contactClicks: { ...s.contactClicks, ...(parsed.contactClicks ?? {}) },
         contactLastAt: { ...s.contactLastAt, ...(parsed.contactLastAt ?? {}) },
       }));
+      // queueMicrotask 里的复位比 useEffect 先执行，光靠 applyingRemoteRef 挡不住
+      // 水合后那一次 persist —— 每次进后台都会全量重写上千篇文章，把库写死。
+      // 这里额外置一个跳过标记，由 persist effect 自己消费，时序确定。
+      skipPersistRef.current = true;
       queueMicrotask(() => {
         applyingRemoteRef.current = false;
       });

@@ -28,7 +28,9 @@ function faviconUrl(url: string): string | null {
 
 function FriendCard({ f }: { f: Friend }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const icon = faviconUrl(f.url);
+  // 后台填了图标就用它，没填再退回 favicon 服务、最后退到首字母
+  const custom = f.icon?.trim();
+  const icon = custom || faviconUrl(f.url);
   const initial = f.name.trim().charAt(0) || "友";
   return (
     <a
@@ -46,7 +48,7 @@ function FriendCard({ f }: { f: Friend }) {
             height={20}
             loading="lazy"
             decoding="async"
-            className="h-5 w-5"
+            className={custom ? "h-full w-full object-cover" : "h-5 w-5"}
             onError={() => setImgFailed(true)}
           />
         ) : (
@@ -149,9 +151,7 @@ function FriendsPage() {
                 {multiGroup && (
                   <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-semibold">
                     {g}
-                    <span className="text-xs font-normal text-muted-foreground">
-                      {list.length}
-                    </span>
+                    <span className="text-xs font-normal text-muted-foreground">{list.length}</span>
                   </h2>
                 )}
                 <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">

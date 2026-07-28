@@ -21,12 +21,10 @@ export const Route = createFileRoute("/_authenticated/admin/friends")({
 
 function FriendsPage() {
   const { friends, upsertFriend, removeFriend } = useAdminStore();
-  const [editing, setEditing] = useState<{ friend: Friend; original?: string } | null>(
-    null,
-  );
+  const [editing, setEditing] = useState<{ friend: Friend; original?: string } | null>(null);
 
   function openNew() {
-    setEditing({ friend: { name: "", url: "https://", desc: "", group: "" } });
+    setEditing({ friend: { name: "", url: "https://", desc: "", icon: "", group: "" } });
   }
   function openEdit(f: Friend) {
     setEditing({ friend: { ...f }, original: f.name });
@@ -69,10 +67,7 @@ function FriendsPage() {
         ) : (
           <ul className="divide-y divide-border/60">
             {friends.map((f) => (
-              <li
-                key={f.name}
-                className="flex items-center justify-between gap-3 px-5 py-3"
-              >
+              <li key={f.name} className="flex items-center justify-between gap-3 px-5 py-3">
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 text-sm font-medium">
                     {f.name}
@@ -86,9 +81,7 @@ function FriendsPage() {
                     <ExternalLink className="h-3 w-3 shrink-0" />
                     <span className="truncate">{f.url}</span>
                   </p>
-                  {f.desc && (
-                    <p className="mt-1 text-xs text-muted-foreground">{f.desc}</p>
-                  )}
+                  {f.desc && <p className="mt-1 text-xs text-muted-foreground">{f.desc}</p>}
                 </div>
                 <div className="flex shrink-0 gap-1">
                   <Button size="icon" variant="ghost" onClick={() => openEdit(f)}>
@@ -146,6 +139,23 @@ function FriendsPage() {
                       friend: { ...editing.friend, url: e.target.value },
                     })
                   }
+                  className="mt-1.5"
+                  maxLength={500}
+                />
+              </div>
+              <div>
+                <Label htmlFor="ficon">图标地址（可选）</Label>
+                <Input
+                  id="ficon"
+                  type="url"
+                  value={editing.friend.icon ?? ""}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      friend: { ...editing.friend, icon: e.target.value },
+                    })
+                  }
+                  placeholder="留空则自动取站点 favicon"
                   className="mt-1.5"
                   maxLength={500}
                 />

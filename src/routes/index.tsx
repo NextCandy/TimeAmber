@@ -2,19 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { ArticleSection } from "@/components/home/ArticleSection";
 import { AuthorPane } from "@/components/home/AuthorPane";
-import { VisitPulse } from "@/components/home/VisitPulse";
 import { loadHomeData } from "@/lib/home.functions";
-import { loadPublicVisitTrend } from "@/lib/state.functions";
 
 export const Route = createFileRoute("/")({
-  // 首页数据与访问趋势都在服务端取好，首屏直出真实内容。
-  loader: async () => {
-    const [home, visitTrend] = await Promise.all([
-      loadHomeData(),
-      loadPublicVisitTrend().catch(() => []),
-    ]);
-    return { home, visitTrend };
-  },
+  // 首页数据在服务端取好，首屏直出真实内容。
+  loader: async () => ({ home: await loadHomeData() }),
   head: () => ({
     meta: [
       { title: "TimeAmber · 时光琥珀" },
@@ -27,17 +19,12 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { home, visitTrend } = Route.useLoaderData();
+  const { home } = Route.useLoaderData();
 
   return (
     <div className="flex flex-col">
       <ArticleSection posts={home.latest} />
-
       <AuthorPane totalPosts={home.totalPosts} />
-
-      <div className="mx-auto w-full max-w-6xl px-6 pb-14">
-        <VisitPulse trend={visitTrend} />
-      </div>
     </div>
   );
 }
