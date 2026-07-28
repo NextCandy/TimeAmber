@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
 import { useAdminStore } from "@/lib/admin-store";
+import { addCategoryRow, deleteCategoryRow, renameCategoryRow } from "@/lib/state.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -11,8 +12,20 @@ export const Route = createFileRoute("/_authenticated/admin/categories")({
 });
 
 function CategoriesPage() {
-  const { categories, posts, addCategory, renameCategory, removeCategory } =
+  const { categories, posts, addCategory, renameCategory, removeCategory, suppressNextPersist } =
     useAdminStore();
+
+  // 分类改动只碰 categories/posts 两张表；走全量 persist 会连带重写上千篇文章，
+  // 慢且常超时，改动经常写不进库。
+  async function run(action: () => Promise<unknown>, ok: string) {
+    try {
+      await action();
+      toast.success(ok);
+    } catch (error) {
+      console.error("[TimeAmber] 分类写入失败", error);
+      toast.error("保存失败，请重试");
+    }
+  }
   const [newName, setNewName] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -23,9 +36,11 @@ function CategoriesPage() {
   function add(e: React.FormEvent) {
     e.preventDefault();
     if (!newName.trim()) return;
-    addCategory(newName);
-    toast.success("已添加");
+    const name = newName.trim();
+    suppressNextPersist();
+    addCategory(name);
     setNewName("");
+    void run(() => addCategoryRow({ data: { name } }), "已添加");
   }
 
   return (
@@ -54,10 +69,7 @@ function CategoriesPage() {
             const used = counts.get(c.name) ?? 0;
             const isEditing = editing === c.name;
             return (
-              <li
-                key={c.name}
-                className="flex items-center justify-between gap-3 px-5 py-3"
-              >
+              <li key={c.name} className="flex items-center justify-between gap-3 px-5 py-3">
                 {isEditing ? (
                   <>
                     <Input
@@ -72,18 +84,19 @@ function CategoriesPage() {
                         size="icon"
                         variant="ghost"
                         onClick={() => {
-                          renameCategory(c.name, editValue);
-                          toast.success("已重命名");
+                          const to = editValue.trim();
+                          suppressNextPersist();
+                          renameCategory(c.name, to);
                           setEditing(null);
+                          void run(
+                            () => renameCategoryRow({ data: { from: c.name, to } }),
+                            "已重命名",
+                          );
                         }}
                       >
                         <Check className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setEditing(null)}
-                      >
+                      <Button size="icon" variant="ghost" onClick={() => setEditing(null)}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
@@ -111,8 +124,9 @@ function CategoriesPage() {
                         disabled={used > 0}
                         title={used > 0 ? "请先迁移这些文章" : ""}
                         onClick={() => {
+                          suppressNextPersist();
                           removeCategory(c.name);
-                          toast.success("已删除");
+                          void run(() => deleteCategoryRow({ data: { name: c.name } }), "已删除");
                         }}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />

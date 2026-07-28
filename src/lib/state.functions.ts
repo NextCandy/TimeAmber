@@ -402,6 +402,83 @@ export const loadAdminMediaState = createServerFn({ method: "GET" })
     return { media: await loadMediaItems() };
   });
 
+const taxonomyNameInput = z.object({ name: z.string().trim().min(1).max(120) });
+const taxonomyRenameInput = z.object({
+  from: z.string().trim().min(1).max(120),
+  to: z.string().trim().min(1).max(120),
+});
+
+/*
+ * 分类与标签的轻量写入。
+ * 这些操作原本只改浏览器状态，靠防抖的 persistAdminState 落库，
+ * 而那个接口会连带重写全部文章，慢且常超时 —— 改动经常写不进去。
+ * 下面每个动作只碰自己那张表，前端可以同步等结果。
+ */
+
+export const addCategoryRow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: z.infer<typeof taxonomyNameInput>) => taxonomyNameInput.parse(v))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    await db()`
+      insert into public.categories (name, updated_at) values (${data.name}, now())
+      on conflict (name) do update set updated_at = now()
+    `;
+    return { ok: true as const };
+  });
+
+export const renameCategoryRow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: z.infer<typeof taxonomyRenameInput>) => taxonomyRenameInput.parse(v))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    if (data.from === data.to) return { ok: true as const };
+    const sql = db();
+    // 先建目标分类再迁移文章，最后删旧的 —— 重名时等于把两个分类合并，不会撞唯一约束。
+    await sql.begin(async (tx) => {
+      await tx`
+        insert into public.categories (name, updated_at) values (${data.to}, now())
+        on conflict (name) do update set updated_at = now()
+      `;
+      await tx`
+        update public.posts set category = ${data.to}, updated_at = now()
+        where category = ${data.from}
+      `;
+      await tx`delete from public.categories where name = ${data.from}`;
+    });
+    return { ok: true as const };
+  });
+
+export const deleteCategoryRow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: z.infer<typeof taxonomyNameInput>) => taxonomyNameInput.parse(v))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    await db()`delete from public.categories where name = ${data.name}`;
+    return { ok: true as const };
+  });
+
+export const addTagRow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: z.infer<typeof taxonomyNameInput>) => taxonomyNameInput.parse(v))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    await db()`
+      insert into public.tags (name) values (${data.name}) on conflict (name) do nothing
+    `;
+    return { ok: true as const };
+  });
+
+export const deleteTagRow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: z.infer<typeof taxonomyNameInput>) => taxonomyNameInput.parse(v))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    // post_tags.tag_id 是 ON DELETE CASCADE，关联关系会跟着清掉。
+    await db()`delete from public.tags where name = ${data.name}`;
+    return { ok: true as const };
+  });
+
 const friendsInput = z.object({ friends: z.any() });
 
 /**

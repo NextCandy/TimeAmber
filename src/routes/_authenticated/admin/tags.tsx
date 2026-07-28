@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { useAdminStore } from "@/lib/admin-store";
+import { addTagRow, deleteTagRow } from "@/lib/state.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -11,7 +12,18 @@ export const Route = createFileRoute("/_authenticated/admin/tags")({
 });
 
 function TagsPage() {
-  const { tags, posts, addTag, removeTag } = useAdminStore();
+  const { tags, posts, addTag, removeTag, suppressNextPersist } = useAdminStore();
+
+  // 同分类页：标签改动单独写库，不再挂在会重写全部文章的全量 persist 上。
+  async function run(action: () => Promise<unknown>, ok: string) {
+    try {
+      await action();
+      toast.success(ok);
+    } catch (error) {
+      console.error("[TimeAmber] 标签写入失败", error);
+      toast.error("保存失败，请重试");
+    }
+  }
   const [newName, setNewName] = useState("");
 
   const counts = new Map<string, number>();
@@ -20,9 +32,11 @@ function TagsPage() {
   function add(e: React.FormEvent) {
     e.preventDefault();
     if (!newName.trim()) return;
-    addTag(newName);
-    toast.success("已添加");
+    const name = newName.trim();
+    suppressNextPersist();
+    addTag(name);
     setNewName("");
+    void run(() => addTagRow({ data: { name } }), "已添加");
   }
 
   return (
@@ -58,8 +72,9 @@ function TagsPage() {
               <button
                 type="button"
                 onClick={() => {
+                  suppressNextPersist();
                   removeTag(t.name);
-                  toast.success("已删除");
+                  void run(() => deleteTagRow({ data: { name: t.name } }), "已删除");
                 }}
                 className="ml-0.5 text-muted-foreground transition-colors hover:text-destructive"
                 aria-label={`删除 ${t.name}`}
@@ -69,9 +84,7 @@ function TagsPage() {
             </span>
           );
         })}
-        {tags.length === 0 && (
-          <p className="text-sm text-muted-foreground">还没有标签</p>
-        )}
+        {tags.length === 0 && <p className="text-sm text-muted-foreground">还没有标签</p>}
       </div>
     </div>
   );
