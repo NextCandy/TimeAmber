@@ -90,7 +90,7 @@ function CategoriesPage() {
               这个{activeCategory ? "分类" : "标签"}下还没有文章。
             </p>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col border-b border-border">
               {filtered.map((post) => (
                 <PostCard key={post.slug} post={post} />
               ))}

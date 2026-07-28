@@ -1,3 +1,5 @@
+import { formatChineseDate } from "@/lib/date";
+
 export type PostStatus = "draft" | "published";
 export type PostType = "markdown" | "html";
 export type OpenIn = "_blank" | "_self";
@@ -253,8 +255,7 @@ export function firstChar(title: string) {
 }
 
 export function formatDate(iso: string) {
-  const d = new Date(iso);
-  return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+  return formatChineseDate(iso);
 }
 
 export function isPublished(p: Post) {
