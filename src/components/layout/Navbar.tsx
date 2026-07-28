@@ -52,7 +52,7 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
           : "border-b border-transparent bg-transparent"
       }`}
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+      <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-6">
         <Link to="/" className="group flex items-center gap-2.5">
           <img src={BRAND_ICON} alt="" className="h-8 w-8 object-contain drop-shadow-brand-sm" />
           <span className="font-brand text-2xl font-normal leading-none tracking-tight">
@@ -88,9 +88,10 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
             aria-label="搜索（⌘K）"
             title="搜索（⌘K / Ctrl+K）"
             onClick={() => setSearchOpen(true)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="inline-flex h-9 items-center gap-2 rounded-[20px] bg-[var(--surface-deep)] px-3 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:w-56"
           >
-            <Search className="h-4 w-4" />
+            <Search className="h-4 w-4 shrink-0" />
+            <span className="hidden truncate text-sm sm:inline">搜索文章、标签…</span>
           </button>
           <ThemeToggle initialPreference={initialThemePreference} />
         </div>

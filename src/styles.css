@@ -1,4 +1,7 @@
 @import "./fonts.css";
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-700.css";
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
@@ -443,5 +446,61 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ── 首页改版新增（派生 token / 拉丁字体 / 揭示动画）────────────────
+   这些值全部由已有主题 token 派生（color-mix），不引入任何新色相，
+   因此深松青 / 晨雾青两套主题都会自动跟随。 */
+
+:root {
+  /* 比 background 再沉一档，用于精选区与页脚 */
+  --surface-deep: color-mix(in oklch, var(--background) 62%, var(--secondary));
+  /* 比 muted-foreground 再弱一档，用于日期等次要信息 */
+  --text-faint: color-mix(in oklch, var(--muted-foreground) 70%, var(--background));
+  /* 实色主色底上的深色油墨（按钮、徽标） */
+  --accent-ink: var(--primary-foreground);
+}
+
+.dark {
+  --surface-deep: color-mix(in oklch, var(--background) 78%, black);
+  --text-faint: color-mix(in oklch, var(--muted-foreground) 68%, var(--background));
+  --accent-ink: var(--primary-foreground);
+}
+
+/* 拉丁与数字用 Inter，中文继续走 Tsanger 分片方案 */
+.font-latin {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "tnum";
+}
+
+/* 卡片封面缺图时的品牌渐变占位 */
+@utility cover-gradient {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--brand-1) 75%, transparent),
+    color-mix(in oklch, var(--brand-3) 85%, var(--background))
+  );
+}
+
+/* 滚动揭示：SSR 默认可见，由 JS 决定是否先隐藏（见 use-reveal.ts） */
+[data-reveal="hidden"] {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+[data-reveal="shown"] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.55s ease-out,
+    transform 0.55s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }
