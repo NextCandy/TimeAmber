@@ -71,8 +71,12 @@
   --color-brand-1: var(--brand-1);
   --color-brand-2: var(--brand-2);
   --color-brand-3: var(--brand-3);
-  --font-display: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
-  --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display:
+    "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC",
+    system-ui, sans-serif;
+  --font-sans:
+    "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
   --font-brand: "A Song For Jennifer", "JetBrains Mono", cursive;
 
   /* 光晕统一引用主色，自动跟随主题。 */
@@ -83,69 +87,69 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0;
   color-scheme: light;
 
-  --background: oklch(0.975 0.012 190);
-  --foreground: oklch(0.2 0.025 190);
-  --card: oklch(0.995 0.006 190);
-  --card-foreground: oklch(0.2 0.025 190);
-  --popover: oklch(0.995 0.006 190);
-  --popover-foreground: oklch(0.2 0.025 190);
-  --primary: oklch(0.5 0.11 190);
-  --primary-foreground: oklch(0.99 0.005 190);
-  --primary-glow: oklch(0.6 0.13 185);
-  --secondary: oklch(0.93 0.025 190);
-  --secondary-foreground: oklch(0.22 0.025 190);
-  --muted: oklch(0.945 0.018 190);
-  --muted-foreground: oklch(0.42 0.03 190);
-  --accent: oklch(0.91 0.04 190);
-  --accent-foreground: oklch(0.22 0.03 190);
+  --background: oklch(0.962 0.006 95);
+  --foreground: oklch(0.18 0.008 95);
+  --card: oklch(0.985 0.004 95);
+  --card-foreground: oklch(0.18 0.008 95);
+  --popover: oklch(0.985 0.004 95);
+  --popover-foreground: oklch(0.18 0.008 95);
+  --primary: oklch(0.485 0.272 266);
+  --primary-foreground: oklch(0.98 0.005 95);
+  --primary-glow: oklch(0.6 0.22 266);
+  --secondary: oklch(0.93 0.008 95);
+  --secondary-foreground: oklch(0.22 0.01 95);
+  --muted: oklch(0.94 0.006 95);
+  --muted-foreground: oklch(0.45 0.015 95);
+  --accent: oklch(0.91 0.07 266);
+  --accent-foreground: oklch(0.22 0.08 266);
   --destructive: oklch(0.52 0.2 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.8 0.025 190);
-  --input: oklch(0.84 0.025 190);
-  --ring: oklch(0.5 0.11 190 / 55%);
-  --overlay: oklch(0.12 0.015 190);
+  --border: oklch(0.3 0.01 95 / 16%);
+  --input: oklch(0.3 0.01 95 / 28%);
+  --ring: oklch(0.485 0.272 266 / 55%);
+  --overlay: oklch(0.15 0.01 95);
   --success: oklch(0.43 0.1 155);
   --success-foreground: oklch(0.3 0.08 155);
   --warning: oklch(0.52 0.12 75);
   --warning-foreground: oklch(0.34 0.09 70);
-  --brand-1: oklch(0.58 0.12 185);
-  --brand-2: oklch(0.5 0.1 195);
-  --brand-3: oklch(0.42 0.08 205);
+  --brand-1: oklch(0.6 0.2 266);
+  --brand-2: oklch(0.52 0.18 268);
+  --brand-3: oklch(0.44 0.16 270);
 }
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.15 0.02 190);
-  --foreground: oklch(0.94 0.012 185);
-  --card: oklch(0.2 0.022 190);
-  --card-foreground: oklch(0.94 0.012 185);
-  --popover: oklch(0.2 0.022 190);
-  --popover-foreground: oklch(0.94 0.012 185);
-  --primary: oklch(0.72 0.12 185);
-  --primary-foreground: oklch(0.14 0.02 190);
-  --primary-glow: oklch(0.82 0.14 180);
-  --secondary: oklch(0.24 0.025 190);
-  --secondary-foreground: oklch(0.94 0.012 185);
-  --muted: oklch(0.22 0.022 190);
-  --muted-foreground: oklch(0.72 0.025 185);
-  --accent: oklch(0.27 0.045 185);
-  --accent-foreground: oklch(0.95 0.01 185);
+  --background: oklch(0.18 0.008 95);
+  --foreground: oklch(0.94 0.006 95);
+  --card: oklch(0.23 0.008 95);
+  --card-foreground: oklch(0.94 0.006 95);
+  --popover: oklch(0.23 0.008 95);
+  --popover-foreground: oklch(0.94 0.006 95);
+  --primary: oklch(0.621 0.204 273);
+  --primary-foreground: oklch(0.15 0.01 95);
+  --primary-glow: oklch(0.72 0.18 273);
+  --secondary: oklch(0.28 0.008 95);
+  --secondary-foreground: oklch(0.94 0.006 95);
+  --muted: oklch(0.25 0.008 95);
+  --muted-foreground: oklch(0.72 0.012 95);
+  --accent: oklch(0.28 0.09 266);
+  --accent-foreground: oklch(0.95 0.006 95);
   --destructive: oklch(0.68 0.19 25);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.42 0.03 190 / 55%);
-  --input: oklch(0.48 0.03 190 / 55%);
-  --ring: oklch(0.72 0.12 185 / 60%);
-  --overlay: oklch(0.05 0.01 190);
+  --border: oklch(0.92 0.006 95 / 17%);
+  --input: oklch(0.92 0.006 95 / 30%);
+  --ring: oklch(0.621 0.204 273 / 60%);
+  --overlay: oklch(0.05 0.01 95);
   --success: oklch(0.72 0.12 155);
   --success-foreground: oklch(0.82 0.1 155);
   --warning: oklch(0.78 0.13 75);
   --warning-foreground: oklch(0.84 0.11 75);
-  --brand-1: oklch(0.68 0.13 180);
-  --brand-2: oklch(0.58 0.11 190);
-  --brand-3: oklch(0.48 0.09 205);
+  --brand-1: oklch(0.68 0.18 266);
+  --brand-2: oklch(0.58 0.16 270);
+  --brand-3: oklch(0.48 0.14 272);
 }
 
 @layer base {
@@ -237,21 +241,24 @@
 .article-prose h5,
 .article-prose h6 {
   font-family: var(--font-display);
-  font-weight: 700;
-  line-height: 1.3;
+  font-weight: 650;
+  line-height: 1.2;
   scroll-margin-top: 6rem;
   margin: 1.8em 0 0.6em;
 }
 .article-prose h1 {
   font-size: 1.9em;
+  line-height: 1.05;
 }
 .article-prose h2 {
   font-size: 1.5em;
+  line-height: 1.1;
   padding-bottom: 0.3em;
   border-bottom: 1px solid var(--color-border);
 }
 .article-prose h3 {
   font-size: 1.25em;
+  line-height: 1.15;
 }
 .article-prose h4 {
   font-size: 1.08em;
@@ -315,7 +322,7 @@
   background: var(--color-muted);
   color: var(--color-primary);
   padding: 0.15em 0.4em;
-  border-radius: 0.35em;
+  border-radius: 0;
   word-break: break-word;
 }
 
@@ -396,7 +403,7 @@
   font-size: 0.72rem;
   color: var(--color-muted-foreground);
   padding: 0.2em 0.65em;
-  border-radius: 0.4em;
+  border-radius: 0;
   border: 1px solid var(--color-border);
   background: transparent;
   cursor: pointer;
@@ -434,7 +441,7 @@
 :focus-visible {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 /* 尊重系统「减少动态效果」：关掉非必要动画/过渡，滚动改为瞬时。 */

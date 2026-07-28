@@ -90,7 +90,7 @@ function CategoriesPage() {
               这个{activeCategory ? "分类" : "标签"}下还没有文章。
             </p>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col border-b border-border">
               {filtered.map((post) => (
                 <PostCard key={post.slug} post={post} />
               ))}
@@ -176,7 +176,9 @@ function highlightMatch(text: string, q: string): ReactNode {
   return (
     <>
       {text.slice(0, i)}
-      <mark className="rounded bg-primary/25 px-0.5 text-primary">{text.slice(i, i + q.length)}</mark>
+      <mark className="rounded bg-primary/25 px-0.5 text-primary">
+        {text.slice(i, i + q.length)}
+      </mark>
       {text.slice(i + q.length)}
     </>
   );
