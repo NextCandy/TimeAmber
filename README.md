@@ -256,20 +256,23 @@ git rev-parse HEAD
 纯 CSS、前端或服务端 Web 改动只需要重建 `timeamber-app`，不要重启 worker 或 Supabase：
 
 ```bash
-cd /volume1/docker/timeamber/deploy/supabase
+cd /volume1/docker/timeamber
 
 docker compose \
   --env-file .env \
   -f docker-compose.yml \
-  -f docker-compose.timeamber.yml \
   build timeamber-app
 
 docker compose \
   --env-file .env \
   -f docker-compose.yml \
-  -f docker-compose.timeamber.yml \
   up -d --no-deps timeamber-app
 ```
+
+当前生产容器的 Compose working directory 和 config file 分别是
+`/volume1/docker/timeamber` 与根目录 `docker-compose.yml`；增量发布必须沿用这一项目，
+避免创建第二套同名容器。`deploy/supabase/docker-compose*.yml` 是模块化的新环境部署模板，
+不用于替换已运行的根 Compose 项目。
 
 只有 `worker/`、`Dockerfile.worker` 或 worker 依赖发生变化时，才追加构建和更新
 `timeamber-worker`。数据库 migration 必须使用下文独立的 tools profile，不能通过普通
@@ -294,10 +297,11 @@ console，以及静态资源是否来自新构建。容器状态必须为 `healt
 首次部署时运行迁移：
 
 ```bash
+cd /volume1/docker/timeamber
+
 docker compose \
   --env-file .env \
   -f docker-compose.yml \
-  -f docker-compose.timeamber.yml \
   --profile tools run --rm timeamber-migrate
 ```
 
