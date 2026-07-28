@@ -11,12 +11,12 @@ export function SectionHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-8 flex items-end justify-between gap-4">
+    <div className="mb-5 flex items-end justify-between gap-4 border-b border-border pb-4">
       <div>
         <p className="font-latin text-xs font-medium tracking-[0.2em] text-primary uppercase">
           {kicker}
         </p>
-        <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h2 className="mt-2 text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-[40px] sm:leading-[1.2]">
           {title}
         </h2>
       </div>

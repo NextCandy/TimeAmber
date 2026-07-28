@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { LayoutDashboard, Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { BRAND_ICON } from "@/lib/brand";
 import { useAdminStore } from "@/lib/admin-store";
 import { SearchDialog } from "./SearchDialog";
 import { ThemeToggle } from "./ThemeToggle";
@@ -44,21 +43,19 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
   }, []);
 
   const iconButton =
-    "inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+    "inline-flex h-9 w-9 items-center justify-center text-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
   return (
     <header
-      className={`sticky top-0 z-40 w-full transition-all duration-300 ${
-        scrolled
-          ? "border-b border-border/60 bg-background/70 backdrop-blur-xl"
-          : "border-b border-transparent bg-transparent"
+      className={`sticky top-0 z-40 w-full border-b border-border transition-colors duration-300 ${
+        scrolled ? "bg-background/95 backdrop-blur-xl" : "bg-background"
       }`}
     >
       {/* 三栏等分栅格：导航始终居中，不受左右两侧宽度影响 */}
-      <div className="mx-auto grid h-[72px] max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-6">
+      <div className="mx-auto grid h-[72px] max-w-[1200px] grid-cols-[1fr_auto_1fr] items-center gap-4 px-6">
         <Link to="/" className="group flex items-center gap-2.5 justify-self-start">
-          <img src={BRAND_ICON} alt="" className="h-8 w-8 object-contain drop-shadow-brand-sm" />
-          <span className="font-brand text-2xl leading-none font-normal tracking-tight">
+          <span className="brand-mark h-8 w-8" aria-hidden="true" />
+          <span className="font-display text-xl leading-none font-bold tracking-[-0.02em] sm:text-2xl">
             TimeAmber
           </span>
         </Link>
@@ -68,10 +65,11 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
             <Link
               key={item.to}
               to={item.to}
-              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="border-b-2 border-transparent px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:border-primary"
               activeOptions={{ exact: true }}
               activeProps={{
-                className: "rounded-md px-3 py-1.5 text-sm text-foreground bg-accent",
+                className:
+                  "border-b-2 border-primary px-3 py-1.5 text-sm font-semibold text-foreground",
               }}
             >
               {item.label}

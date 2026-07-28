@@ -17,7 +17,7 @@ export function AuthorPane({ totalPosts }: { totalPosts: number }) {
     <section
       ref={revealRef}
       aria-labelledby="author-title"
-      className="mx-auto flex max-w-6xl flex-col items-center gap-7 px-6 py-10 md:flex-row md:gap-10"
+      className="mx-auto flex w-full max-w-[1200px] flex-col-reverse items-start gap-7 border-t border-border px-6 py-12 md:flex-row md:items-center md:gap-10"
     >
       <div className="min-w-0 flex-1 text-center md:text-left">
         <p className="font-latin text-[11px] font-medium tracking-[0.2em] text-primary uppercase">
@@ -40,33 +40,23 @@ export function AuthorPane({ totalPosts }: { totalPosts: number }) {
         </p>
       </div>
 
-      {/* 主理人卡片：封面区放圆形头像，下方铭牌栏 */}
-      <div className="w-full max-w-[200px] shrink-0 overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="cover-gradient flex aspect-square items-center justify-center p-5">
-          {avatar ? (
-            <img
-              src={avatar}
-              alt={`${authorName} 的头像`}
-              width={512}
-              height={512}
-              className="h-full w-full rounded-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-          ) : (
-            <span className="font-brand text-5xl text-primary-foreground">
-              {getAuthorInitial(authorName)}
-            </span>
-          )}
-        </div>
-        <div className="flex h-[52px] items-center gap-2 px-4">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
-          <span className="truncate text-xs text-foreground">
-            {authorName}
-            <span className="mx-1.5 text-[var(--text-faint)]">·</span>
-            <span className="text-muted-foreground">主理人</span>
+      {/* 主理人图像保持方形开放布局，不再使用独立卡片外壳。 */}
+      <div className="h-24 w-24 shrink-0 overflow-hidden bg-muted">
+        {avatar ? (
+          <img
+            src={avatar}
+            alt={`${authorName} 的头像`}
+            width={512}
+            height={512}
+            className="h-full w-full object-cover grayscale"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center text-3xl font-bold text-primary">
+            {getAuthorInitial(authorName)}
           </span>
-        </div>
+        )}
       </div>
     </section>
   );

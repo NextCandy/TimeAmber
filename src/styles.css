@@ -1,6 +1,6 @@
 @import "./fonts.css";
 @import "@fontsource/inter/latin-400.css";
-@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-600.css";
 @import "@fontsource/inter/latin-700.css";
 @import "tailwindcss" source(none);
 @source "../src";
@@ -32,10 +32,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * TimeAmber 主题 token。
- * 晨雾青为亮色，深松青为深色；颜色统一在 :root 与 .dark 定义。
- */
+/* TimeAmber 的 Glitch 编辑主题：白纸、墨黑与单一品红墨线。 */
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -71,12 +68,10 @@
   --color-brand-1: var(--brand-1);
   --color-brand-2: var(--brand-2);
   --color-brand-3: var(--brand-3);
-  --font-display:
-    "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC",
-    system-ui, sans-serif;
+  --font-display: "Inter", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
   --font-sans:
-    "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    "Inter", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", system-ui, sans-serif;
   --font-brand: "A Song For Jennifer", "JetBrains Mono", cursive;
 
   /* 光晕统一引用主色，自动跟随主题。 */
@@ -90,66 +85,66 @@
   --radius: 0;
   color-scheme: light;
 
-  --background: oklch(0.962 0.006 95);
-  --foreground: oklch(0.18 0.008 95);
-  --card: oklch(0.985 0.004 95);
-  --card-foreground: oklch(0.18 0.008 95);
-  --popover: oklch(0.985 0.004 95);
-  --popover-foreground: oklch(0.18 0.008 95);
-  --primary: oklch(0.485 0.272 266);
-  --primary-foreground: oklch(0.98 0.005 95);
-  --primary-glow: oklch(0.6 0.22 266);
-  --secondary: oklch(0.93 0.008 95);
-  --secondary-foreground: oklch(0.22 0.01 95);
-  --muted: oklch(0.94 0.006 95);
-  --muted-foreground: oklch(0.45 0.015 95);
-  --accent: oklch(0.91 0.07 266);
-  --accent-foreground: oklch(0.22 0.08 266);
-  --destructive: oklch(0.52 0.2 25);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.3 0.01 95 / 16%);
-  --input: oklch(0.3 0.01 95 / 28%);
-  --ring: oklch(0.485 0.272 266 / 55%);
-  --overlay: oklch(0.15 0.01 95);
-  --success: oklch(0.43 0.1 155);
-  --success-foreground: oklch(0.3 0.08 155);
-  --warning: oklch(0.52 0.12 75);
-  --warning-foreground: oklch(0.34 0.09 70);
-  --brand-1: oklch(0.6 0.2 266);
-  --brand-2: oklch(0.52 0.18 268);
-  --brand-3: oklch(0.44 0.16 270);
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #ff00bc;
+  --primary-foreground: #ffffff;
+  --primary-glow: #ff00bc;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #000000;
+  --muted: #f5f5f5;
+  --muted-foreground: #666666;
+  --accent: #ffffff;
+  --accent-foreground: #000000;
+  --destructive: #c21725;
+  --destructive-foreground: #ffffff;
+  --border: #e4e4e4;
+  --input: #b4b4b4;
+  --ring: #ff00bc;
+  --overlay: #000000;
+  --success: #166534;
+  --success-foreground: #14532d;
+  --warning: #a16207;
+  --warning-foreground: #713f12;
+  --brand-1: #ff00bc;
+  --brand-2: #ff00bc;
+  --brand-3: #000000;
 }
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.18 0.008 95);
-  --foreground: oklch(0.94 0.006 95);
-  --card: oklch(0.23 0.008 95);
-  --card-foreground: oklch(0.94 0.006 95);
-  --popover: oklch(0.23 0.008 95);
-  --popover-foreground: oklch(0.94 0.006 95);
-  --primary: oklch(0.621 0.204 273);
-  --primary-foreground: oklch(0.15 0.01 95);
-  --primary-glow: oklch(0.72 0.18 273);
-  --secondary: oklch(0.28 0.008 95);
-  --secondary-foreground: oklch(0.94 0.006 95);
-  --muted: oklch(0.25 0.008 95);
-  --muted-foreground: oklch(0.72 0.012 95);
-  --accent: oklch(0.28 0.09 266);
-  --accent-foreground: oklch(0.95 0.006 95);
-  --destructive: oklch(0.68 0.19 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.92 0.006 95 / 17%);
-  --input: oklch(0.92 0.006 95 / 30%);
-  --ring: oklch(0.621 0.204 273 / 60%);
-  --overlay: oklch(0.05 0.01 95);
-  --success: oklch(0.72 0.12 155);
-  --success-foreground: oklch(0.82 0.1 155);
-  --warning: oklch(0.78 0.13 75);
-  --warning-foreground: oklch(0.84 0.11 75);
-  --brand-1: oklch(0.68 0.18 266);
-  --brand-2: oklch(0.58 0.16 270);
-  --brand-3: oklch(0.48 0.14 272);
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --card: #0a0a0a;
+  --card-foreground: #ffffff;
+  --popover: #111111;
+  --popover-foreground: #ffffff;
+  --primary: #ff00bc;
+  --primary-foreground: #ffffff;
+  --primary-glow: #ff00bc;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
+  --muted: #1a1a1a;
+  --muted-foreground: #999999;
+  --accent: #0a0a0a;
+  --accent-foreground: #ffffff;
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+  --border: #2a2a2a;
+  --input: #404040;
+  --ring: #ff00bc;
+  --overlay: #000000;
+  --success: #4ade80;
+  --success-foreground: #bbf7d0;
+  --warning: #facc15;
+  --warning-foreground: #fef08a;
+  --brand-1: #ff00bc;
+  --brand-2: #ff00bc;
+  --brand-3: #ffffff;
 }
 
 @layer base {
@@ -456,37 +451,63 @@
   }
 }
 
-/* ── 首页改版新增（派生 token / 拉丁字体 / 揭示动画）────────────────
-   这些值全部由已有主题 token 派生（color-mix），不引入任何新色相，
-   因此深松青 / 晨雾青两套主题都会自动跟随。 */
+/* ── 首页编辑风格（派生 token / 品牌标记 / 封面占位）────────────── */
 
 :root {
-  /* 比 background 再沉一档，用于精选区与页脚 */
-  --surface-deep: color-mix(in oklch, var(--background) 62%, var(--secondary));
-  /* 比 muted-foreground 再弱一档，用于日期等次要信息 */
-  --text-faint: color-mix(in oklch, var(--muted-foreground) 70%, var(--background));
-  /* 实色主色底上的深色油墨（按钮、徽标） */
+  --surface-deep: var(--background);
+  --text-faint: #767676;
   --accent-ink: var(--primary-foreground);
 }
 
 .dark {
-  --surface-deep: color-mix(in oklch, var(--background) 78%, black);
-  --text-faint: color-mix(in oklch, var(--muted-foreground) 68%, var(--background));
+  --surface-deep: var(--background);
+  --text-faint: #8a8a8a;
   --accent-ink: var(--primary-foreground);
 }
 
-/* 拉丁与数字用 Inter，中文继续走 Tsanger 分片方案 */
+/* 拉丁与数字使用 Inter，中文回退到系统无衬线字体。 */
 .font-latin {
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "tnum";
 }
 
-/* 卡片封面缺图时的品牌渐变占位 */
+/* 品牌图标沿用现有轮廓，但统一为唯一的品红强调色。 */
+@utility brand-mark {
+  display: inline-block;
+  flex: none;
+  background-color: var(--primary);
+  -webkit-mask: url("/brand/icon-512.png") center / contain no-repeat;
+  mask: url("/brand/icon-512.png") center / contain no-repeat;
+}
+
+/* 缺图时使用黑白编辑纹理，品红只作为一根细墨线。 */
+@utility editorial-cover {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: #050505;
+  background-image:
+    repeating-linear-gradient(115deg, transparent 0 26px, rgb(255 255 255 / 12%) 27px 28px),
+    radial-gradient(circle at 78% 26%, rgb(255 255 255 / 28%), transparent 32%);
+
+  &::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    inset: 12% auto 12% var(--cover-line, 52%);
+    width: 2px;
+    background: var(--primary);
+    transform: rotate(var(--cover-angle, 0deg));
+    transform-origin: center;
+  }
+}
+
+/* 旧页面仍使用此类，颜色收束到新的单一强调体系。 */
 @utility cover-gradient {
   background-image: linear-gradient(
     135deg,
-    color-mix(in oklch, var(--brand-1) 75%, transparent),
-    color-mix(in oklch, var(--brand-3) 85%, var(--background))
+    color-mix(in srgb, var(--primary) 10%, var(--background)),
+    color-mix(in srgb, var(--foreground) 8%, var(--background))
   );
 }
 

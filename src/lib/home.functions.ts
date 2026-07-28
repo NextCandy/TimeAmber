@@ -14,6 +14,7 @@ export type HomePost = {
   slug: string;
   title: string;
   publishAt: string;
+  cover?: string;
   externalUrl?: string;
   openIn?: "_blank" | "_self";
 };
@@ -31,6 +32,7 @@ type PostRow = {
   publish_at: unknown;
   created_at: unknown;
   post_type: unknown;
+  cover_image: unknown;
   external_url: unknown;
   open_in: unknown;
 };
@@ -41,6 +43,7 @@ function toHomePost(row: PostRow): HomePost {
     slug: String(row.slug),
     title: String(row.title ?? ""),
     publishAt: new Date(String(row.publish_at ?? row.created_at)).toISOString(),
+    cover: row.cover_image ? String(row.cover_image) : undefined,
     externalUrl: isHtml ? String(row.external_url) : undefined,
     openIn: isHtml && row.open_in === "_self" ? "_self" : isHtml ? "_blank" : undefined,
   };
@@ -53,7 +56,7 @@ export const loadHomeData = createServerFn({ method: "GET" }).handler(
     const [latestRows, totalRows] = await Promise.all([
       sql<PostRow[]>`
         select
-          slug, title, publish_at, created_at, post_type, external_url, open_in
+          slug, title, publish_at, created_at, post_type, cover_image, external_url, open_in
         from public.posts
         where published = true
           and coalesce(listed, true) = true
