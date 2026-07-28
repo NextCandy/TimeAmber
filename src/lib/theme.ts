@@ -7,7 +7,7 @@ export const THEME_PREFERENCES = ["light", "dark", "system"] as const;
 export type ThemePreference = (typeof THEME_PREFERENCES)[number];
 export type ResolvedTheme = Exclude<ThemePreference, "system">;
 
-export const DEFAULT_THEME_PREFERENCE: ThemePreference = "dark";
+export const DEFAULT_THEME_PREFERENCE: ThemePreference = "light";
 
 export function parseThemePreference(value: unknown): ThemePreference | null {
   return typeof value === "string" && THEME_PREFERENCES.includes(value as ThemePreference)

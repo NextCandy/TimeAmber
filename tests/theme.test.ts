@@ -17,11 +17,11 @@ test("只接受三种主题偏好", () => {
   assert.equal(parseThemePreference(undefined), null);
 });
 
-test("从 Cookie 读取主题，非法值回退到默认深色", () => {
+test("从 Cookie 读取主题，非法值回退到默认浅色", () => {
   assert.equal(readThemePreferenceFromCookie("foo=1; ta-theme=light; bar=2"), "light");
   assert.equal(readThemePreferenceFromCookie("ta-theme=system"), "system");
-  assert.equal(readThemePreferenceFromCookie("ta-theme=unknown"), "dark");
-  assert.equal(readThemePreferenceFromCookie(null), "dark");
+  assert.equal(readThemePreferenceFromCookie("ta-theme=unknown"), "light");
+  assert.equal(readThemePreferenceFromCookie(null), "light");
 });
 
 test("system 偏好按系统设置解析", () => {

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { db } from "@/lib/db.server";
+import { getOfflineHtmlUrl } from "@/lib/offline-html";
 
 /**
  * 首页专用取数。
@@ -14,6 +15,7 @@ export type HomePost = {
   slug: string;
   title: string;
   publishAt: string;
+  cover?: string;
   externalUrl?: string;
   openIn?: "_blank" | "_self";
 };
@@ -31,17 +33,22 @@ type PostRow = {
   publish_at: unknown;
   created_at: unknown;
   post_type: unknown;
+  cover_image: unknown;
   external_url: unknown;
   open_in: unknown;
+  content: unknown;
 };
 
 function toHomePost(row: PostRow): HomePost {
-  const isHtml = row.post_type === "html" && !!row.external_url;
+  const offlineHtmlUrl = getOfflineHtmlUrl(row.content);
+  const externalUrl = row.external_url ? String(row.external_url) : offlineHtmlUrl;
+  const isHtml = (row.post_type === "html" || !!offlineHtmlUrl) && !!externalUrl;
   return {
     slug: String(row.slug),
     title: String(row.title ?? ""),
     publishAt: new Date(String(row.publish_at ?? row.created_at)).toISOString(),
-    externalUrl: isHtml ? String(row.external_url) : undefined,
+    cover: row.cover_image ? String(row.cover_image) : undefined,
+    externalUrl: isHtml ? externalUrl : undefined,
     openIn: isHtml && row.open_in === "_self" ? "_self" : isHtml ? "_blank" : undefined,
   };
 }
@@ -53,7 +60,8 @@ export const loadHomeData = createServerFn({ method: "GET" }).handler(
     const [latestRows, totalRows] = await Promise.all([
       sql<PostRow[]>`
         select
-          slug, title, publish_at, created_at, post_type, external_url, open_in
+          slug, title, publish_at, created_at, post_type, cover_image,
+          external_url, open_in, content
         from public.posts
         where published = true
           and coalesce(listed, true) = true

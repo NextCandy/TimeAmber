@@ -22,5 +22,5 @@ export function formatDateKey(iso: string) {
 export function formatChineseDate(iso: string) {
   const parts = shanghaiDateParts(iso);
   if (!parts) return iso;
-  return `${parts.year} 年 ${parts.month} 月 ${parts.day} 日`;
+  return `${parts.year}年${parts.month}月${parts.day}日`;
 }

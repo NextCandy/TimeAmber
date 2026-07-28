@@ -17,8 +17,8 @@ import {
 } from "@/lib/theme";
 
 const THEME_OPTIONS = [
-  { value: "light", label: "晨雾青", icon: Sun },
-  { value: "dark", label: "深松青", icon: Moon },
+  { value: "light", label: "浅色", icon: Sun },
+  { value: "dark", label: "深色", icon: Moon },
   { value: "system", label: "跟随系统", icon: Laptop },
 ] as const;
 
@@ -69,7 +69,7 @@ export function ThemeToggle({ initialPreference }: { initialPreference: ThemePre
           type="button"
           aria-label={`主题：${current.label}`}
           title={`主题：${current.label}`}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="inline-flex h-9 w-9 items-center justify-center text-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           <CurrentIcon className="h-4 w-4" />
         </button>
