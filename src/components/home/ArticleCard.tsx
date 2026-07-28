@@ -57,7 +57,7 @@ export function ArticleCard({ post, className = "" }: { post: HomePost; classNam
     </>
   );
 
-  const shell = `group flex min-w-0 flex-col focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${className}`;
+  const shell = `group flex min-w-0 flex-col focus-visible:ring-1 focus-visible:ring-foreground/30 focus-visible:outline-none ${className}`;
 
   if (isExternal) {
     const target = post.openIn ?? "_blank";
