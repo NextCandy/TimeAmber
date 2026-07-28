@@ -312,6 +312,7 @@ type AdminActions = {
   removeFriend: (name: string) => void;
   updateSettings: (s: Partial<SiteSettings>) => void;
   applySavedSettings: (s: SiteSettings) => void;
+  suppressNextPersist: () => void;
   updateCloud: (c: Partial<CloudConfig>) => void;
   replaceState: (state: Partial<CoreData>) => void;
   resetAll: () => void;
@@ -578,6 +579,11 @@ export function AdminStoreProvider({
   const applySavedSettings = useCallback((next: SiteSettings) => {
     skipPersistRef.current = true;
     setState((s) => ({ ...s, settings: next }));
+  }, []);
+
+  // 调用方已经用专用接口写过库了，跳过随后那次全量 persist。
+  const suppressNextPersist = useCallback(() => {
+    skipPersistRef.current = true;
   }, []);
 
   const updateCloud = useCallback((patch: Partial<CloudConfig>) => {
@@ -918,6 +924,7 @@ export function AdminStoreProvider({
       removeFriend,
       updateSettings,
       applySavedSettings,
+      suppressNextPersist,
       updateCloud,
       replaceState,
       resetAll,
@@ -959,6 +966,7 @@ export function AdminStoreProvider({
       removeFriend,
       updateSettings,
       applySavedSettings,
+      suppressNextPersist,
       updateCloud,
       replaceState,
       resetAll,

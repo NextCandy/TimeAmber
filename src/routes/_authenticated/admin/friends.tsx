@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { useAdminStore, type Friend } from "@/lib/admin-store";
+import { saveFriends } from "@/lib/state.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +21,22 @@ export const Route = createFileRoute("/_authenticated/admin/friends")({
 });
 
 function FriendsPage() {
-  const { friends, upsertFriend, removeFriend } = useAdminStore();
+  const { friends, upsertFriend, removeFriend, suppressNextPersist } = useAdminStore();
+  const [saving, setSaving] = useState(false);
+
+  // 友链单独写库：全量 persist 会连带重写上千篇文章，慢且常超时，改动经常写不进去。
+  async function persist(next: Friend[]) {
+    setSaving(true);
+    try {
+      await saveFriends({ data: { friends: next } });
+      toast.success("已保存");
+    } catch (error) {
+      console.error("[TimeAmber] failed to save friends", error);
+      toast.error("保存失败，请重试");
+    } finally {
+      setSaving(false);
+    }
+  }
   const [editing, setEditing] = useState<{ friend: Friend; original?: string } | null>(null);
 
   function openNew() {
@@ -43,8 +59,14 @@ function FriendsPage() {
       toast.error("链接格式不正确");
       return;
     }
+    const next = [...friends];
+    const idx = next.findIndex((item) => item.name === (editing.original ?? f.name));
+    if (idx >= 0) next[idx] = f;
+    else next.push(f);
+
+    suppressNextPersist();
     upsertFriend(f, editing.original);
-    toast.success("已保存");
+    void persist(next);
     setEditing(null);
   }
 
@@ -55,7 +77,7 @@ function FriendsPage() {
           <h1 className="font-display text-2xl font-semibold">友链</h1>
           <p className="mt-1 text-sm text-muted-foreground">共 {friends.length} 个友链</p>
         </div>
-        <Button onClick={openNew} size="sm">
+        <Button onClick={openNew} size="sm" disabled={saving}>
           <Plus className="mr-1.5 h-4 w-4" />
           新增友链
         </Button>
@@ -91,8 +113,9 @@ function FriendsPage() {
                     size="icon"
                     variant="ghost"
                     onClick={() => {
+                      suppressNextPersist();
                       removeFriend(f.name);
-                      toast.success("已删除");
+                      void persist(friends.filter((item) => item.name !== f.name));
                     }}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />

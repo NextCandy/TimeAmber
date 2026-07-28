@@ -402,6 +402,47 @@ export const loadAdminMediaState = createServerFn({ method: "GET" })
     return { media: await loadMediaItems() };
   });
 
+const friendsInput = z.object({ friends: z.any() });
+
+/**
+ * 只写友链表。
+ * 走 persistAdminState 会连带重写全部文章（一两千篇），又慢又容易超时 ——
+ * 友链改动因此经常写不进库。这里单独写 friends，前端可以同步等结果。
+ */
+export const saveFriends = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((value: z.infer<typeof friendsInput>) => friendsInput.parse(value))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const list = (data.friends ?? []) as {
+      name: string;
+      url: string;
+      desc?: string;
+      icon?: string;
+      group?: string;
+    }[];
+    const sql = db();
+    await sql.begin(async (tx) => {
+      for (const friend of list) {
+        await tx`
+          insert into public.friends (name, url, description, icon, group_name, updated_at)
+          values (${friend.name}, ${friend.url}, ${friend.desc ?? ""},
+                  ${friend.icon ?? null}, ${friend.group ?? null}, now())
+          on conflict (name) do update
+            set url = excluded.url, description = excluded.description,
+                icon = excluded.icon, group_name = excluded.group_name, updated_at = now()
+        `;
+      }
+      const names = list.map((item) => item.name);
+      if (names.length) {
+        await tx`delete from public.friends where name not in ${tx(names)}`;
+      } else {
+        await tx`delete from public.friends`;
+      }
+    });
+    return { ok: true as const };
+  });
+
 const siteSettingsInput = z.object({ settings: z.any() });
 
 /**
