@@ -51,7 +51,7 @@ export function ArticleCard({ post, className = "" }: { post: HomePost; classNam
       >
         {formatChineseDate(post.publishAt)}
       </time>
-      <h3 className="mt-5 line-clamp-2 min-w-0 text-lg leading-[1.38] font-semibold tracking-[-0.012em] text-foreground decoration-primary decoration-2 underline-offset-4 [overflow-wrap:anywhere] group-hover:underline">
+      <h3 className="mt-5 line-clamp-2 min-w-0 text-lg leading-[1.38] font-semibold tracking-[-0.012em] text-foreground transition-opacity [overflow-wrap:anywhere] group-hover:opacity-70">
         {post.title}
       </h3>
     </>

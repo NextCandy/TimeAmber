@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { AdminState, CoreData } from "@/lib/admin-store";
 import type { Post } from "@/lib/sample-posts";
+import { getOfflineHtmlUrl } from "@/lib/offline-html";
 
 let database: ReturnType<typeof postgres> | undefined;
 
@@ -100,8 +101,21 @@ async function loadPosts(admin: boolean): Promise<Post[]> {
     : await sql`
         select
           id, slug, title, excerpt, category, publish_at, created_at,
-          reading_minutes, published, cover_image, post_type,
-          external_url, open_in
+          reading_minutes, published, cover_image,
+          case
+            when post_type = 'html'
+              or content like '<!-- timeamber-offline-html:v1%'
+            then 'html'
+            else post_type
+          end as post_type,
+          coalesce(
+            nullif(external_url, ''),
+            case
+              when content like '<!-- timeamber-offline-html:v1%'
+              then substring(content from 'url:([^ ]+)')
+            end
+          ) as external_url,
+          open_in
         from public.posts
         where published = true and (publish_at is null or publish_at <= now())
         order by pinned desc, created_at desc
@@ -118,6 +132,8 @@ async function loadPosts(admin: boolean): Promise<Post[]> {
     tagMap.set(Number(row.post_id), list);
   }
   return rows.map((row) => {
+    const offlineHtmlUrl = getOfflineHtmlUrl(row.content);
+    const externalUrl = row.external_url ? String(row.external_url) : offlineHtmlUrl;
     const post: Post = {
       slug: String(row.slug),
       title: String(row.title),
@@ -127,7 +143,7 @@ async function loadPosts(admin: boolean): Promise<Post[]> {
       publishAt: asDate(row.publish_at ?? row.created_at),
       readingMinutes: Number(row.reading_minutes ?? 1),
       status: row.published ? "published" : "draft",
-      type: row.post_type === "html" ? "html" : "markdown",
+      type: row.post_type === "html" || !!offlineHtmlUrl ? "html" : "markdown",
       openIn: row.open_in === "_self" ? "_self" : "_blank",
     };
     // 只在真有值时才挂键。这份结果会被序列化进**每个页面**的 hydration payload，
@@ -135,7 +151,7 @@ async function loadPosts(admin: boolean): Promise<Post[]> {
     if (row.source) post.source = String(row.source);
     if (row.content != null) post.content = String(row.content);
     if (row.cover_image) post.cover = String(row.cover_image);
-    if (row.external_url) post.externalUrl = String(row.external_url);
+    if (externalUrl) post.externalUrl = externalUrl;
     if (row.notion_id) post.notionId = String(row.notion_id);
     if (row.notion_last_edited) post.notionLastEdited = asDate(row.notion_last_edited);
     return post;
@@ -243,6 +259,9 @@ export const loadPublicPost = createServerFn({ method: "GET" })
       where pt.post_id = ${row.id}
       order by t.name
     `;
+    const content = String(row.content ?? "");
+    const offlineHtmlUrl = getOfflineHtmlUrl(content);
+    const externalUrl = row.external_url ? String(row.external_url) : offlineHtmlUrl;
     return {
       slug: String(row.slug),
       title: String(row.title),
@@ -252,11 +271,11 @@ export const loadPublicPost = createServerFn({ method: "GET" })
       publishAt: asDate(row.publish_at ?? row.created_at),
       readingMinutes: Number(row.reading_minutes ?? 1),
       source: row.source ? String(row.source) : undefined,
-      content: String(row.content ?? ""),
+      content,
       status: "published",
       cover: row.cover_image ? String(row.cover_image) : undefined,
-      type: row.post_type === "html" ? "html" : "markdown",
-      externalUrl: row.external_url ? String(row.external_url) : undefined,
+      type: row.post_type === "html" || !!offlineHtmlUrl ? "html" : "markdown",
+      externalUrl,
       openIn: row.open_in === "_self" ? "_self" : "_blank",
       notionId: row.notion_id ? String(row.notion_id) : undefined,
       notionLastEdited: row.notion_last_edited ? asDate(row.notion_last_edited) : undefined,

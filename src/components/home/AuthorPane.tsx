@@ -48,7 +48,7 @@ export function AuthorPane({ totalPosts }: { totalPosts: number }) {
             alt={`${authorName} 的头像`}
             width={512}
             height={512}
-            className="h-full w-full object-cover grayscale"
+            className="h-full w-full object-cover"
             loading="lazy"
             decoding="async"
           />
