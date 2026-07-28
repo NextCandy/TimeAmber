@@ -4,7 +4,7 @@ import { ArticleCard } from "@/components/home/ArticleCard";
 import { SectionHeader } from "@/components/home/SectionHeader";
 import type { HomePost } from "@/lib/home.functions";
 
-/** 最新文章：响应式网格，首卡描边强调。 */
+/** 最新文章：紧凑的纯标题卡片网格。 */
 export function ArticleSection({ posts }: { posts: HomePost[] }) {
   return (
     <section aria-labelledby="articles-title" className="mx-auto max-w-6xl px-6 pt-10 pb-14">
@@ -24,9 +24,9 @@ export function ArticleSection({ posts }: { posts: HomePost[] }) {
       </div>
 
       {posts.length > 0 ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {posts.map((post, index) => (
-            <ArticleCard key={post.slug} post={post} priority={index === 0} />
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {posts.map((post) => (
+            <ArticleCard key={post.slug} post={post} />
           ))}
         </div>
       ) : (
