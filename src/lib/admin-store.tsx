@@ -311,6 +311,7 @@ type AdminActions = {
   upsertFriend: (friend: Friend, originalName?: string) => void;
   removeFriend: (name: string) => void;
   updateSettings: (s: Partial<SiteSettings>) => void;
+  applySavedSettings: (s: SiteSettings) => void;
   updateCloud: (c: Partial<CloudConfig>) => void;
   replaceState: (state: Partial<CoreData>) => void;
   resetAll: () => void;
@@ -372,6 +373,7 @@ export function AdminStoreProvider({
   const [hydrated, setHydrated] = useState(false);
   const adminSessionRef = useRef(false);
   const applyingRemoteRef = useRef(true);
+  const skipPersistRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -427,6 +429,11 @@ export function AdminStoreProvider({
 
   useEffect(() => {
     if (!hydrated || !adminSessionRef.current || applyingRemoteRef.current) return;
+    // 设置页已经通过 saveSiteSettings 单独写过库了，跳过这一次全量 persist。
+    if (skipPersistRef.current) {
+      skipPersistRef.current = false;
+      return;
+    }
     const timer = window.setTimeout(() => {
       void persistAdminState({ data: { state } }).catch((error) => {
         console.error("[TimeAmber] failed to persist admin state", error);
@@ -560,6 +567,13 @@ export function AdminStoreProvider({
 
   const updateSettings = useCallback((patch: Partial<SiteSettings>) => {
     setState((s) => ({ ...s, settings: { ...s.settings, ...patch } }));
+  }, []);
+
+  // 设置页保存时已单独写好 app_config.site，这里只同步本地状态，
+  // 并跳过随后的全量 persist（那会连带重写全部文章）。
+  const applySavedSettings = useCallback((next: SiteSettings) => {
+    skipPersistRef.current = true;
+    setState((s) => ({ ...s, settings: next }));
   }, []);
 
   const updateCloud = useCallback((patch: Partial<CloudConfig>) => {
@@ -899,6 +913,7 @@ export function AdminStoreProvider({
       upsertFriend,
       removeFriend,
       updateSettings,
+      applySavedSettings,
       updateCloud,
       replaceState,
       resetAll,
@@ -939,6 +954,7 @@ export function AdminStoreProvider({
       upsertFriend,
       removeFriend,
       updateSettings,
+      applySavedSettings,
       updateCloud,
       replaceState,
       resetAll,

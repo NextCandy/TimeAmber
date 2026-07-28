@@ -401,6 +401,29 @@ export const loadAdminMediaState = createServerFn({ method: "GET" })
     return { media: await loadMediaItems() };
   });
 
+const siteSettingsInput = z.object({ settings: z.any() });
+
+/**
+ * 只写站点设置。
+ * persistAdminState 会在同一个事务里重写全部文章，设置页保存不该付这个代价，
+ * 也正因为重，它只能防抖延后执行、无法给出真实的保存结果。
+ * 这里单独写 app_config.site，设置页就能同步等结果再提示成功/失败。
+ */
+export const saveSiteSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((value: z.infer<typeof siteSettingsInput>) => siteSettingsInput.parse(value))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const sql = db();
+    await sql`
+      insert into public.app_config (key, value, public_read, updated_at)
+      values ('site', ${sql.json(data.settings)}, true, now())
+      on conflict (key) do update
+        set value = excluded.value, public_read = true, updated_at = now()
+    `;
+    return { ok: true as const };
+  });
+
 const stateInput = z.object({ state: z.any() });
 
 export const persistAdminState = createServerFn({ method: "POST" })

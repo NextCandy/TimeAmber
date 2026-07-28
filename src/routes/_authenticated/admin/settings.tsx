@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Save,
   RotateCcw,
@@ -21,6 +21,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAdminStore, type SiteSettings } from "@/lib/admin-store";
+import { saveSiteSettings } from "@/lib/state.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -162,11 +163,26 @@ function validateContact(value: string, type: ContactFieldConfig["validate"]): s
 }
 
 function SettingsPage() {
-  const { settings, updateSettings, resetAll } = useAdminStore();
-  const [draft, setDraft] = useState(settings);
+  const { settings, applySavedSettings, resetAll } = useAdminStore();
+  const [saving, setSaving] = useState(false);
+  const [draft, setDraftState] = useState(settings);
   const authorProfile = resolveAuthorProfile(draft);
 
-  useEffect(() => setDraft(settings), [settings]);
+  // 用户一旦动过表单就标记为脏，之后不再被服务端回填覆盖。
+  const dirtyRef = useRef(false);
+  const setDraft = useCallback((next: SiteSettings) => {
+    dirtyRef.current = true;
+    setDraftState(next);
+  }, []);
+
+  // 站点状态是分三次异步回填的：loadPublicState -> loadAdminState -> loadAdminMediaState，
+  // 其中 loadAdminState 要拉全部文章，往往几秒后才返回，每次回填都会换一个新的 settings 对象。
+  // 这里过去无条件同步草稿，用户正在输入的用户名/简介会被中途重置回服务端旧值，
+  // 于是保存下去的仍是旧值（toast 还提示"已保存"）。只在用户没动过表单时才跟随服务端。
+  useEffect(() => {
+    if (dirtyRef.current) return;
+    setDraftState(settings);
+  }, [settings]);
 
   const contactErrors = useMemo(() => {
     const errs: Record<string, string> = {};
@@ -177,14 +193,25 @@ function SettingsPage() {
     return errs;
   }, [draft]);
 
-  function save(e: React.FormEvent) {
+  async function save(e: React.FormEvent) {
     e.preventDefault();
     if (Object.keys(contactErrors).length > 0) {
       toast.error("联系方式存在格式错误，请修正后再保存");
       return;
     }
-    updateSettings(draft);
-    toast.success("已保存");
+    setSaving(true);
+    try {
+      // 等服务端真正写完再提示，成功与否都如实反馈。
+      await saveSiteSettings({ data: { settings: draft } });
+      applySavedSettings(draft);
+      dirtyRef.current = false;
+      toast.success("已保存");
+    } catch (error) {
+      console.error("[TimeAmber] failed to save site settings", error);
+      toast.error("保存失败，请重试");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function setQR(qrKey: string, on: boolean) {
@@ -196,7 +223,7 @@ function SettingsPage() {
       <header>
         <h1 className="font-display text-2xl font-semibold">站点设置</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          这些字段会显示在前台 Hero、关于页与页脚（演示效果，仅本地存储）。
+          这些字段会显示在前台 Hero、关于页与页脚，保存后写入服务端。
         </p>
       </header>
 
@@ -465,9 +492,9 @@ function SettingsPage() {
         </section>
 
         <div className="sticky bottom-4 z-10 flex justify-end">
-          <Button type="submit" size="lg" className="shadow-lg">
+          <Button type="submit" size="lg" className="shadow-lg" disabled={saving}>
             <Save className="mr-1.5 h-4 w-4" />
-            保存全部设置
+            {saving ? "保存中…" : "保存全部设置"}
           </Button>
         </div>
       </form>
