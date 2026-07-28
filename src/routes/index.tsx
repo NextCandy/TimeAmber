@@ -39,7 +39,11 @@ function Index() {
         <VisitPulse trend={visitTrend} />
       </div>
 
-      <ArticleSection posts={home.latest} categories={home.categories} />
+      <ArticleSection
+        posts={home.latest}
+        byCategory={home.byCategory}
+        categories={home.categories}
+      />
 
       <FeaturedCarousel posts={home.featured} />
 

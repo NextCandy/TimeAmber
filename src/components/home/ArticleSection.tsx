@@ -15,18 +15,24 @@ const VISIBLE = 9;
  */
 export function ArticleSection({
   posts,
+  byCategory,
   categories,
 }: {
   posts: HomePost[];
+  byCategory: Record<string, HomePost[]>;
   categories: HomeCategory[];
 }) {
   const [active, setActive] = useState(ALL);
   const revealRef = useReveal<HTMLElement>();
 
-  const chips = useMemo(() => [ALL, ...categories.map((c) => c.name)], [categories]);
+  // 只保留真正取到文章的分类，避免出现点了必空的胶囊。
+  const chips = useMemo(
+    () => [ALL, ...categories.filter((c) => byCategory[c.name]?.length).map((c) => c.name)],
+    [categories, byCategory],
+  );
   const filtered = useMemo(
-    () => (active === ALL ? posts : posts.filter((p) => p.category === active)).slice(0, VISIBLE),
-    [posts, active],
+    () => (active === ALL ? posts : (byCategory[active] ?? [])).slice(0, VISIBLE),
+    [posts, byCategory, active],
   );
 
   return (

@@ -28,13 +28,20 @@ export type HomeCategory = { name: string; count: number };
 
 export type HomeData = {
   latest: HomePost[];
+  /** 每个分类各自的最新几篇，保证任何一个筛选胶囊点下去都有内容。 */
+  byCategory: Record<string, HomePost[]>;
   featured: HomePost[];
   categories: HomeCategory[];
   totalPosts: number;
 };
 
-/** 网格候选池：分类筛选在客户端即时完成，池子太小会筛出空结果。 */
-const GRID_POOL = 36;
+/**
+ * 网格一屏展示 9 篇。
+ * 分类筛选不能只在「最新 N 篇」里过滤 —— 最新内容高度集中在少数分类，
+ * 其余胶囊点下去会全是空状态，所以按分类各取一批，一次查询取回。
+ */
+const LATEST_LIMIT = 9;
+const PER_CATEGORY = 9;
 const FEATURED_LIMIT = 8;
 const EXCERPT_MAX = 96;
 
@@ -82,17 +89,34 @@ export const loadHomeData = createServerFn({ method: "GET" }).handler(
   async (): Promise<HomeData> => {
     const sql = db();
 
-    const [latestRows, pinnedRows, popularRows, categoryRows, totalRows] = await Promise.all([
-      sql<PostRow[]>`
+    const [latestRows, byCategoryRows, pinnedRows, popularRows, categoryRows, totalRows] =
+      await Promise.all([
+        sql<PostRow[]>`
       select ${sql.unsafe(POST_FIELDS)}
       from public.posts
       where published = true
         and coalesce(listed, true) = true
         and (publish_at is null or publish_at <= now())
       order by coalesce(publish_at, created_at) desc
-      limit ${GRID_POOL}
+      limit ${LATEST_LIMIT}
     `,
-      sql<PostRow[]>`
+        sql<PostRow[]>`
+      select * from (
+        select ${sql.unsafe(POST_FIELDS)},
+          row_number() over (
+            partition by category
+            order by coalesce(publish_at, created_at) desc
+          ) as rn
+        from public.posts
+        where published = true
+          and coalesce(listed, true) = true
+          and (publish_at is null or publish_at <= now())
+          and category is not null
+          and category <> ''
+      ) ranked
+      where rn <= ${PER_CATEGORY}
+    `,
+        sql<PostRow[]>`
       select ${sql.unsafe(POST_FIELDS)}
       from public.posts
       where published = true
@@ -101,9 +125,9 @@ export const loadHomeData = createServerFn({ method: "GET" }).handler(
       order by coalesce(publish_at, created_at) desc
       limit ${FEATURED_LIMIT}
     `,
-      // 目前库里没有任何 pinned 文章，精选区用「阅读量高 + 有封面」兜底，
-      // 后台把文章设为 pinned 后会自动顶掉兜底内容。
-      sql<PostRow[]>`
+        // 目前库里没有任何 pinned 文章，精选区用「阅读量高 + 有封面」兜底，
+        // 后台把文章设为 pinned 后会自动顶掉兜底内容。
+        sql<PostRow[]>`
       select ${sql.unsafe(POST_FIELDS)}
       from public.posts
       where published = true
@@ -112,7 +136,7 @@ export const loadHomeData = createServerFn({ method: "GET" }).handler(
       order by coalesce(view_count, 0) desc, coalesce(publish_at, created_at) desc
       limit ${FEATURED_LIMIT}
     `,
-      sql<{ category: unknown; count: unknown }[]>`
+        sql<{ category: unknown; count: unknown }[]>`
       select category, count(*)::int as count
       from public.posts
       where published = true
@@ -123,12 +147,12 @@ export const loadHomeData = createServerFn({ method: "GET" }).handler(
       order by count desc
       limit 8
     `,
-      sql<{ count: unknown }[]>`
+        sql<{ count: unknown }[]>`
       select count(*)::int as count
       from public.posts
       where published = true and coalesce(listed, true) = true
     `,
-    ]);
+      ]);
 
     const featured = [...pinnedRows.map(toHomePost)];
     const seen = new Set(featured.map((post) => post.slug));
@@ -140,8 +164,15 @@ export const loadHomeData = createServerFn({ method: "GET" }).handler(
       featured.push(post);
     }
 
+    const byCategory: Record<string, HomePost[]> = {};
+    for (const row of byCategoryRows) {
+      const post = toHomePost(row);
+      (byCategory[post.category] ??= []).push(post);
+    }
+
     return {
       latest: latestRows.map(toHomePost),
+      byCategory,
       featured,
       categories: categoryRows.map((row) => ({
         name: String(row.category),
