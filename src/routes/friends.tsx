@@ -39,10 +39,11 @@ function FriendCard({ f }: { f: Friend }) {
       target="_blank"
       rel="noopener noreferrer"
       title={f.desc || f.name}
-      className="group flex h-full flex-col items-center justify-start gap-3 rounded-2xl border border-border bg-card px-4 py-5 text-center transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className="group flex h-full flex-col items-center rounded-2xl border border-border bg-card px-4 py-5 text-center transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
-      {/* 定高容器 + object-contain：宽字标和方形图标都能完整显示、不裁切不变形 */}
-      <span className="flex h-12 w-full items-center justify-center">
+      {/* 定高且 shrink-0：同一行的图标都落在同一条基线上，不随名字长短上下浮动。
+          object-contain 让宽字标和方形图标都完整显示，不裁切不变形。 */}
+      <span className="flex h-12 w-full shrink-0 items-center justify-center">
         {icon && !imgFailed ? (
           <img
             src={icon}
@@ -59,8 +60,9 @@ function FriendCard({ f }: { f: Friend }) {
         )}
       </span>
 
-      {/* 名字完整显示：允许换行，不截断 */}
-      <span className="text-sm leading-snug font-medium text-foreground transition-colors [overflow-wrap:anywhere] group-hover:text-primary">
+      {/* 名字占满图标下方剩余空间并在其中居中：grid 让同行卡片等高，
+          名字换行行数不同也不会一个贴顶、一个悬空。允许换行，不截断。 */}
+      <span className="mt-3 flex flex-1 items-center justify-center text-sm leading-snug font-medium text-foreground transition-colors [overflow-wrap:anywhere] group-hover:text-primary">
         {f.name}
       </span>
     </a>

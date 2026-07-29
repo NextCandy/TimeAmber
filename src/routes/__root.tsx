@@ -180,7 +180,8 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AdminStoreProvider initialState={publicState}>
+      {/* 认证与后台数据只在后台路由拉，前台页面不为此多发请求 */}
+      <AdminStoreProvider initialState={publicState} enableAdminSync={!isChrome}>
         <AnalyticsRecorder />
         <div className="flex min-h-screen flex-col">
           {isChrome && <Navbar initialThemePreference={themePreference} />}

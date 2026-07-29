@@ -1,18 +1,42 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { FolderTree, Tag, X, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { FolderTree, Loader2, Tag, X, Search } from "lucide-react";
 import { PostCard } from "@/components/home/PostCard";
-import { loadPostIndex } from "@/lib/public-posts.functions";
+import {
+  loadPostsByTaxonomy,
+  loadTaxonomyCounts,
+  type TaxonomyCount,
+  type TaxonomyCounts,
+  type TaxonomyPosts,
+} from "@/lib/public-posts.functions";
 
 type CategorySearch = { c?: string; tag?: string };
+
+/** 筛选结果每页多少篇，点「加载更多」再追加同样多。 */
+const PAGE_SIZE = 60;
+
+const EMPTY_COUNTS: TaxonomyCounts = { categories: [], tags: [], total: 0 };
+const EMPTY_POSTS: TaxonomyPosts = { posts: [], total: 0 };
 
 export const Route = createFileRoute("/categories")({
   validateSearch: (search: Record<string, unknown>): CategorySearch => ({
     c: typeof search.c === "string" && search.c ? search.c : undefined,
     tag: typeof search.tag === "string" && search.tag ? search.tag : undefined,
   }),
-  // 分类页要统计每个分类/标签下的篇数，也需要全量索引；同归档，自己取。
-  loader: async () => ({ posts: await loadPostIndex().catch(() => []) }),
+  loaderDeps: ({ search }) => ({ c: search.c, tag: search.tag }),
+  // 计数交给 SQL，筛选结果只取第一页 —— 早先这里下发全部 1927 篇索引，
+  // 一个只显示计数的页面因此背了 530 KB，domInteractive 拖到 3 秒。
+  loader: async ({ deps }) => {
+    const [counts, initialPosts] = await Promise.all([
+      loadTaxonomyCounts().catch(() => EMPTY_COUNTS),
+      deps.c || deps.tag
+        ? loadPostsByTaxonomy({
+            data: { category: deps.c, tag: deps.tag, offset: 0, limit: PAGE_SIZE },
+          }).catch(() => EMPTY_POSTS)
+        : Promise.resolve(EMPTY_POSTS),
+    ]);
+    return { counts, initialPosts };
+  },
   head: () => ({
     meta: [
       { title: "分类 · TimeAmber" },
@@ -26,38 +50,64 @@ export const Route = createFileRoute("/categories")({
 
 function CategoriesPage() {
   const { c: activeCategory, tag: activeTag } = Route.useSearch();
-  const { posts: published } = Route.useLoaderData();
+  const { counts, initialPosts } = Route.useLoaderData();
 
-  const { categoryCounts, tagCounts } = useMemo(() => {
-    const categories = new Map<string, number>();
-    const tags = new Map<string, number>();
-    for (const post of published) {
-      if (post.category) {
-        categories.set(post.category, (categories.get(post.category) ?? 0) + 1);
-      }
-      for (const tag of post.tags) {
-        tags.set(tag, (tags.get(tag) ?? 0) + 1);
-      }
-    }
-    const byCount = (a: [string, number], b: [string, number]) =>
-      b[1] - a[1] || a[0].localeCompare(b[0]);
-    return {
-      categoryCounts: [...categories.entries()].sort(byCount),
-      tagCounts: [...tags.entries()].sort(byCount),
-    };
-  }, [published]);
-
-  const filtered = useMemo(() => {
-    if (activeCategory) {
-      return published.filter((p) => p.category === activeCategory);
-    }
-    if (activeTag) {
-      return published.filter((p) => p.tags.includes(activeTag));
-    }
-    return [];
-  }, [published, activeCategory, activeTag]);
-
+  const categoryCounts = counts.categories;
+  const tagCounts = counts.tags;
   const activeLabel = activeCategory ?? activeTag;
+
+  // 筛选结果由服务端分页给：一个分类底下可能有六百多篇，
+  // 全量既撑大 payload 又堆出六百个 DOM 节点，滚动和点击都要等主线程。
+  const [posts, setPosts] = useState(initialPosts.posts);
+  const [total, setTotal] = useState(initialPosts.total);
+  const [loading, setLoading] = useState(false);
+
+  // 首屏那一页由 loader 给过了，这里只处理切换筛选后的重新取数。
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    if (!activeCategory && !activeTag) {
+      setPosts([]);
+      setTotal(0);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    void loadPostsByTaxonomy({
+      data: { category: activeCategory, tag: activeTag, offset: 0, limit: PAGE_SIZE },
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setPosts(res.posts);
+        setTotal(res.total);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPosts([]);
+          setTotal(0);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCategory, activeTag]);
+
+  const remaining = total - posts.length;
+  const loadMore = () => {
+    setLoading(true);
+    void loadPostsByTaxonomy({
+      data: { category: activeCategory, tag: activeTag, offset: posts.length, limit: PAGE_SIZE },
+    })
+      .then((res) => setPosts((prev) => [...prev, ...res.posts]))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-6 pt-16 pb-16">
@@ -68,8 +118,8 @@ function CategoriesPage() {
         <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">分类</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           {activeLabel
-            ? `「${activeLabel}」下共 ${filtered.length} 篇文章。`
-            : `${categoryCounts.length} 个分类、${tagCounts.length} 个标签，共 ${published.length} 篇文章。`}
+            ? `「${activeLabel}」下共 ${total} 篇文章。`
+            : `${categoryCounts.length} 个分类、${tagCounts.length} 个标签，共 ${counts.total} 篇文章。`}
         </p>
       </header>
 
@@ -84,16 +134,29 @@ function CategoriesPage() {
             清除筛选：{activeLabel}
           </Link>
 
-          {filtered.length === 0 ? (
+          {posts.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border/80 bg-card/40 p-10 text-center text-sm text-muted-foreground">
-              这个{activeCategory ? "分类" : "标签"}下还没有文章。
+              {loading ? "加载中…" : `这个${activeCategory ? "分类" : "标签"}下还没有文章。`}
             </p>
           ) : (
-            <div className="flex flex-col border-b border-border">
-              {filtered.map((post) => (
-                <PostCard key={post.slug} post={post} />
-              ))}
-            </div>
+            <>
+              <div className="flex flex-col border-b border-border">
+                {posts.map((post) => (
+                  <PostCard key={post.slug} post={post} />
+                ))}
+              </div>
+              {remaining > 0 && (
+                <button
+                  type="button"
+                  onClick={loadMore}
+                  disabled={loading}
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-60"
+                >
+                  {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  加载更多（还有 {remaining} 篇）
+                </button>
+              )}
+            </>
           )}
         </>
       ) : (
@@ -103,7 +166,7 @@ function CategoriesPage() {
               <FolderTree className="h-4 w-4 text-primary" /> 按分类
             </h2>
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {categoryCounts.map(([name, count]) => (
+              {categoryCounts.map(({ name, count }) => (
                 <li key={name}>
                   <Link
                     to="/categories"
@@ -183,22 +246,22 @@ function highlightMatch(text: string, q: string): ReactNode {
   );
 }
 
-function TagCloud({ tags }: { tags: Array<[string, number]> }) {
+function TagCloud({ tags }: { tags: TaxonomyCount[] }) {
   const [query, setQuery] = useState("");
   const [prefs, update] = useTagCloudPrefs();
   const q = query.trim();
 
   const [minCount, maxCount] = useMemo(() => {
     if (!tags.length) return [0, 0];
-    const counts = tags.map(([, c]) => c);
+    const counts = tags.map((t) => t.count);
     return [Math.min(...counts), Math.max(...counts)];
   }, [tags]);
 
   const searched = useMemo(() => {
-    const byThreshold = tags.filter(([, c]) => c >= prefs.min);
+    const byThreshold = tags.filter((t) => t.count >= prefs.min);
     if (!q) return byThreshold;
     const lower = q.toLowerCase();
-    return byThreshold.filter(([name]) => name.toLowerCase().includes(lower));
+    return byThreshold.filter((t) => t.name.toLowerCase().includes(lower));
   }, [tags, prefs.min, q]);
 
   // 搜索或设了阈值时展示全部结果；否则默认 Top N，可展开/收起。
@@ -247,7 +310,7 @@ function TagCloud({ tags }: { tags: Array<[string, number]> }) {
         </p>
       ) : (
         <ul className="flex flex-wrap items-center gap-2">
-          {visible.map(([name, count]) => (
+          {visible.map(({ name, count }) => (
             <li key={name}>
               <Link
                 to="/categories"

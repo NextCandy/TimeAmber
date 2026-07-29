@@ -43,58 +43,253 @@ function asIso(value: unknown, fallback: unknown): string {
   return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
 }
 
+/** 公开可见的筛选条件，几个查询共用，免得某个页面的文章集合悄悄跑偏。 */
+const VISIBLE = `published = true and (publish_at is null or publish_at <= now())`;
+
+function toIndexItem(row: IndexRow, tags: string[] = []): PostIndexItem {
+  const isHtml = row.post_type === "html" && !!row.external_url;
+  const item: PostIndexItem = {
+    slug: String(row.slug),
+    title: String(row.title ?? ""),
+    category: String(row.category ?? ""),
+    tags,
+    publishAt: asIso(row.publish_at, row.created_at),
+    type: isHtml ? "html" : "markdown",
+  };
+  // 只在真有值时挂键：写成 `key: undefined` 序列化后是 `key:void 0`，
+  // 上百篇乘以几个键就是几十 KB 的白占。
+  if (isHtml) {
+    item.externalUrl = String(row.external_url);
+    item.openIn = row.open_in === "_self" ? "_self" : "_blank";
+  }
+  return item;
+}
+
+async function attachTags(rows: IndexRow[]): Promise<PostIndexItem[]> {
+  if (!rows.length) return [];
+  const ids = rows.map((r) => Number(r.id));
+  const tagRows = await db()<{ post_id: unknown; name: unknown }[]>`
+    select pt.post_id, t.name
+    from public.post_tags pt
+    join public.tags t on t.id = pt.tag_id
+    where pt.post_id = any(${ids})
+  `;
+  const tagMap = new Map<number, string[]>();
+  for (const row of tagRows) {
+    const id = Number(row.post_id);
+    const list = tagMap.get(id) ?? [];
+    list.push(String(row.name));
+    tagMap.set(id, list);
+  }
+  return rows.map((row) => toIndexItem(row, tagMap.get(Number(row.id)) ?? []));
+}
+
+/** 分类页要的两组计数。约 370 条，几 KB。 */
+export type TaxonomyCount = { name: string; count: number };
+export type TaxonomyCounts = {
+  categories: TaxonomyCount[];
+  tags: TaxonomyCount[];
+  total: number;
+};
+
 /**
- * 已发布文章的轻量索引，供归档页与分类页自己 loader 取用。
- * 排序与筛选条件跟原来 loadPublicState 的公开分支保持一致，避免两个页面的
- * 文章集合悄悄变样。
+ * 分类与标签的篇数统计。
+ * 原来是把全部 1927 篇索引下发到浏览器再 reduce 出来 —— 一个只显示
+ * 「5 个分类 / 363 个标签」的页面因此背了 530 KB 的 hydration payload，
+ * domInteractive 拖到 3 秒。计数交给 SQL，页面就只剩这几 KB。
  */
-export const loadPostIndex = createServerFn({ method: "GET" }).handler(
-  async (): Promise<PostIndexItem[]> => {
+export const loadTaxonomyCounts = createServerFn({ method: "GET" }).handler(
+  async (): Promise<TaxonomyCounts> => {
     const sql = db();
-    const [rows, tagRows] = await Promise.all([
-      sql<IndexRow[]>`
-        select
-          id, slug, title, category, publish_at, created_at,
-          post_type, external_url, open_in
+    const [catRows, tagRows, totalRows] = await Promise.all([
+      sql<{ name: unknown; count: unknown }[]>`
+        select category as name, count(*)::int as count
         from public.posts
-        where published = true and (publish_at is null or publish_at <= now())
-        order by pinned desc, created_at desc
+        where ${sql.unsafe(VISIBLE)} and category <> ''
+        group by category
+        order by count(*) desc, category
       `,
-      sql<{ post_id: unknown; name: unknown }[]>`
-        select pt.post_id, t.name
+      sql<{ name: unknown; count: unknown }[]>`
+        select t.name as name, count(*)::int as count
         from public.post_tags pt
         join public.tags t on t.id = pt.tag_id
+        join public.posts p on p.id = pt.post_id
+        where p.published = true and (p.publish_at is null or p.publish_at <= now())
+        group by t.name
+        order by count(*) desc, t.name
+      `,
+      sql<{ count: unknown }[]>`
+        select count(*)::int as count from public.posts where ${sql.unsafe(VISIBLE)}
+      `,
+    ]);
+    const map = (rows: { name: unknown; count: unknown }[]) =>
+      rows.map((r) => ({ name: String(r.name), count: Number(r.count) }));
+    return {
+      categories: map(catRows),
+      tags: map(tagRows),
+      total: Number(totalRows[0]?.count ?? 0),
+    };
+  },
+);
+
+const taxonomyPostsInput = z.object({
+  category: z.string().trim().max(120).optional(),
+  tag: z.string().trim().max(120).optional(),
+  offset: z.number().int().min(0).max(5000).optional(),
+  limit: z.number().int().min(1).max(120).optional(),
+});
+
+export type TaxonomyPosts = { posts: PostIndexItem[]; total: number };
+
+/** 按分类或标签取文章，服务端分页 —— 一个分类底下可能有六百多篇。 */
+export const loadPostsByTaxonomy = createServerFn({ method: "GET" })
+  .inputValidator((value: z.infer<typeof taxonomyPostsInput>) => taxonomyPostsInput.parse(value))
+  .handler(async ({ data }): Promise<TaxonomyPosts> => {
+    const sql = db();
+    const { category, tag } = data;
+    if (!category && !tag) return { posts: [], total: 0 };
+    const limit = data.limit ?? 60;
+    const offset = data.offset ?? 0;
+
+    const where = category
+      ? sql`p.category = ${category}`
+      : sql`exists (
+            select 1 from public.post_tags pt
+            join public.tags t on t.id = pt.tag_id
+            where pt.post_id = p.id and t.name = ${tag ?? ""}
+          )`;
+
+    const [rows, totalRows] = await Promise.all([
+      sql<IndexRow[]>`
+        select
+          p.id, p.slug, p.title, p.category, p.publish_at, p.created_at,
+          p.post_type, p.external_url, p.open_in
+        from public.posts p
+        where p.published = true and (p.publish_at is null or p.publish_at <= now())
+          and ${where}
+        order by p.pinned desc, p.created_at desc
+        limit ${limit} offset ${offset}
+      `,
+      sql<{ count: unknown }[]>`
+        select count(*)::int as count
+        from public.posts p
+        where p.published = true and (p.publish_at is null or p.publish_at <= now())
+          and ${where}
       `,
     ]);
 
-    const tagMap = new Map<number, string[]>();
-    for (const row of tagRows) {
-      const id = Number(row.post_id);
-      const list = tagMap.get(id) ?? [];
-      list.push(String(row.name));
-      tagMap.set(id, list);
-    }
+    return { posts: await attachTags(rows), total: Number(totalRows[0]?.count ?? 0) };
+  });
 
-    return rows.map((row) => {
-      const isHtml = row.post_type === "html" && !!row.external_url;
-      const item: PostIndexItem = {
-        slug: String(row.slug),
-        title: String(row.title ?? ""),
-        category: String(row.category ?? ""),
-        tags: tagMap.get(Number(row.id)) ?? [],
-        publishAt: asIso(row.publish_at, row.created_at),
-        type: isHtml ? "html" : "markdown",
-      };
-      // 只在真有值时挂键：写成 `key: undefined` 序列化后是 `key:void 0`，
-      // 近两千篇乘以几个键就是几十 KB 的白占。
-      if (isHtml) {
-        item.externalUrl = String(row.external_url);
-        item.openIn = row.open_in === "_self" ? "_self" : "_blank";
-      }
-      return item;
-    });
+/** 归档页的年月骨架，每格一个计数。几十条。 */
+export type ArchiveBucket = { year: string; month: string; count: number };
+export type ArchiveSummary = {
+  buckets: ArchiveBucket[];
+  categories: string[];
+  total: number;
+};
+
+/**
+ * 归档页的年月聚合。
+ * 归档默认只展开最新一年、月份还是收起的，真正要渲染的条目寥寥无几，
+ * 却曾经为此下发全部 1927 篇（527 KB）。现在骨架由 SQL 聚合，
+ * 展开某个月时才去取那个月的文章（loadPostsByMonth）。
+ * 日期按 Asia/Shanghai 归月，与页面上显示的日期同一套口径。
+ */
+export const loadArchiveSummary = createServerFn({ method: "GET" }).handler(
+  async (): Promise<ArchiveSummary> => {
+    const sql = db();
+    const [rows, catRows] = await Promise.all([
+      sql<{ year: unknown; month: unknown; count: unknown }[]>`
+        select
+          to_char(coalesce(publish_at, created_at) at time zone 'Asia/Shanghai', 'YYYY') as year,
+          to_char(coalesce(publish_at, created_at) at time zone 'Asia/Shanghai', 'MM') as month,
+          count(*)::int as count
+        from public.posts
+        where ${sql.unsafe(VISIBLE)}
+        group by 1, 2
+        order by 1 desc, 2 desc
+      `,
+      sql<{ category: unknown }[]>`
+        select distinct category from public.posts
+        where ${sql.unsafe(VISIBLE)} and category <> ''
+        order by category
+      `,
+    ]);
+    return {
+      buckets: rows.map((r) => ({
+        year: String(r.year),
+        month: String(r.month),
+        count: Number(r.count),
+      })),
+      categories: catRows.map((r) => String(r.category)),
+      total: rows.reduce((sum, r) => sum + Number(r.count), 0),
+    };
   },
 );
+
+const monthInput = z.object({
+  year: z.string().regex(/^\d{4}$/),
+  month: z.string().regex(/^\d{2}$/),
+  category: z.string().trim().max(120).optional(),
+});
+
+/** 某年某月的文章，展开时才取。 */
+export const loadPostsByMonth = createServerFn({ method: "GET" })
+  .inputValidator((value: z.infer<typeof monthInput>) => monthInput.parse(value))
+  .handler(async ({ data }): Promise<PostIndexItem[]> => {
+    const sql = db();
+    const ym = `${data.year}-${data.month}`;
+    const rows = await sql<IndexRow[]>`
+      select
+        id, slug, title, category, publish_at, created_at,
+        post_type, external_url, open_in
+      from public.posts
+      where ${sql.unsafe(VISIBLE)}
+        and to_char(coalesce(publish_at, created_at) at time zone 'Asia/Shanghai', 'YYYY-MM') = ${ym}
+        and (${data.category ?? null}::text is null or category = ${data.category ?? null})
+      order by coalesce(publish_at, created_at) desc
+    `;
+    return attachTags(rows);
+  });
+
+const archiveSearchInput = z.object({
+  q: z.string().trim().max(120),
+  category: z.string().trim().max(120).optional(),
+});
+
+/**
+ * 归档页搜索框。原来在浏览器里遍历全量索引，现在交给 SQL，
+ * 归档页因此不用再背那 527 KB。限量 200 条 —— 再多也不是「浏览归档」了。
+ */
+export const searchPostIndex = createServerFn({ method: "GET" })
+  .inputValidator((value: z.infer<typeof archiveSearchInput>) => archiveSearchInput.parse(value))
+  .handler(async ({ data }): Promise<PostIndexItem[]> => {
+    const sql = db();
+    const q = data.q.trim();
+    if (!q) return [];
+    const pattern = `%${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
+    const rows = await sql<IndexRow[]>`
+      select
+        p.id, p.slug, p.title, p.category, p.publish_at, p.created_at,
+        p.post_type, p.external_url, p.open_in
+      from public.posts p
+      where p.published = true and (p.publish_at is null or p.publish_at <= now())
+        and (${data.category ?? null}::text is null or p.category = ${data.category ?? null})
+        and (
+          p.title ilike ${pattern}
+          or p.category ilike ${pattern}
+          or exists (
+            select 1 from public.post_tags pt
+            join public.tags t on t.id = pt.tag_id
+            where pt.post_id = p.id and t.name ilike ${pattern}
+          )
+        )
+      order by coalesce(p.publish_at, p.created_at) desc
+      limit 200
+    `;
+    return attachTags(rows);
+  });
 
 /**
  * 文章页的相关推荐：标题与日期就够渲染一行。

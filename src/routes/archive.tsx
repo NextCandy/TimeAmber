@@ -1,14 +1,27 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronDown, Search } from "lucide-react";
-import { useMemo, useState } from "react";
-import { formatDate, postsByYear } from "@/lib/sample-posts";
-import { loadPostIndex, type PostIndexItem } from "@/lib/public-posts.functions";
+import { ChevronDown, Loader2, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { formatDate } from "@/lib/sample-posts";
+import { linkRel, linkTarget } from "@/lib/post-link";
+import {
+  loadArchiveSummary,
+  loadPostsByMonth,
+  searchPostIndex,
+  type ArchiveBucket,
+  type PostIndexItem,
+} from "@/lib/public-posts.functions";
 import { SITE_URL } from "@/lib/brand";
 
 export const Route = createFileRoute("/archive")({
-  // 归档是少数真的需要全部文章的页面，所以自己取一份轻量索引，
-  // 而不是让每个页面都跟着背 root loader 的全量数据。
-  loader: async () => ({ posts: await loadPostIndex().catch(() => []) }),
+  // 只取年月骨架（几十条）。展开某个月才去拿那个月的文章 ——
+  // 归档默认收着，为它下发全部 1927 篇是白背 527 KB。
+  loader: async () => ({
+    summary: await loadArchiveSummary().catch(() => ({
+      buckets: [] as ArchiveBucket[],
+      categories: [] as string[],
+      total: 0,
+    })),
+  }),
   head: () => ({
     meta: [
       { title: "归档 · TimeAmber" },
@@ -37,16 +50,8 @@ const MONTH_NAMES = [
   "12 月",
 ];
 
-// 贡献日历：把一年 12 个月 × 每月发布数映射成琥珀色阶方块。
-function ContributionCalendar({ posts }: { posts: PostIndexItem[] }) {
-  const counts = useMemo(() => {
-    const arr = new Array(12).fill(0) as number[];
-    for (const p of posts) {
-      const m = Number(String(p.publishAt).slice(5, 7)) - 1;
-      if (m >= 0 && m < 12) arr[m] += 1;
-    }
-    return arr;
-  }, [posts]);
+// 贡献日历：把一年 12 个月 × 每月发布数映射成色阶方块。
+function ContributionCalendar({ counts }: { counts: number[] }) {
   const max = Math.max(...counts, 1);
   const level = (n: number) => {
     if (n === 0) return "bg-muted/30";
@@ -72,13 +77,12 @@ function ContributionCalendar({ posts }: { posts: PostIndexItem[] }) {
 
 function PostRow({ p }: { p: PostIndexItem }) {
   const isHtml = p.type === "html" && p.externalUrl;
-  const target = p.openIn ?? "_blank";
   const inner = (
     <>
       <span className="font-display text-base font-medium transition-colors group-hover:text-primary">
         {p.title}
       </span>
-      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
         {formatDate(p.publishAt)}
       </span>
     </>
@@ -88,11 +92,11 @@ function PostRow({ p }: { p: PostIndexItem }) {
   return (
     <li className="relative pl-6 pb-4 last:pb-0">
       <span className="absolute -left-[5px] top-2 h-2 w-2 rounded-full bg-border transition-colors group-hover:bg-primary" />
-      {isHtml ? (
+      {isHtml && p.externalUrl ? (
         <a
           href={p.externalUrl}
-          target={target}
-          rel={target === "_blank" ? "noopener noreferrer" : undefined}
+          target={linkTarget(p.externalUrl)}
+          rel={linkRel(p.externalUrl)}
           className={cls}
         >
           {inner}
@@ -106,59 +110,104 @@ function PostRow({ p }: { p: PostIndexItem }) {
   );
 }
 
+/** 展开后按需取该月文章，取过就留在内存里。 */
+function MonthPanel({ year, month, category }: { year: string; month: string; category: string }) {
+  const [posts, setPosts] = useState<PostIndexItem[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPosts(null);
+    setFailed(false);
+    void loadPostsByMonth({
+      data: { year, month, category: category === "all" ? undefined : category },
+    })
+      .then((rows) => {
+        if (!cancelled) setPosts(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [year, month, category]);
+
+  if (failed) {
+    return <p className="mt-2 px-2 text-xs text-muted-foreground">这个月的文章没能加载出来。</p>;
+  }
+  if (!posts) {
+    return (
+      <p className="mt-2 flex items-center gap-2 px-2 text-xs text-muted-foreground">
+        <Loader2 className="h-3 w-3 animate-spin" /> 加载中…
+      </p>
+    );
+  }
+  if (!posts.length) {
+    return <p className="mt-2 px-2 text-xs text-muted-foreground">这个月没有匹配的文章。</p>;
+  }
+  return (
+    <ul className="mt-2 border-l border-border/70">
+      {posts.map((p) => (
+        <PostRow key={p.slug} p={p} />
+      ))}
+    </ul>
+  );
+}
+
 function ArchivePage() {
-  const { posts: published } = Route.useLoaderData();
+  const { summary } = Route.useLoaderData();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
 
-  const categories = useMemo(
-    () => Array.from(new Set(published.map((p) => p.category).filter(Boolean))).sort(),
-    [published],
-  );
+  // 搜索走服务端：归档不再持有全量索引，浏览器里没东西可遍历。
+  const [hits, setHits] = useState<PostIndexItem[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    const keyword = q.trim();
+    if (!keyword) {
+      setHits(null);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const timer = window.setTimeout(() => {
+      void searchPostIndex({ data: { q: keyword, category: cat === "all" ? undefined : cat } })
+        .then(setHits)
+        .catch(() => setHits([]))
+        .finally(() => setSearching(false));
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [q, cat]);
 
-  const filtered = useMemo(() => {
-    const k = q.trim().toLowerCase();
-    return published.filter((p) => {
-      if (cat !== "all" && p.category !== cat) return false;
-      if (!k) return true;
-      return (
-        p.title.toLowerCase().includes(k) ||
-        p.category.toLowerCase().includes(k) ||
-        p.tags.some((t) => t.toLowerCase().includes(k))
-      );
-    });
-  }, [published, q, cat]);
+  // 年月骨架按选中的分类过滤不了（计数是全站的），所以选了分类就只在展开的月份里生效，
+  // 顶部的总数用搜索结果或全站总数。
+  const years = useMemo(() => {
+    const map = new Map<string, ArchiveBucket[]>();
+    for (const b of summary.buckets) {
+      const list = map.get(b.year) ?? [];
+      list.push(b);
+      map.set(b.year, list);
+    }
+    return [...map.entries()]
+      .sort(([a], [b]) => (a < b ? 1 : -1))
+      .map(([year, buckets]) => ({
+        year,
+        buckets: buckets.sort((a, b) => (a.month < b.month ? 1 : -1)),
+        count: buckets.reduce((s, b) => s + b.count, 0),
+      }));
+  }, [summary.buckets]);
 
-  const groups = useMemo(() => postsByYear(filtered), [filtered]);
-
-  // 近两千篇一次性铺开会让归档页的 DOM 和 SSR 体积都非常夸张，
-  // 默认只展开最新一年，其余按年折叠（条件渲染而不是 hidden，节点是真的不生成）。
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const defaultOpenYear = groups[0]?.year;
-  const isOpen = (year: string | number) => {
-    const key = String(year);
-    return key in collapsed ? !collapsed[key] : String(defaultOpenYear) === key;
-  };
-  const toggleYear = (year: string | number) => {
-    const key = String(year);
-    setCollapsed((prev) => ({ ...prev, [key]: isOpen(key) }));
-  };
+  const defaultOpenYear = years[0]?.year;
+  const isOpen = (year: string) =>
+    year in collapsed ? !collapsed[year] : defaultOpenYear === year;
+  const toggleYear = (year: string) => setCollapsed((prev) => ({ ...prev, [year]: isOpen(year) }));
 
-  // 月份默认收起：记录被展开的「年-月」。
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
   const toggleMonth = (key: string) => setOpenMonths((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  // 年内按月分组（月份倒序）。
-  const byMonth = (list: PostIndexItem[]) => {
-    const map = new Map<string, PostIndexItem[]>();
-    for (const p of list) {
-      const m = String(p.publishAt).slice(5, 7);
-      const arr = map.get(m) ?? [];
-      arr.push(p);
-      map.set(m, arr);
-    }
-    return Array.from(map.entries()).sort(([a], [b]) => (a < b ? 1 : -1));
-  };
+  const searchMode = q.trim().length > 0;
 
   return (
     <div className="mx-auto max-w-3xl px-6 pt-16 pb-16">
@@ -168,7 +217,9 @@ function ArchivePage() {
         </p>
         <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">归档</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          共 {filtered.length} 篇文章，跨越 {groups.length} 个年份。
+          {searchMode
+            ? `匹配到 ${hits?.length ?? 0} 篇文章。`
+            : `共 ${summary.total} 篇文章，跨越 ${years.length} 个年份。`}
         </p>
       </header>
 
@@ -190,7 +241,7 @@ function ArchivePage() {
           className="rounded-full border border-border bg-card px-3 py-2 text-sm text-foreground"
         >
           <option value="all">全部分类</option>
-          {categories.map((c) => (
+          {summary.categories.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
@@ -198,83 +249,99 @@ function ArchivePage() {
         </select>
       </div>
 
-      {/* sticky 年份导航 */}
-      {groups.length > 1 && (
-        <nav className="sticky top-16 z-30 mb-8 -mx-2 flex flex-wrap gap-1.5 rounded-xl bg-background/80 px-2 py-2 backdrop-blur">
-          {groups.map(({ year }) => (
-            <a
-              key={year}
-              href={`#year-${year}`}
-              className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-            >
-              {year}
-            </a>
-          ))}
-        </nav>
-      )}
-
-      {groups.length === 0 ? (
+      {searchMode ? (
+        searching && !hits ? (
+          <p className="flex items-center gap-2 px-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> 搜索中…
+          </p>
+        ) : hits && hits.length > 0 ? (
+          <ul className="border-l border-border/70">
+            {hits.map((p) => (
+              <PostRow key={p.slug} p={p} />
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-xl border border-dashed border-border/80 bg-card/40 p-10 text-center text-sm text-muted-foreground">
+            没有匹配的文章。
+          </p>
+        )
+      ) : years.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border/80 bg-card/40 p-10 text-center text-sm text-muted-foreground">
-          没有匹配的文章。
+          还没有已发布的文章。
         </p>
       ) : (
-        <div className="flex flex-col gap-12">
-          {groups.map(({ year, posts }) => (
-            <section key={year} id={`year-${year}`} className="scroll-mt-32">
-              <button
-                type="button"
-                onClick={() => toggleYear(year)}
-                aria-expanded={isOpen(year)}
-                className="group mb-2 flex w-full items-baseline gap-3 text-left"
-              >
-                <h2 className="font-display text-3xl font-bold text-primary">{year}</h2>
-                <span className="text-xs text-muted-foreground">{posts.length} 篇</span>
-                <ChevronDown
-                  className={`ml-auto h-4 w-4 shrink-0 self-center text-muted-foreground transition-transform group-hover:text-foreground ${
-                    isOpen(year) ? "" : "-rotate-90"
-                  }`}
-                />
-              </button>
+        <>
+          {years.length > 1 && (
+            <nav className="sticky top-16 z-30 mb-8 -mx-2 flex flex-wrap gap-1.5 rounded-xl bg-background/80 px-2 py-2 backdrop-blur">
+              {years.map(({ year }) => (
+                <a
+                  key={year}
+                  href={`#year-${year}`}
+                  className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                >
+                  {year}
+                </a>
+              ))}
+            </nav>
+          )}
 
-              {/* 贡献日历：该年每月发布密度 */}
-              <ContributionCalendar posts={posts} />
+          <div className="flex flex-col gap-12">
+            {years.map(({ year, buckets, count }) => {
+              const monthly = new Array(12).fill(0) as number[];
+              for (const b of buckets) monthly[Number(b.month) - 1] = b.count;
+              return (
+                <section key={year} id={`year-${year}`} className="scroll-mt-32">
+                  <button
+                    type="button"
+                    onClick={() => toggleYear(year)}
+                    aria-expanded={isOpen(year)}
+                    className="group mb-2 flex w-full items-baseline gap-3 text-left"
+                  >
+                    <h2 className="font-display text-3xl font-bold text-primary">{year}</h2>
+                    <span className="text-xs text-muted-foreground">{count} 篇</span>
+                    <ChevronDown
+                      className={`ml-auto h-4 w-4 shrink-0 self-center text-muted-foreground transition-transform group-hover:text-foreground ${
+                        isOpen(year) ? "" : "-rotate-90"
+                      }`}
+                    />
+                  </button>
 
-              {isOpen(year) && (
-                <div className="mt-5 flex flex-col gap-3">
-                  {byMonth(posts).map(([m, list]) => {
-                    const key = `${year}-${m}`;
-                    const open = !!openMonths[key];
-                    return (
-                      <div key={key}>
-                        <button
-                          type="button"
-                          onClick={() => toggleMonth(key)}
-                          aria-expanded={open}
-                          className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-accent/60"
-                        >
-                          <span className="font-medium">{MONTH_NAMES[Number(m) - 1]}</span>
-                          <span className="text-xs text-muted-foreground">{list.length} 篇</span>
-                          <ChevronDown
-                            className={`ml-auto h-3.5 w-3.5 text-muted-foreground transition-transform ${
-                              open ? "" : "-rotate-90"
-                            }`}
-                          />
-                        </button>
-                        {open && (
-                          <ul className="mt-2 border-l border-border/70">
-                            {list.map((p) => (
-                              <PostRow key={p.slug} p={p} />
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          ))}
-        </div>
+                  <ContributionCalendar counts={monthly} />
+
+                  {isOpen(year) && (
+                    <div className="mt-5 flex flex-col gap-3">
+                      {buckets.map((b) => {
+                        const key = `${year}-${b.month}`;
+                        const open = !!openMonths[key];
+                        return (
+                          <div key={key}>
+                            <button
+                              type="button"
+                              onClick={() => toggleMonth(key)}
+                              aria-expanded={open}
+                              className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-accent/60"
+                            >
+                              <span className="font-medium">
+                                {MONTH_NAMES[Number(b.month) - 1]}
+                              </span>
+                              <span className="text-xs text-muted-foreground">{b.count} 篇</span>
+                              <ChevronDown
+                                className={`ml-auto h-3.5 w-3.5 text-muted-foreground transition-transform ${
+                                  open ? "" : "-rotate-90"
+                                }`}
+                              />
+                            </button>
+                            {open && <MonthPanel year={year} month={b.month} category={cat} />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

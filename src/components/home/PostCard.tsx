@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { formatDateKey } from "@/lib/date";
+import { linkRel, linkTarget } from "@/lib/post-link";
 import type { OpenIn, PostType } from "@/lib/sample-posts";
 
 /**
@@ -35,13 +36,12 @@ export function PostCard({ post }: { post: PostCardItem }) {
   const className =
     "group flex min-w-0 w-full border-t border-border px-2 transition-colors hover:bg-accent/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
-  if (isHtml) {
-    const target = post.openIn ?? "_blank";
+  if (isHtml && post.externalUrl) {
     return (
       <a
         href={post.externalUrl}
-        target={target}
-        rel={target === "_blank" ? "noopener noreferrer" : undefined}
+        target={linkTarget(post.externalUrl)}
+        rel={linkRel(post.externalUrl)}
         className={className}
       >
         {body}

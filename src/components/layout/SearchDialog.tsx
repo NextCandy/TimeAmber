@@ -9,6 +9,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { isExternalHref } from "@/lib/post-link";
 import { searchPosts, type SearchResults } from "@/lib/public-posts.functions";
 
 const EMPTY: SearchResults = { posts: [], categories: [], tags: [] };
@@ -68,7 +69,7 @@ export function SearchDialog({
   const openHit = (hit: SearchResults["posts"][number]) => {
     onOpenChange(false);
     if (hit.externalUrl) {
-      if ((hit.openIn ?? "_blank") === "_blank") {
+      if (isExternalHref(hit.externalUrl)) {
         window.open(hit.externalUrl, "_blank", "noopener,noreferrer");
       } else {
         window.location.assign(hit.externalUrl);

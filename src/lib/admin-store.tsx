@@ -12,7 +12,6 @@ import type { Post } from "./sample-posts";
 import {
   loadAdminMediaState,
   loadAdminState,
-  loadPublicChrome,
   persistAdminState,
   recordTelemetry,
   deletePostRow,
@@ -358,9 +357,12 @@ function coreFrom(s: AdminState): CoreData {
 export function AdminStoreProvider({
   children,
   initialState,
+  enableAdminSync = true,
 }: {
   children: ReactNode;
   initialState?: Partial<AdminState> | null;
+  /** 只有后台路由需要认证与后台数据；前台开着它等于每页白发两个请求。 */
+  enableAdminSync?: boolean;
 }) {
   const [state, setState] = useState<AdminState>(() =>
     initialState
@@ -411,14 +413,20 @@ export function AdminStoreProvider({
       });
     };
 
+    // 前台页面到此为止：站点设置与友链已经随 SSR 的 initialState 下发过，
+    // 再拉一次 loadPublicChrome 只是把同一份数据传两遍；认证状态更是只有后台用得上。
+    // 这两个请求原来是串行的，读者打开任何一个前台页面都要多等它们跑完。
+    if (!enableAdminSync) {
+      setHydrated(true);
+      return;
+    }
+
     const load = async () => {
       try {
-        // 外壳数据 SSR 已经序列化过一份，这里再拉一次是为了拿到读者本地可能过期的
-        // 站点设置/友链；文章不在其中，所以这次请求是几 KB 而不是上兆。
-        mergeRemote(await loadPublicChrome());
         const auth = await getAuthState();
         if (auth.authenticated) {
           adminSessionRef.current = true;
+          // 后台这份是全量（含文章与设置），覆盖了前台外壳数据。
           mergeRemote(await loadAdminState());
           mergeRemote(await loadAdminMediaState());
         }
@@ -433,7 +441,7 @@ export function AdminStoreProvider({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enableAdminSync]);
 
   useEffect(() => {
     if (!hydrated || !adminSessionRef.current || applyingRemoteRef.current) return;

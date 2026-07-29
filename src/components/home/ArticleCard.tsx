@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import { formatDateKey } from "@/lib/date";
+import { linkRel, linkTarget } from "@/lib/post-link";
 import type { HomePost } from "@/lib/home.functions";
 
 /** 首页文章卡：仅保留标题与发布日期，降低列表高度和首屏数据量。 */
@@ -23,13 +24,12 @@ export function ArticleCard({ post, className = "" }: { post: HomePost; classNam
 
   const shell = `group flex min-w-0 border-t border-border px-2 transition-colors hover:bg-accent/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${className}`;
 
-  if (isExternal) {
-    const target = post.openIn ?? "_blank";
+  if (isExternal && post.externalUrl) {
     return (
       <a
         href={post.externalUrl}
-        target={target}
-        rel={target === "_blank" ? "noopener noreferrer" : undefined}
+        target={linkTarget(post.externalUrl)}
+        rel={linkRel(post.externalUrl)}
         className={shell}
       >
         {inner}

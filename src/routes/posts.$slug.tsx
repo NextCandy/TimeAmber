@@ -7,6 +7,7 @@ import { POSTS, formatDate } from "@/lib/sample-posts";
 import { formatDateKey } from "@/lib/date";
 import { DEFAULT_POST_COVER, SITE_URL } from "@/lib/brand";
 import { toMetaDescription } from "@/lib/strip-markdown";
+import { linkRel, linkTarget } from "@/lib/post-link";
 import { loadPublicPost } from "@/lib/state.functions";
 import { loadRelatedPosts, type RelatedPost } from "@/lib/public-posts.functions";
 import { renderMarkdownFn } from "@/lib/markdown.functions";
@@ -186,8 +187,8 @@ function RelatedPosts({ items }: { items: RelatedPost[] }) {
               {p.type === "html" && p.externalUrl ? (
                 <a
                   href={p.externalUrl}
-                  target={p.openIn ?? "_blank"}
-                  rel={(p.openIn ?? "_blank") === "_blank" ? "noopener noreferrer" : undefined}
+                  target={linkTarget(p.externalUrl)}
+                  rel={linkRel(p.externalUrl)}
                   className={rowClass}
                 >
                   {inner}
