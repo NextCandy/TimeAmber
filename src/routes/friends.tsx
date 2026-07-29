@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Link2, Mail } from "lucide-react";
+import { Link2, Mail } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAdminStore, type Friend } from "@/lib/admin-store";
 
@@ -32,36 +32,37 @@ function FriendCard({ f }: { f: Friend }) {
   const custom = f.icon?.trim();
   const icon = custom || faviconUrl(f.url);
   const initial = f.name.trim().charAt(0) || "友";
+
   return (
     <a
       href={f.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex items-start gap-3 rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow"
+      title={f.desc || f.name}
+      className="group flex h-full flex-col items-center justify-start gap-3 rounded-2xl border border-border bg-card px-4 py-5 text-center transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-background/60 text-sm font-semibold text-muted-foreground">
+      {/* 定高容器 + object-contain：宽字标和方形图标都能完整显示、不裁切不变形 */}
+      <span className="flex h-12 w-full items-center justify-center">
         {icon && !imgFailed ? (
           <img
             src={icon}
             alt=""
-            width={20}
-            height={20}
             loading="lazy"
             decoding="async"
-            className={custom ? "h-full w-full object-cover" : "h-5 w-5"}
+            className="max-h-12 max-w-full object-contain"
             onError={() => setImgFailed(true)}
           />
         ) : (
-          initial
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-border/60 bg-background/60 text-base font-semibold text-muted-foreground">
+            {initial}
+          </span>
         )}
       </span>
-      <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-1 font-display font-semibold transition-colors group-hover:text-primary">
-          <span className="truncate">{f.name}</span>
-          <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-        </p>
-        {f.desc && <p className="mt-1 text-sm text-muted-foreground">{f.desc}</p>}
-      </div>
+
+      {/* 名字完整显示：允许换行，不截断 */}
+      <span className="text-sm leading-snug font-medium text-foreground transition-colors [overflow-wrap:anywhere] group-hover:text-primary">
+        {f.name}
+      </span>
     </a>
   );
 }
@@ -118,7 +119,7 @@ function FriendsPage() {
   const multiGroup = groups.length > 1;
 
   return (
-    <div className="mx-auto max-w-4xl px-6 pt-16 pb-16">
+    <div className="mx-auto max-w-6xl px-6 pt-16 pb-16">
       <header className="mb-10">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Friends
@@ -154,7 +155,7 @@ function FriendsPage() {
                     <span className="text-xs font-normal text-muted-foreground">{list.length}</span>
                   </h2>
                 )}
-                <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                   {list.map((f) => (
                     <li key={f.name}>
                       <FriendCard f={f} />

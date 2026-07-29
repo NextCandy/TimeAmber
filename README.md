@@ -97,6 +97,70 @@ Dockerfile                   Web 应用镜像
 Dockerfile.worker            Worker 镜像
 ```
 
+## 视觉系统与主题
+
+TimeAmber 使用 Tailwind CSS v4 的语义 token 统一控制前后台视觉。所有主题颜色都定义在
+`src/styles.css` 的 `:root` 与 `.dark` 中，再通过 `@theme inline` 映射到
+`bg-background`、`text-foreground`、`border-border` 等工具类。组件不保存独立主题色，
+因此换色不会改变路由、内容、数据或交互逻辑。
+
+### 主题切换
+
+站点支持亮色、暗色和跟随系统三种偏好：
+
+| 偏好     | 根元素状态             | 行为                                 |
+| -------- | ---------------------- | ------------------------------------ |
+| 亮色     | `<html class="light">` | 固定使用暖纸主题                     |
+| 暗色     | `<html class="dark">`  | 固定使用暖黑主题，也是默认偏好       |
+| 跟随系统 | `.light` 或 `.dark`    | 根据 `prefers-color-scheme` 实时解析 |
+
+偏好同时写入 `ta-theme` Cookie 和浏览器本地存储。首屏 bootstrap 脚本在样式表与 React
+水合前设置 `.light`/`.dark`，避免主题闪烁；切换机制集中在 `src/lib/theme.ts` 与
+`src/components/layout/ThemeToggle.tsx`，修改视觉 token 时不应改动它们。
+
+### Editorial token
+
+当前主题采用暖纸、暖调真黑、近黑油墨和单一蓝色强调的 editorial 视觉系统：
+
+| Token                  | 亮色                                     | 暗色                                     |
+| ---------------------- | ---------------------------------------- | ---------------------------------------- |
+| `--background`         | `oklch(0.962 0.006 95)`                  | `oklch(0.18 0.008 95)`                   |
+| `--foreground`         | `oklch(0.18 0.008 95)`                   | `oklch(0.94 0.006 95)`                   |
+| `--card` / `--popover` | `oklch(0.985 0.004 95)`                  | `oklch(0.23 0.008 95)`                   |
+| `--primary`            | `oklch(0.485 0.272 266)`（约 `#1d39f5`） | `oklch(0.621 0.204 273)`（约 `#6175ff`） |
+| `--border`             | 暖中性 16% 发丝线                        | 暖白 17% 发丝线                          |
+| `--input`              | 暖中性 28%                               | 暖白 30%                                 |
+| `--ring`               | 主蓝 55%                                 | 主蓝 60%                                 |
+
+- 全局 `--radius: 0`，token 化的卡片、按钮、输入框、图片和代码块均为直角。
+- 正文与标题优先使用 Geist / Manrope，并提供 Noto Sans CJK SC、思源黑体和系统中文字体回退。
+- 品牌字继续使用 `A Song For Jennifer`；代码继续使用本地 `JetBrains Mono`。
+- 正文标题使用 650 字重，h1/h2/h3 行高分别为 1.05、1.10、1.15。
+- 边框保持 1px 实线；彩色主色只用于链接、交互状态、焦点环和少量强调。
+- 标签胶囊、头像、状态点等明确使用 `rounded-full` 的元素仍保持圆形，不受 `--radius` 影响。
+
+### 文章列表密度
+
+面向读者的文章卡片只呈现文章标题与发布日期，不加载或显示封面、分类、摘要、阅读时长和
+外链图标。首页使用两列开放式编辑列表，一次加载最新 18 篇；分类筛选结果不额外分页；
+文章详情页最多显示 12 篇相关文章。标题最多两行，日期固定按上海时区单行显示，避免
+服务端渲染与浏览器水合结果不一致。
+
+### 对比度
+
+下列组合按 WCAG 2.1 相对亮度公式核验：
+
+| 组合                | 亮色    | 暗色    | 结果     |
+| ------------------- | ------- | ------- | -------- |
+| 正文 / 背景         | 16.84:1 | 15.77:1 | AAA      |
+| 次要文字 / 背景     | 6.66:1  | 7.59:1  | AA / AAA |
+| 主蓝链接 / 背景     | 6.37:1  | 4.92:1  | AA       |
+| 主色按钮文字 / 主色 | 6.72:1  | 5.14:1  | AA       |
+
+如需恢复 TimeAmber 原青色品牌，只还原 `--primary*`、`--accent*`、`--ring` 和
+`--brand-1/2/3` 即可；建议亮色主色约为 `oklch(0.50 0.14 200)`，暗色约为
+`oklch(0.72 0.13 195)`，并重新运行对比度与亮暗主题截图检查。
+
 ## 本地验证
 
 要求 Node.js 22 和 npm。
@@ -183,42 +247,68 @@ Ask TimeAmber 位于管理员后台 `/admin/ask`，复用现有 Supabase Auth �
 
 ## NAS 部署
 
+生产目录为 `/volume1/docker/timeamber`。发布前先确认工作区没有会被覆盖的本地改动，
+保存当前提交号，并备份源码与数据库。生产机如果通过 Git 管理源码，应使用
+`git pull --ff-only` 更新已审核的发布分支；如果使用发布包，则只替换受版本控制的源码，
+保留 `.env`、`deploy/supabase/.env`、媒体、备份和数据库卷。
+
+发布前检查：
+
 ```bash
-cd /volume1/docker/timeamber/deploy/supabase
-
-docker compose \
-  --env-file .env \
-  -f docker-compose.yml \
-  -f docker-compose.timeamber.yml \
-  build timeamber-app timeamber-worker
-
-docker compose \
-  --env-file .env \
-  -f docker-compose.yml \
-  -f docker-compose.timeamber.yml \
-  up -d --no-deps timeamber-app timeamber-worker
+cd /volume1/docker/timeamber
+git status --short
+git rev-parse HEAD
 ```
+
+纯 CSS、前端或服务端 Web 改动只需要重建 `timeamber-app`，不要重启 worker 或 Supabase：
+
+```bash
+cd /volume1/docker/timeamber
+
+docker compose \
+  --env-file .env \
+  -f docker-compose.yml \
+  build timeamber-app
+
+docker compose \
+  --env-file .env \
+  -f docker-compose.yml \
+  up -d --no-deps timeamber-app
+```
+
+当前生产容器的 Compose working directory 和 config file 分别是
+`/volume1/docker/timeamber` 与根目录 `docker-compose.yml`；增量发布必须沿用这一项目，
+避免创建第二套同名容器。`deploy/supabase/docker-compose*.yml` 是模块化的新环境部署模板，
+不用于替换已运行的根 Compose 项目。
+
+只有 `worker/`、`Dockerfile.worker` 或 worker 依赖发生变化时，才追加构建和更新
+`timeamber-worker`。数据库 migration 必须使用下文独立的 tools profile，不能通过普通
+Web 发布隐式执行。
 
 查看状态：
 
 ```bash
 docker ps --filter name=timeamber
+docker inspect --format '{{.State.Health.Status}}' timeamber-app
 docker logs --tail 100 timeamber-app
-docker logs --tail 100 timeamber-worker
-curl -I http://127.0.0.1:49287/
+curl --fail --show-error --head http://127.0.0.1:49287/
+curl --fail --show-error --head https://timeamber.com/
 ```
 
-两个生产容器都配置了健康检查和 `restart: unless-stopped`。
+生产验收至少覆盖：首页和一篇文章、亮暗主题切换、移动端首屏、阅读字号控制、浏览器
+console，以及静态资源是否来自新构建。容器状态必须为 `healthy`，公网与本机入口都应返回
+2xx。两个生产容器都配置了健康检查和 `restart: unless-stopped`。
 
 ## 数据库初始化
 
 首次部署时运行迁移：
 
 ```bash
+cd /volume1/docker/timeamber
+
 docker compose \
   --env-file .env \
   -f docker-compose.yml \
-  -f docker-compose.timeamber.yml \
   --profile tools run --rm timeamber-migrate
 ```
 
