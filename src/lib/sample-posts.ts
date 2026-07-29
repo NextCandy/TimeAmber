@@ -227,8 +227,9 @@ export const POSTS: Post[] = [
   },
 ];
 
-export function postsByYear(posts: Post[]) {
-  const map = new Map<string, Post[]>();
+// 泛型：归档页传的是 public-posts.functions.ts 的轻量索引，不是完整 Post。
+export function postsByYear<T extends { publishAt: string }>(posts: T[]) {
+  const map = new Map<string, T[]>();
   for (const p of posts) {
     const year = p.publishAt.slice(0, 4);
     if (!map.has(year)) map.set(year, []);
@@ -238,7 +239,7 @@ export function postsByYear(posts: Post[]) {
     .sort(([a], [b]) => (a < b ? 1 : -1))
     .map(([year, list]) => ({
       year,
-      posts: list.sort((a, b) => (a.publishAt < b.publishAt ? 1 : -1)),
+      posts: [...list].sort((a, b) => (a.publishAt < b.publishAt ? 1 : -1)),
     }));
 }
 

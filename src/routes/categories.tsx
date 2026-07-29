@@ -2,8 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { FolderTree, Tag, X, Search } from "lucide-react";
 import { PostCard } from "@/components/home/PostCard";
-import { useAdminStore } from "@/lib/admin-store";
-import { isPublished } from "@/lib/sample-posts";
+import { loadPostIndex } from "@/lib/public-posts.functions";
 
 type CategorySearch = { c?: string; tag?: string };
 
@@ -12,6 +11,8 @@ export const Route = createFileRoute("/categories")({
     c: typeof search.c === "string" && search.c ? search.c : undefined,
     tag: typeof search.tag === "string" && search.tag ? search.tag : undefined,
   }),
+  // 分类页要统计每个分类/标签下的篇数，也需要全量索引；同归档，自己取。
+  loader: async () => ({ posts: await loadPostIndex().catch(() => []) }),
   head: () => ({
     meta: [
       { title: "分类 · TimeAmber" },
@@ -25,9 +26,7 @@ export const Route = createFileRoute("/categories")({
 
 function CategoriesPage() {
   const { c: activeCategory, tag: activeTag } = Route.useSearch();
-  const { posts } = useAdminStore();
-
-  const published = useMemo(() => posts.filter(isPublished), [posts]);
+  const { posts: published } = Route.useLoaderData();
 
   const { categoryCounts, tagCounts } = useMemo(() => {
     const categories = new Map<string, number>();

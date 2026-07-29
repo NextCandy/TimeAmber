@@ -1,8 +1,21 @@
 import { Link } from "@tanstack/react-router";
 import { formatDateKey } from "@/lib/date";
-import type { Post } from "@/lib/sample-posts";
+import type { OpenIn, PostType } from "@/lib/sample-posts";
 
-export function PostCard({ post }: { post: Post }) {
+/**
+ * 卡片只渲染标题与日期，所以只要这几个字段 —— 声明成完整 Post 会逼着调用方
+ * 下发 excerpt/cover 之类根本用不到的数据（分类页传的就是轻量索引）。
+ */
+export type PostCardItem = {
+  slug: string;
+  title: string;
+  publishAt: string;
+  type?: PostType;
+  externalUrl?: string;
+  openIn?: OpenIn;
+};
+
+export function PostCard({ post }: { post: PostCardItem }) {
   const isHtml = post.type === "html" && post.externalUrl;
 
   const body = (

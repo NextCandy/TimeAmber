@@ -1,14 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Clock, ExternalLink, Copy, Share2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import mediumZoom from "medium-zoom";
-import { POSTS, formatDate, type Post } from "@/lib/sample-posts";
+import { POSTS, formatDate } from "@/lib/sample-posts";
 import { formatDateKey } from "@/lib/date";
 import { DEFAULT_POST_COVER, SITE_URL } from "@/lib/brand";
 import { toMetaDescription } from "@/lib/strip-markdown";
-import { useAdminStore } from "@/lib/admin-store";
 import { loadPublicPost } from "@/lib/state.functions";
+import { loadRelatedPosts, type RelatedPost } from "@/lib/public-posts.functions";
 import { renderMarkdownFn } from "@/lib/markdown.functions";
 import { TableOfContents, extractToc } from "@/components/post/TableOfContents";
 import { ReadingControls, useReadingPrefs } from "@/components/post/ReadingControls";
@@ -24,15 +24,18 @@ function absolutePostImage(cover?: string): string {
 
 export const Route = createFileRoute("/posts/$slug")({
   loader: async ({ params }) => {
-    const dbPost = await loadPublicPost({
-      data: { slug: params.slug },
-    }).catch(() => null);
+    // 相关推荐同一套权重挪到了 SQL 里，只回 12 条 —— 原来是靠 root loader
+    // 下发的全部文章在浏览器里算分，那份数据现在不再进 payload。
+    const [dbPost, related] = await Promise.all([
+      loadPublicPost({ data: { slug: params.slug } }).catch(() => null),
+      loadRelatedPosts({ data: { slug: params.slug } }).catch(() => []),
+    ]);
     const post = dbPost ?? POSTS.find((p) => p.slug === params.slug) ?? null;
     const contentHtml =
       post && post.type !== "html" && post.content
         ? await renderMarkdownFn({ data: { md: post.content } })
         : "";
-    return { post, contentHtml };
+    return { post, contentHtml, related };
   },
   head: ({ loaderData, params }) => {
     const post = loaderData?.post;
@@ -147,7 +150,7 @@ function SharePost({ url, title }: { url: string; title: string }) {
 }
 
 // 相关文章：紧凑卡片可以容纳更多内容，优先共同标签，其次同分类，取前 12 篇。
-function RelatedPosts({ items }: { items: Post[] }) {
+function RelatedPosts({ items }: { items: RelatedPost[] }) {
   if (!items.length) return null;
   return (
     <section className="mt-12 border-t border-border/60 pt-8">
@@ -179,9 +182,7 @@ function RelatedPosts({ items }: { items: Post[] }) {
 
 function PostPage() {
   const { slug } = Route.useParams();
-  const { post: loaderPost, contentHtml } = Route.useLoaderData();
-  const { posts } = useAdminStore();
-  const summary = posts.find((p) => p.slug === slug);
+  const { post, contentHtml, related } = Route.useLoaderData();
   const [prefs, setPrefs] = useReadingPrefs();
 
   // 正文增强（仅客户端）：图片点击放大 + 代码块复制。
@@ -234,23 +235,6 @@ function PostPage() {
       root.removeEventListener("click", onClick);
     };
   }, [contentHtml]);
-
-  const post = loaderPost ?? summary;
-
-  // 相关文章：共同标签计 2 分、同分类计 1 分，取得分最高的前 12 篇。
-  // useMemo 必须在早返回之前调用（hooks 规则）；post 为空时返回空数组。
-  const related = useMemo(() => {
-    if (!post) return [];
-    const scored = posts
-      .filter((p) => p.slug !== post.slug && (p.status ?? "published") === "published")
-      .map((p) => {
-        const shared = p.tags.filter((t) => post.tags.includes(t)).length;
-        return { p, score: shared * 2 + (p.category === post.category ? 1 : 0) };
-      })
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score);
-    return scored.slice(0, 12).map((x) => x.p);
-  }, [posts, post]);
 
   if (!post || (post.status ?? "published") !== "published") {
     return (

@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronDown, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { formatDate, postsByYear, isPublished, type Post } from "@/lib/sample-posts";
-import { useAdminStore } from "@/lib/admin-store";
+import { formatDate, postsByYear } from "@/lib/sample-posts";
+import { loadPostIndex, type PostIndexItem } from "@/lib/public-posts.functions";
 import { SITE_URL } from "@/lib/brand";
 
 export const Route = createFileRoute("/archive")({
+  // 归档是少数真的需要全部文章的页面，所以自己取一份轻量索引，
+  // 而不是让每个页面都跟着背 root loader 的全量数据。
+  loader: async () => ({ posts: await loadPostIndex().catch(() => []) }),
   head: () => ({
     meta: [
       { title: "归档 · TimeAmber" },
@@ -20,12 +23,22 @@ export const Route = createFileRoute("/archive")({
 });
 
 const MONTH_NAMES = [
-  "1 月", "2 月", "3 月", "4 月", "5 月", "6 月",
-  "7 月", "8 月", "9 月", "10 月", "11 月", "12 月",
+  "1 月",
+  "2 月",
+  "3 月",
+  "4 月",
+  "5 月",
+  "6 月",
+  "7 月",
+  "8 月",
+  "9 月",
+  "10 月",
+  "11 月",
+  "12 月",
 ];
 
 // 贡献日历：把一年 12 个月 × 每月发布数映射成琥珀色阶方块。
-function ContributionCalendar({ posts }: { posts: Post[] }) {
+function ContributionCalendar({ posts }: { posts: PostIndexItem[] }) {
   const counts = useMemo(() => {
     const arr = new Array(12).fill(0) as number[];
     for (const p of posts) {
@@ -57,7 +70,7 @@ function ContributionCalendar({ posts }: { posts: Post[] }) {
   );
 }
 
-function PostRow({ p }: { p: Post }) {
+function PostRow({ p }: { p: PostIndexItem }) {
   const isHtml = p.type === "html" && p.externalUrl;
   const target = p.openIn ?? "_blank";
   const inner = (
@@ -94,11 +107,9 @@ function PostRow({ p }: { p: Post }) {
 }
 
 function ArchivePage() {
-  const { posts } = useAdminStore();
+  const { posts: published } = Route.useLoaderData();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
-
-  const published = useMemo(() => posts.filter(isPublished), [posts]);
 
   const categories = useMemo(
     () => Array.from(new Set(published.map((p) => p.category).filter(Boolean))).sort(),
@@ -135,12 +146,11 @@ function ArchivePage() {
 
   // 月份默认收起：记录被展开的「年-月」。
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
-  const toggleMonth = (key: string) =>
-    setOpenMonths((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleMonth = (key: string) => setOpenMonths((prev) => ({ ...prev, [key]: !prev[key] }));
 
   // 年内按月分组（月份倒序）。
-  const byMonth = (list: Post[]) => {
-    const map = new Map<string, Post[]>();
+  const byMonth = (list: PostIndexItem[]) => {
+    const map = new Map<string, PostIndexItem[]>();
     for (const p of list) {
       const m = String(p.publishAt).slice(5, 7);
       const arr = map.get(m) ?? [];

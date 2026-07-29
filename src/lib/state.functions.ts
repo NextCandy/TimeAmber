@@ -152,10 +152,15 @@ async function readSecret<T>(key: string, fallback: T): Promise<T> {
   return decryptJson<T>(row?.encrypted_value as string | undefined, fallback);
 }
 
-async function loadCore(admin: boolean): Promise<Partial<AdminState>> {
+/**
+ * 站点外壳数据：导航、页脚、友链、分类与标签清单。
+ * 刻意不含 posts —— 这份结果会被 root loader 序列化进**每一个页面**，
+ * 而前台只有归档 / 分类 / 搜索 / 相关推荐要文章，它们各自按需取数
+ * （见 public-posts.functions.ts）。
+ */
+async function loadChrome(admin: boolean): Promise<Partial<AdminState>> {
   const sql = db();
-  const [posts, categories, tags, friends, settings, schedule] = await Promise.all([
-    loadPosts(admin),
+  const [categories, tags, friends, settings, schedule] = await Promise.all([
     sql`select name from public.categories order by name`,
     sql`select name from public.tags order by name`,
     admin
@@ -166,7 +171,6 @@ async function loadCore(admin: boolean): Promise<Partial<AdminState>> {
   ]);
 
   return {
-    posts,
     categories: categories.map((row) => ({ name: String(row.name) })),
     tags: tags.map((row) => ({ name: String(row.name) })),
     friends: friends.map((row) => ({
@@ -181,6 +185,12 @@ async function loadCore(admin: boolean): Promise<Partial<AdminState>> {
   };
 }
 
+/** 后台要的完整一份：外壳 + 全部文章（含草稿）。 */
+async function loadCore(admin: boolean): Promise<Partial<AdminState>> {
+  const [chrome, posts] = await Promise.all([loadChrome(admin), loadPosts(admin)]);
+  return { ...chrome, posts };
+}
+
 async function assertAdmin(userId: string) {
   const [profile] = await db()`
     select role from public.profiles where user_id = ${userId}::uuid
@@ -188,8 +198,8 @@ async function assertAdmin(userId: string) {
   if (profile?.role !== "admin") throw new Error("Administrator access required");
 }
 
-export const loadPublicState = createServerFn({ method: "GET" }).handler(
-  async (): Promise<Partial<AdminState>> => loadCore(false),
+export const loadPublicChrome = createServerFn({ method: "GET" }).handler(
+  async (): Promise<Partial<AdminState>> => loadChrome(false),
 );
 
 export type VisitTrendPoint = { date: string; count: number };

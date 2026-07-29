@@ -12,7 +12,7 @@ import type { Post } from "./sample-posts";
 import {
   loadAdminMediaState,
   loadAdminState,
-  loadPublicState,
+  loadPublicChrome,
   persistAdminState,
   recordTelemetry,
   deletePostRow,
@@ -413,7 +413,9 @@ export function AdminStoreProvider({
 
     const load = async () => {
       try {
-        mergeRemote(await loadPublicState());
+        // 外壳数据 SSR 已经序列化过一份，这里再拉一次是为了拿到读者本地可能过期的
+        // 站点设置/友链；文章不在其中，所以这次请求是几 KB 而不是上兆。
+        mergeRemote(await loadPublicChrome());
         const auth = await getAuthState();
         if (auth.authenticated) {
           adminSessionRef.current = true;

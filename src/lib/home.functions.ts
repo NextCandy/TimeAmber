@@ -5,7 +5,7 @@ import { db } from "@/lib/db.server";
 /**
  * 首页专用取数。
  *
- * 不复用 __root 的 loadPublicState（那份会把全部文章序列化进每个页面），
+ * 与归档 / 分类 / 搜索一样自己按需取数（见 public-posts.functions.ts），
  * 这里只取首页要用的字段与条数，摘要在服务端就压成纯文本 ——
  * 剪藏来的 excerpt 里常带 ![](…)、``` 等 Markdown 语法，直接塞进卡片会原样显示。
  */
