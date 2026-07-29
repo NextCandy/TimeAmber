@@ -149,6 +149,14 @@ function stableOfflineHtmlUrl(source: string, id: number): string {
   return `/cdn/${stableOfflineHtmlKey(source, id)}`;
 }
 
+export function getArchivePostDelivery(source: string, id: number) {
+  return {
+    postType: "html" as const,
+    externalUrl: stableOfflineHtmlUrl(source, id),
+    openIn: "_self" as const,
+  };
+}
+
 function buildOfflineHtmlMarker(source: ArchiveSource, page: ArchivePage): string {
   return `<!-- timeamber-offline-html:v1 source:${source.id} id:${page.id} url:${stableOfflineHtmlUrl(source.id, page.id)} -->`;
 }
@@ -571,13 +579,16 @@ export async function syncArchiveSources(
           try {
             const slug = stableArchiveSlug(source.id, page.id);
             const existing = await db.getPostBySlug(slug);
+            const delivery = getArchivePostDelivery(source.id, page.id);
             const sourceUpdatedAt = parseArchiveDate(page.updatedAt || page.createdAt);
             if (
               existing &&
               existing.category === source.label &&
               existing.published &&
               existing.listed &&
-              Boolean(getArchiveOfflineHtmlUrl(existing.content)) &&
+              getArchiveOfflineHtmlUrl(existing.content) === delivery.externalUrl &&
+              existing.postType === delivery.postType &&
+              existing.externalUrl === delivery.externalUrl &&
               new Date(existing.updatedAt).getTime() >= new Date(sourceUpdatedAt).getTime()
             ) {
               result.skipped++;
@@ -612,6 +623,7 @@ export async function syncArchiveSources(
               category: source.label,
               createdAt,
               updatedAt: sourceUpdatedAt,
+              ...delivery,
             };
 
             if (existing) {
@@ -628,7 +640,7 @@ export async function syncArchiveSources(
                 excerpt: payload.excerpt,
                 body: readableText || payload.excerpt || page.title,
                 category: payload.category,
-                internalUrl: stableOfflineHtmlUrl(source.id, page.id),
+                internalUrl: delivery.externalUrl,
                 originalUrl: page.pageUrl || extractArchiveOriginalUrl(snapshot.html) || "",
                 sourceCreatedAt: createdAt,
                 sourceUpdatedAt,

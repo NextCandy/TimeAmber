@@ -24,6 +24,9 @@ export type Post = {
   seriesSlug: string | null;
   seriesOrder: number;
   category: string;
+  postType: "markdown" | "html";
+  externalUrl: string | null;
+  openIn: "_blank" | "_self";
 };
 
 export type PostSummary = {
@@ -109,6 +112,9 @@ export type CreatePostInput = {
   category?: string;
   createdAt?: string;
   updatedAt?: string;
+  postType?: "markdown" | "html";
+  externalUrl?: string | null;
+  openIn?: "_blank" | "_self";
 };
 
 export type UpdatePostInput = {
@@ -127,6 +133,9 @@ export type UpdatePostInput = {
   seriesOrder?: number;
   category?: string;
   createdAt?: string;
+  postType?: "markdown" | "html";
+  externalUrl?: string | null;
+  openIn?: "_blank" | "_self";
 };
 
 export type UpsertPageInput = {

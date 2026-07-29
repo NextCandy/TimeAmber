@@ -5,6 +5,7 @@ import {
   archiveHtmlToReadableText,
   extractArchiveOriginalUrl,
   extractArchivePublishedAt,
+  getArchivePostDelivery,
   normalizeArchiveOfflineHtml,
 } from "../worker/archive-sync";
 
@@ -46,4 +47,12 @@ test("extracts Discourse content when an archive contains a very large inline im
   const text = archiveHtmlToReadableText(html, 10_000);
   assert.match(text, /Cloudflare tunnel notes/);
   assert.doesNotMatch(text, /data:image|AAAA/);
+});
+
+test("marks imported archive posts as same-page offline HTML links", () => {
+  assert.deepEqual(getArchivePostDelivery("vsdo", 616), {
+    postType: "html",
+    externalUrl: "/cdn/vsdo-html/616/index.html",
+    openIn: "_self",
+  });
 });

@@ -25,6 +25,9 @@ export const pgPosts = pgTable("posts", {
   seriesSlug: text("series_slug"),
   seriesOrder: integer("series_order").notNull().default(0),
   category: text("category").default(""),
+  postType: text("post_type").notNull().default("markdown"),
+  externalUrl: text("external_url"),
+  openIn: text("open_in").notNull().default("_blank"),
 });
 
 /* ── 标签表 ────────────────────────────────── */

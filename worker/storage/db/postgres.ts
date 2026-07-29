@@ -517,6 +517,9 @@ export class PostgresAdapter implements IDatabase {
       seriesSlug: post.seriesSlug || null,
       category: post.category || "",
       seriesOrder: post.seriesOrder ?? 0,
+      postType: post.postType === "html" ? "html" : "markdown",
+      externalUrl: post.externalUrl || null,
+      openIn: post.openIn === "_self" ? "_self" : "_blank",
       tags: await this.getPostTags(post.id),
     };
   }
@@ -538,6 +541,9 @@ export class PostgresAdapter implements IDatabase {
         seriesSlug: data.seriesSlug || null,
         category: data.category || "",
         seriesOrder: data.seriesOrder ?? 0,
+        postType: data.postType || "markdown",
+        externalUrl: data.externalUrl || null,
+        openIn: data.openIn || "_blank",
       })
       .returning();
 
@@ -563,6 +569,9 @@ export class PostgresAdapter implements IDatabase {
       seriesSlug: newPost.seriesSlug || null,
       category: newPost.category || "",
       seriesOrder: newPost.seriesOrder ?? 0,
+      postType: newPost.postType === "html" ? "html" : "markdown",
+      externalUrl: newPost.externalUrl || null,
+      openIn: newPost.openIn === "_self" ? "_self" : "_blank",
     };
   }
 
@@ -592,6 +601,9 @@ export class PostgresAdapter implements IDatabase {
         ...(data.category !== undefined && { category: data.category }),
         ...(data.seriesOrder !== undefined && { seriesOrder: data.seriesOrder }),
         ...(data.createdAt !== undefined && { createdAt: sql`${data.createdAt}::timestamptz` }),
+        ...(data.postType !== undefined && { postType: data.postType }),
+        ...(data.externalUrl !== undefined && { externalUrl: data.externalUrl }),
+        ...(data.openIn !== undefined && { openIn: data.openIn }),
         updatedAt: sql`NOW()`,
       })
       .where(eq(pgPosts.id, existing.id))
@@ -619,6 +631,9 @@ export class PostgresAdapter implements IDatabase {
       seriesSlug: updated.seriesSlug || null,
       category: updated.category || "",
       seriesOrder: updated.seriesOrder ?? 0,
+      postType: updated.postType === "html" ? "html" : "markdown",
+      externalUrl: updated.externalUrl || null,
+      openIn: updated.openIn === "_self" ? "_self" : "_blank",
     };
   }
 
