@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import mediumZoom from "medium-zoom";
 import { POSTS, formatDate, type Post } from "@/lib/sample-posts";
+import { formatDateKey } from "@/lib/date";
 import { DEFAULT_POST_COVER, SITE_URL } from "@/lib/brand";
 import { toMetaDescription } from "@/lib/strip-markdown";
 import { useAdminStore } from "@/lib/admin-store";
@@ -102,9 +103,15 @@ function ReadingProgress() {
 function SharePost({ url, title }: { url: string; title: string }) {
   const enc = encodeURIComponent;
   const links = [
-    { label: "Twitter / X", href: `https://twitter.com/intent/tweet?text=${enc(title)}&url=${enc(url)}` },
+    {
+      label: "Twitter / X",
+      href: `https://twitter.com/intent/tweet?text=${enc(title)}&url=${enc(url)}`,
+    },
     { label: "Telegram", href: `https://t.me/share/url?url=${enc(url)}&text=${enc(title)}` },
-    { label: "微博", href: `https://service.weibo.com/share/share.php?url=${enc(url)}&title=${enc(title)}` },
+    {
+      label: "微博",
+      href: `https://service.weibo.com/share/share.php?url=${enc(url)}&title=${enc(title)}`,
+    },
   ];
   function copy() {
     navigator.clipboard?.writeText(url).then(
@@ -139,26 +146,29 @@ function SharePost({ url, title }: { url: string; title: string }) {
   );
 }
 
-// 相关文章：优先共同标签（权重更高），其次同分类，取前 6 篇。
+// 相关文章：紧凑卡片可以容纳更多内容，优先共同标签，其次同分类，取前 12 篇。
 function RelatedPosts({ items }: { items: Post[] }) {
   if (!items.length) return null;
   return (
     <section className="mt-12 border-t border-border/60 pt-8">
       <h2 className="mb-4 font-display text-lg font-semibold">相关文章</h2>
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <ul className="grid grid-cols-1 border-b border-border sm:grid-cols-2 sm:gap-x-8">
         {items.map((p) => (
           <li key={p.slug}>
             <Link
               to="/posts/$slug"
               params={{ slug: p.slug }}
-              className="group flex flex-col gap-1 rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow"
+              className="group flex items-start justify-between gap-6 border-t border-border px-2 py-4 transition-colors hover:bg-accent/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
-              <span className="line-clamp-2 font-medium leading-snug transition-colors group-hover:text-primary">
+              <span className="line-clamp-2 min-w-0 leading-[1.45] font-medium tracking-[-0.01em] transition-colors [overflow-wrap:anywhere] group-hover:text-primary">
                 {p.title}
               </span>
-              <span className="text-xs text-muted-foreground">
-                {p.category} · {formatDate(p.publishAt)}
-              </span>
+              <time
+                dateTime={p.publishAt}
+                className="font-latin mt-0.5 shrink-0 text-[11px] leading-5 tracking-[0.06em] text-[var(--text-faint)]"
+              >
+                {formatDateKey(p.publishAt)}
+              </time>
             </Link>
           </li>
         ))}
@@ -227,7 +237,7 @@ function PostPage() {
 
   const post = loaderPost ?? summary;
 
-  // 相关文章：共同标签计 2 分、同分类计 1 分，取得分最高的前 6 篇。
+  // 相关文章：共同标签计 2 分、同分类计 1 分，取得分最高的前 12 篇。
   // useMemo 必须在早返回之前调用（hooks 规则）；post 为空时返回空数组。
   const related = useMemo(() => {
     if (!post) return [];
@@ -239,7 +249,7 @@ function PostPage() {
       })
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score);
-    return scored.slice(0, 6).map((x) => x.p);
+    return scored.slice(0, 12).map((x) => x.p);
   }, [posts, post]);
 
   if (!post || (post.status ?? "published") !== "published") {

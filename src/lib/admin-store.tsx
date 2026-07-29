@@ -15,6 +15,7 @@ import {
   loadPublicState,
   persistAdminState,
   recordTelemetry,
+  deletePostRow,
   setPostPublished,
   upsertSinglePost,
 } from "./state.functions";
@@ -477,7 +478,17 @@ export function AdminStoreProvider({
   }, []);
 
   const deletePost = useCallback((slug: string) => {
+    // 与 upsertPost / setPostStatus 同样走单篇接口：全量 persist 会重写整库，
+    // 又慢又容易超时，删除常常没真正落库。这里同时抑制随后的全量 persist。
+    applyingRemoteRef.current = true;
     setState((s) => ({ ...s, posts: s.posts.filter((p) => p.slug !== slug) }));
+    void deletePostRow({ data: { slug } })
+      .catch((error) => {
+        console.error("[TimeAmber] failed to delete post", error);
+      })
+      .finally(() => {
+        applyingRemoteRef.current = false;
+      });
   }, []);
 
   const setPostStatus = useCallback((slug: string, status: "draft" | "published") => {

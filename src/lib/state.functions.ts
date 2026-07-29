@@ -402,6 +402,27 @@ export const loadAdminMediaState = createServerFn({ method: "GET" })
     return { media: await loadMediaItems() };
   });
 
+const deletePostInput = z.object({ slug: z.string().trim().min(1).max(300) });
+
+/**
+ * 删除单篇文章。
+ * 原来只改本地状态，靠会重写全部文章的 persistAdminState 才真正落库 ——
+ * 那条路又慢又常超时，删除因此可能没生效、刷新后文章又回来了。
+ * comments / post_tags / post_versions / reactions / knowledge_documents
+ * 都是 ON DELETE CASCADE，sync_items 是 SET NULL，删主表即可。
+ */
+export const deletePostRow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((value: z.infer<typeof deletePostInput>) => deletePostInput.parse(value))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const [row] = await db()`
+      delete from public.posts where slug = ${data.slug} returning slug
+    `;
+    if (!row) throw new Error(`post not found: ${data.slug}`);
+    return { ok: true as const, slug: String(row.slug) };
+  });
+
 const taxonomyNameInput = z.object({ name: z.string().trim().min(1).max(120) });
 const taxonomyRenameInput = z.object({
   from: z.string().trim().min(1).max(120),
