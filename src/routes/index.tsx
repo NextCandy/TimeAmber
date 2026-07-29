@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { ArticleSection } from "@/components/home/ArticleSection";
-import { AuthorPane } from "@/components/home/AuthorPane";
 import { loadHomeData } from "@/lib/home.functions";
 
 export const Route = createFileRoute("/")({
@@ -21,10 +20,5 @@ export const Route = createFileRoute("/")({
 function Index() {
   const { home } = Route.useLoaderData();
 
-  return (
-    <div className="flex flex-col">
-      <ArticleSection posts={home.latest} />
-      <AuthorPane totalPosts={home.totalPosts} />
-    </div>
-  );
+  return <ArticleSection posts={home.latest} totalPosts={home.totalPosts} />;
 }

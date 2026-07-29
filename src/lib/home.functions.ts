@@ -23,7 +23,8 @@ export type HomeData = {
   totalPosts: number;
 };
 
-const LATEST_LIMIT = 18;
+// 桌面三列 × 四行，连同顶栏与页脚正好一屏。
+const LATEST_LIMIT = 12;
 
 type PostRow = {
   slug: unknown;

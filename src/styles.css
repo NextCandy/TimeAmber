@@ -489,25 +489,3 @@
     color-mix(in oklch, var(--brand-3) 85%, var(--background))
   );
 }
-
-/* 滚动揭示：SSR 默认可见，由 JS 决定是否先隐藏（见 use-reveal.ts） */
-[data-reveal="hidden"] {
-  opacity: 0;
-  transform: translateY(16px);
-}
-
-[data-reveal="shown"] {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity 0.55s ease-out,
-    transform 0.55s ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-reveal] {
-    opacity: 1 !important;
-    transform: none !important;
-    transition: none !important;
-  }
-}
