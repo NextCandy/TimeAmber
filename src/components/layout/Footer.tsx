@@ -7,7 +7,8 @@ export function Footer() {
   const { settings } = useAdminStore();
 
   return (
-    <footer className="mt-8 bg-[var(--surface-deep)]">
+    // 与正文同底色，只用一条发丝线分隔 —— 原来那块加深的色带把页面切成了两截。
+    <footer className="mt-8 border-t border-border">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-6 py-7 text-sm sm:flex-row sm:justify-between">
         <Link to="/" className="flex items-center gap-2.5">
           <img src={BRAND_ICON} alt="" className="h-7 w-7 object-contain" />

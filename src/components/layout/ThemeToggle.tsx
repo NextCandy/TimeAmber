@@ -1,26 +1,13 @@
 import { useEffect, useState } from "react";
-import { Laptop, Moon, Sun } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Moon, Sun } from "lucide-react";
 import {
   THEME_STORAGE_KEY,
   applyThemePreference,
   buildThemeCookie,
   isCrossSiteIframe,
-  parseThemePreference,
+  migrateThemePreference,
   type ThemePreference,
 } from "@/lib/theme";
-
-const THEME_OPTIONS = [
-  { value: "light", label: "晨雾青", icon: Sun },
-  { value: "dark", label: "深松青", icon: Moon },
-  { value: "system", label: "跟随系统", icon: Laptop },
-] as const;
 
 function persistThemePreference(preference: ThemePreference) {
   localStorage.setItem(THEME_STORAGE_KEY, preference);
@@ -30,63 +17,44 @@ function persistThemePreference(preference: ThemePreference) {
   });
 }
 
+/**
+ * 明暗二选一，点一下就切，没有菜单。
+ * 图标表示的是**当前**主题：太阳＝正在用日间，月亮＝正在用夜间。
+ */
 export function ThemeToggle({ initialPreference }: { initialPreference: ThemePreference }) {
   const [preference, setPreference] = useState<ThemePreference>(initialPreference);
 
   useEffect(() => {
-    const bootstrapped = parseThemePreference(document.documentElement.dataset.themePreference);
+    // bootstrap 脚本可能刚把旧的 "system" 折算成了固定值，以它为准。
+    const bootstrapped = migrateThemePreference(
+      document.documentElement.dataset.themePreference,
+      window.matchMedia("(prefers-color-scheme: dark)").matches,
+    );
     const active = bootstrapped ?? preference;
-    // 每次页面挂载或偏好变化都续期一年，保持 Cookie 滑动过期。
+    // 每次挂载或偏好变化都续期一年，保持 Cookie 滑动过期。
     persistThemePreference(active);
     if (active !== preference) setPreference(active);
   }, [preference]);
 
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const syncSystemTheme = () => {
-      if (preference === "system") applyThemePreference("system", media.matches);
-    };
-    media.addEventListener("change", syncSystemTheme);
-    return () => media.removeEventListener("change", syncSystemTheme);
-  }, [preference]);
+  const isDark = preference === "dark";
+  const label = isDark ? "夜间模式" : "日间模式";
 
-  const selectTheme = (value: string) => {
-    const next = parseThemePreference(value);
-    if (!next) return;
-
+  const toggle = () => {
+    const next: ThemePreference = isDark ? "light" : "dark";
     setPreference(next);
     applyThemePreference(next);
     persistThemePreference(next);
   };
 
-  const current = THEME_OPTIONS.find((option) => option.value === preference) ?? THEME_OPTIONS[1];
-  const CurrentIcon = current.icon;
-
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label={`主题：${current.label}`}
-          title={`主题：${current.label}`}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <CurrentIcon className="h-4 w-4" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-36">
-        <DropdownMenuRadioGroup value={preference} onValueChange={selectTheme}>
-          {THEME_OPTIONS.map((option) => {
-            const Icon = option.icon;
-            return (
-              <DropdownMenuRadioItem key={option.value} value={option.value}>
-                <Icon className="h-4 w-4" />
-                {option.label}
-              </DropdownMenuRadioItem>
-            );
-          })}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={`${label}，点击切换`}
+      title={label}
+      className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+    >
+      {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+    </button>
   );
 }

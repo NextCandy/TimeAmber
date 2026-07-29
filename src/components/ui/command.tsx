@@ -6,7 +6,7 @@ import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
@@ -24,6 +24,13 @@ const Command = React.forwardRef<
 Command.displayName = CommandPrimitive.displayName;
 
 /**
+ * 命令面板外壳。
+ *
+ * 刻意不用 DialogContent 的默认造型：那套是垂直居中的小对话框
+ * （max-w-lg + 圆角 + 右上角关闭叉），搜索面板照搬就是又窄又挤，
+ * 叉还压在输入框上。这里改成靠上悬停、宽一档、直角（全站 --radius 是 0），
+ * 关闭交给 Esc 和点遮罩。
+ *
  * shouldFilter 透传给 cmdk：结果已经由服务端筛好时必须关掉客户端的模糊匹配，
  * 否则命中正文（关键词不在标题里）的结果会被 cmdk 二次过滤掉。
  * 不传时保持 cmdk 默认的 true，其它调用方行为不变。
@@ -31,14 +38,33 @@ Command.displayName = CommandPrimitive.displayName;
 const CommandDialog = ({
   children,
   shouldFilter,
+  value,
+  onValueChange,
+  title = "命令面板",
+  description = "输入关键词以搜索",
   ...props
-}: DialogProps & { shouldFilter?: boolean }) => {
+}: DialogProps & {
+  shouldFilter?: boolean;
+  /** 关掉 shouldFilter 时 cmdk 不会自己维护高亮项，必须把选中值提上来受控。 */
+  value?: string;
+  onValueChange?: (value: string) => void;
+  /** 屏幕阅读器用，视觉上不出现。Radix 缺了它会在控制台报无障碍告警。 */
+  title?: string;
+  description?: string;
+}) => {
   return (
     <Dialog {...props}>
-      <DialogContent className="overflow-hidden p-0">
+      <DialogContent
+        hideClose
+        className="top-[10vh] max-w-2xl translate-y-0 gap-0 overflow-hidden rounded-none border-border bg-popover p-0 shadow-2xl sm:rounded-none"
+      >
+        <DialogTitle className="sr-only">{title}</DialogTitle>
+        <DialogDescription className="sr-only">{description}</DialogDescription>
         <Command
           shouldFilter={shouldFilter}
-          className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+          value={value}
+          onValueChange={onValueChange}
+          className="bg-transparent"
         >
           {children}
         </Command>
@@ -51,12 +77,12 @@ const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
-  <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
-    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+  <div className="flex items-center gap-3 border-b border-border px-5" cmdk-input-wrapper="">
+    <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
     <CommandPrimitive.Input
       ref={ref}
       className={cn(
-        "flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-14 w-full bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/70 disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}
@@ -72,7 +98,7 @@ const CommandList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.List
     ref={ref}
-    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
+    className={cn("max-h-[min(60vh,28rem)] overflow-y-auto overflow-x-hidden", className)}
     {...props}
   />
 ));
@@ -83,7 +109,11 @@ const CommandEmpty = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Empty>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
 >((props, ref) => (
-  <CommandPrimitive.Empty ref={ref} className="py-6 text-center text-sm" {...props} />
+  <CommandPrimitive.Empty
+    ref={ref}
+    className="px-5 py-12 text-center text-sm text-muted-foreground"
+    {...props}
+  />
 ));
 
 CommandEmpty.displayName = CommandPrimitive.Empty.displayName;
@@ -95,7 +125,7 @@ const CommandGroup = React.forwardRef<
   <CommandPrimitive.Group
     ref={ref}
     className={cn(
-      "overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
+      "overflow-hidden px-2 py-2 text-foreground [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:uppercase",
       className,
     )}
     {...props}
@@ -123,7 +153,8 @@ const CommandItem = React.forwardRef<
   <CommandPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+      // 选中态用左侧强调条 + 淡背景，比整行反色克制，直角也和全站一致
+      "relative flex cursor-pointer select-none items-center gap-3 border-l-2 border-transparent px-3 py-2.5 text-sm outline-none transition-colors data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:border-l-primary data-[selected=true]:bg-accent/60 data-[selected=true]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-[selected=true]:[&_svg]:text-primary",
       className,
     )}
     {...props}
