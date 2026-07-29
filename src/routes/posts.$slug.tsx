@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { ArrowLeft, Clock, ExternalLink, Copy, Share2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -31,10 +31,18 @@ export const Route = createFileRoute("/posts/$slug")({
       loadRelatedPosts({ data: { slug: params.slug } }).catch(() => []),
     ]);
     const post = dbPost ?? POSTS.find((p) => p.slug === params.slug) ?? null;
+
+    // 剪藏类文章（VS.DO / 树洞）的正文是一份离线 HTML，externalUrl 指向站内
+    // /cdn/... 路径，这里直接跳过去。原先是等页面渲染出来再由客户端
+    // window.open(…, "_blank")，那不是用户手势触发的，会被弹窗拦截器挡下，
+    // 页面就永远停在一行「正在跳转…」上 —— 看着就是打开一片空白。
+    // href 是相对路径，不会被自动推断成整页跳转，必须显式 reloadDocument。
+    if (post?.type === "html" && post.externalUrl) {
+      throw redirect({ href: post.externalUrl, reloadDocument: true });
+    }
+
     const contentHtml =
-      post && post.type !== "html" && post.content
-        ? await renderMarkdownFn({ data: { md: post.content } })
-        : "";
+      post && post.content ? await renderMarkdownFn({ data: { md: post.content } }) : "";
     return { post, contentHtml, related };
   },
   head: ({ loaderData, params }) => {
@@ -152,17 +160,15 @@ function SharePost({ url, title }: { url: string; title: string }) {
 // 相关文章：紧凑卡片可以容纳更多内容，优先共同标签，其次同分类，取前 12 篇。
 function RelatedPosts({ items }: { items: RelatedPost[] }) {
   if (!items.length) return null;
+  const rowClass =
+    "group flex items-start justify-between gap-6 border-t border-border px-2 py-4 transition-colors hover:bg-accent/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
   return (
     <section className="mt-12 border-t border-border/60 pt-8">
       <h2 className="mb-4 font-display text-lg font-semibold">相关文章</h2>
       <ul className="grid grid-cols-1 border-b border-border sm:grid-cols-2 sm:gap-x-8">
-        {items.map((p) => (
-          <li key={p.slug}>
-            <Link
-              to="/posts/$slug"
-              params={{ slug: p.slug }}
-              className="group flex items-start justify-between gap-6 border-t border-border px-2 py-4 transition-colors hover:bg-accent/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-            >
+        {items.map((p) => {
+          const inner = (
+            <>
               <span className="line-clamp-2 min-w-0 leading-[1.45] font-medium tracking-[-0.01em] transition-colors [overflow-wrap:anywhere] group-hover:text-primary">
                 {p.title}
               </span>
@@ -172,9 +178,28 @@ function RelatedPosts({ items }: { items: RelatedPost[] }) {
               >
                 {formatDateKey(p.publishAt)}
               </time>
-            </Link>
-          </li>
-        ))}
+            </>
+          );
+          // 剪藏类文章直接指向离线页，省掉 /posts/ 那一跳重定向。
+          return (
+            <li key={p.slug}>
+              {p.type === "html" && p.externalUrl ? (
+                <a
+                  href={p.externalUrl}
+                  target={p.openIn ?? "_blank"}
+                  rel={(p.openIn ?? "_blank") === "_blank" ? "noopener noreferrer" : undefined}
+                  className={rowClass}
+                >
+                  {inner}
+                </a>
+              ) : (
+                <Link to="/posts/$slug" params={{ slug: p.slug }} className={rowClass}>
+                  {inner}
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
@@ -247,18 +272,15 @@ function PostPage() {
     );
   }
 
+  // 正常情况下 loader 已经 302 走了，走到这里说明重定向没生效。
+  // 给一个真链接让读者自己点 —— 用户手势触发的导航不会被拦截。
   if (post.type === "html" && post.externalUrl) {
-    if (typeof window !== "undefined") {
-      const target = post.openIn ?? "_blank";
-      if (target === "_blank") {
-        window.open(post.externalUrl, "_blank", "noopener,noreferrer");
-      } else {
-        window.location.replace(post.externalUrl);
-      }
-    }
     return (
-      <div className="mx-auto max-w-2xl px-6 pt-24 text-center text-sm text-muted-foreground">
-        正在跳转到 <span className="text-foreground">{post.externalUrl}</span>…
+      <div className="mx-auto max-w-2xl px-6 pt-24 text-center">
+        <p className="text-sm text-muted-foreground">这篇是剪藏存档，正文是一份离线页面。</p>
+        <a href={post.externalUrl} className="mt-4 inline-block text-primary hover:underline">
+          打开《{post.title}》
+        </a>
       </div>
     );
   }

@@ -23,8 +23,10 @@ export type HomeData = {
   totalPosts: number;
 };
 
-// 桌面三列 × 四行，连同顶栏与页脚正好一屏。
-const LATEST_LIMIT = 12;
+// 桌面两列，最多九行。实际显示几篇由 styles.css 里 .home-list 的视口高度断点决定
+// （矮屏隐藏尾部），这里固定下发上限那一档 —— 多出来的几篇只占几百字节，
+// 换来的是任何屏幕都既填满一屏又不出滚动条。改之前先看 ArticleSection 上的说明。
+const LATEST_LIMIT = 18;
 
 type PostRow = {
   slug: unknown;

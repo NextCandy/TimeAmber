@@ -489,3 +489,52 @@
     color-mix(in oklch, var(--brand-3) 85%, var(--background))
   );
 }
+
+/*
+ * 首页文章列表：条数随视口高度收放。
+ *
+ * 列表用 auto-rows-fr 等分剩余高度来填满一屏，但固定条数时高屏会把每行拉到
+ * 130px 以上、空得发散，矮屏又会顶出滚动条。所以服务端固定下发 18 篇
+ * （见 home.functions.ts 的 LATEST_LIMIT），这里按视口高度隐藏尾部。
+ *
+ * 每档的算法：列表可用高度 ≈ 视口 - 313（顶栏 73 + 页脚 116 + 区块留白与
+ * 标题 124），除以目标行高 ~90px 得行数，两列所以条数 = 行数 × 2。
+ * 实测行高落在 77–100px 之间。
+ *
+ * 只在 sm 以上生效：移动端是单列长滚动，本来就该全部显示。
+ */
+@media (min-width: 640px) and (max-height: 1080px) {
+  .home-list > :nth-child(n + 17) {
+    display: none;
+  }
+}
+@media (min-width: 640px) and (max-height: 980px) {
+  .home-list > :nth-child(n + 15) {
+    display: none;
+  }
+}
+@media (min-width: 640px) and (max-height: 900px) {
+  .home-list > :nth-child(n + 13) {
+    display: none;
+  }
+}
+@media (min-width: 640px) and (max-height: 780px) {
+  .home-list > :nth-child(n + 11) {
+    display: none;
+  }
+}
+@media (min-width: 640px) and (max-height: 660px) {
+  .home-list > :nth-child(n + 9) {
+    display: none;
+  }
+}
+@media (min-width: 640px) and (max-height: 580px) {
+  .home-list > :nth-child(n + 7) {
+    display: none;
+  }
+}
+@media (min-width: 640px) and (max-height: 500px) {
+  .home-list > :nth-child(n + 5) {
+    display: none;
+  }
+}

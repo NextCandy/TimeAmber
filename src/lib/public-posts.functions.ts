@@ -96,11 +96,18 @@ export const loadPostIndex = createServerFn({ method: "GET" }).handler(
   },
 );
 
-/** 文章页的相关推荐：标题与日期就够渲染一行。 */
+/**
+ * 文章页的相关推荐：标题与日期就够渲染一行。
+ * 外链字段不能省 —— 剪藏类文章的正文是站内 /cdn/… 的离线 HTML，
+ * 少了它就会渲染成内部 Link，白白多绕一次重定向。
+ */
 export type RelatedPost = {
   slug: string;
   title: string;
   publishAt: string;
+  type: "markdown" | "html";
+  externalUrl?: string;
+  openIn?: "_blank" | "_self";
 };
 
 const relatedInput = z.object({
@@ -118,7 +125,15 @@ export const loadRelatedPosts = createServerFn({ method: "GET" })
     const sql = db();
     const limit = data.limit ?? 12;
     const rows = await sql<
-      { slug: unknown; title: unknown; publish_at: unknown; created_at: unknown }[]
+      {
+        slug: unknown;
+        title: unknown;
+        publish_at: unknown;
+        created_at: unknown;
+        post_type: unknown;
+        external_url: unknown;
+        open_in: unknown;
+      }[]
     >`
       with target as (
         select id, category from public.posts where slug = ${data.slug} limit 1
@@ -129,6 +144,7 @@ export const loadRelatedPosts = createServerFn({ method: "GET" })
       scored as (
         select
           p.id, p.slug, p.title, p.publish_at, p.created_at,
+          p.post_type, p.external_url, p.open_in,
           (
             select count(*) from public.post_tags pt
             where pt.post_id = p.id and pt.tag_id in (select tag_id from target_tags)
@@ -139,22 +155,40 @@ export const loadRelatedPosts = createServerFn({ method: "GET" })
           and (p.publish_at is null or p.publish_at <= now())
           and p.id <> (select id from target)
       )
-      select slug, title, publish_at, created_at
+      select slug, title, publish_at, created_at, post_type, external_url, open_in
       from scored
       where score > 0
       order by score desc, coalesce(publish_at, created_at) desc
       limit ${limit}
     `;
-    return rows.map((row) => ({
-      slug: String(row.slug),
-      title: String(row.title ?? ""),
-      publishAt: asIso(row.publish_at, row.created_at),
-    }));
+    return rows.map((row) => {
+      const isHtml = row.post_type === "html" && !!row.external_url;
+      const item: RelatedPost = {
+        slug: String(row.slug),
+        title: String(row.title ?? ""),
+        publishAt: asIso(row.publish_at, row.created_at),
+        type: isHtml ? "html" : "markdown",
+      };
+      if (isHtml) {
+        item.externalUrl = String(row.external_url);
+        item.openIn = row.open_in === "_self" ? "_self" : "_blank";
+      }
+      return item;
+    });
   });
 
 /** ⌘K 面板一次要的三组结果。 */
+export type SearchHit = {
+  slug: string;
+  title: string;
+  category: string;
+  /** 剪藏类文章直接给离线页地址，选中后不必绕一次 /posts/ 重定向。 */
+  externalUrl?: string;
+  openIn?: "_blank" | "_self";
+};
+
 export type SearchResults = {
-  posts: Array<{ slug: string; title: string; category: string }>;
+  posts: SearchHit[];
   categories: string[];
   tags: string[];
 };
@@ -169,6 +203,29 @@ const SEARCH_FACETS = 6;
  * 这是 root loader 必须下发 excerpt 的唯一理由 —— 挪到服务端后既省掉那份
  * payload，匹配范围也从「摘要」扩到了正文。
  */
+type SearchRow = {
+  slug: unknown;
+  title: unknown;
+  category: unknown;
+  post_type: unknown;
+  external_url: unknown;
+  open_in: unknown;
+};
+
+function toSearchHit(row: SearchRow): SearchHit {
+  const isHtml = row.post_type === "html" && !!row.external_url;
+  const hit: SearchHit = {
+    slug: String(row.slug),
+    title: String(row.title ?? ""),
+    category: String(row.category ?? ""),
+  };
+  if (isHtml) {
+    hit.externalUrl = String(row.external_url);
+    hit.openIn = row.open_in === "_self" ? "_self" : "_blank";
+  }
+  return hit;
+}
+
 export const searchPosts = createServerFn({ method: "GET" })
   .inputValidator((value: z.infer<typeof searchInput>) => searchInput.parse(value))
   .handler(async ({ data }): Promise<SearchResults> => {
@@ -176,30 +233,22 @@ export const searchPosts = createServerFn({ method: "GET" })
     const q = data.q.trim();
 
     if (!q) {
-      const rows = await sql<{ slug: unknown; title: unknown; category: unknown }[]>`
-        select slug, title, category
+      const rows = await sql<SearchRow[]>`
+        select slug, title, category, post_type, external_url, open_in
         from public.posts
         where published = true and (publish_at is null or publish_at <= now())
         order by pinned desc, created_at desc
         limit ${SEARCH_POSTS}
       `;
-      return {
-        posts: rows.map((row) => ({
-          slug: String(row.slug),
-          title: String(row.title ?? ""),
-          category: String(row.category ?? ""),
-        })),
-        categories: [],
-        tags: [],
-      };
+      return { posts: rows.map(toSearchHit), categories: [], tags: [] };
     }
 
     // ILIKE 的通配符要转义，否则用户输入的 % 会把整库都匹配上。
     const pattern = `%${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
 
     const [postRows, categoryRows, tagRows] = await Promise.all([
-      sql<{ slug: unknown; title: unknown; category: unknown }[]>`
-        select slug, title, category
+      sql<SearchRow[]>`
+        select slug, title, category, post_type, external_url, open_in
         from public.posts p
         where p.published = true
           and (p.publish_at is null or p.publish_at <= now())
@@ -233,11 +282,7 @@ export const searchPosts = createServerFn({ method: "GET" })
     ]);
 
     return {
-      posts: postRows.map((row) => ({
-        slug: String(row.slug),
-        title: String(row.title ?? ""),
-        category: String(row.category ?? ""),
-      })),
+      posts: postRows.map(toSearchHit),
       categories: categoryRows.map((row) => String(row.category)),
       tags: tagRows.map((row) => String(row.name)),
     };

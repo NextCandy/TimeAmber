@@ -7,13 +7,14 @@ import type { HomePost } from "@/lib/home.functions";
 export function ArticleCard({ post, className = "" }: { post: HomePost; className?: string }) {
   const isExternal = !!post.externalUrl;
   const inner = (
-    <div className="flex min-w-0 flex-1 items-start justify-between gap-6 py-3.5">
+    // 行会被 auto-rows-fr 拉高到等分高度，内容垂直居中才不会全挤在上沿。
+    <div className="flex min-w-0 flex-1 items-center justify-between gap-6 py-3.5">
       <h3 className="line-clamp-2 min-w-0 text-[17px] leading-[1.45] font-medium tracking-[-0.012em] text-foreground transition-colors [overflow-wrap:anywhere] group-hover:text-primary">
         {post.title}
       </h3>
       <time
         dateTime={post.publishAt}
-        className="font-latin mt-0.5 shrink-0 text-[11px] leading-5 tracking-[0.06em] text-[var(--text-faint)]"
+        className="font-latin shrink-0 text-[11px] leading-5 tracking-[0.06em] text-[var(--text-faint)]"
       >
         {formatDateKey(post.publishAt)}
       </time>

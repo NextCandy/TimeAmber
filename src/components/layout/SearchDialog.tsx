@@ -63,6 +63,21 @@ export function SearchDialog({
     void navigate({ to, search });
   };
 
+  // 剪藏类文章的正文是站内 /cdn/… 的离线页，不是 router 管得到的路由，
+  // 直接整页打开；走 navigate 会当成前端路由匹配不到而 404。
+  const openHit = (hit: SearchResults["posts"][number]) => {
+    onOpenChange(false);
+    if (hit.externalUrl) {
+      if ((hit.openIn ?? "_blank") === "_blank") {
+        window.open(hit.externalUrl, "_blank", "noopener,noreferrer");
+      } else {
+        window.location.assign(hit.externalUrl);
+      }
+      return;
+    }
+    void navigate({ to: `/posts/${hit.slug}` });
+  };
+
   const hasAny =
     results.posts.length > 0 || results.categories.length > 0 || results.tags.length > 0;
 
@@ -119,7 +134,7 @@ export function SearchDialog({
               <CommandItem
                 key={post.slug}
                 value={`文章 ${post.slug} ${post.title}`}
-                onSelect={() => go(`/posts/${post.slug}`)}
+                onSelect={() => openHit(post)}
               >
                 <FileText className="text-muted-foreground" />
                 <span className="min-w-0 flex-1 truncate">{post.title}</span>

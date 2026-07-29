@@ -184,7 +184,8 @@ function RootComponent() {
         <AnalyticsRecorder />
         <div className="flex min-h-screen flex-col">
           {isChrome && <Navbar initialThemePreference={themePreference} />}
-          <main className="flex-1">
+          {/* flex 列：让首页的文章区能用 flex-1 撑满视口剩余高度（见 ArticleSection） */}
+          <main className="flex flex-1 flex-col">
             <Outlet />
           </main>
           {isChrome && <Footer />}
