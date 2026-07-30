@@ -17,6 +17,13 @@ const PAGE_SIZE = 60;
 
 const EMPTY_COUNTS: TaxonomyCounts = { categories: [], tags: [], total: 0 };
 const EMPTY_POSTS: TaxonomyPosts = { posts: [], total: 0 };
+const CATEGORY_BORDERS = [
+  "border-l-accent-amber",
+  "border-l-primary",
+  "border-l-success",
+  "border-l-warning",
+  "border-l-category-purple",
+] as const;
 
 export const Route = createFileRoute("/categories")({
   validateSearch: (search: Record<string, unknown>): CategorySearch => ({
@@ -166,12 +173,12 @@ function CategoriesPage() {
               <FolderTree className="h-4 w-4 text-primary" /> 按分类
             </h2>
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {categoryCounts.map(({ name, count }) => (
+              {categoryCounts.map(({ name, count }, index) => (
                 <li key={name}>
                   <Link
                     to="/categories"
                     search={{ c: name }}
-                    className="group flex items-center justify-between rounded-xl border border-border bg-card px-5 py-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow"
+                    className={`group flex items-center justify-between rounded-xl border border-l-4 border-border bg-card px-5 py-4 transition-all hover:-translate-y-0.5 hover:bg-accent/30 hover:shadow-glow ${CATEGORY_BORDERS[index % CATEGORY_BORDERS.length]}`}
                   >
                     <span className="min-w-0 truncate font-medium transition-colors group-hover:text-primary">
                       {name}

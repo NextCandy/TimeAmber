@@ -75,6 +75,7 @@
   --color-accent-amber-strong: var(--accent-amber-strong);
   --color-accent-amber-soft: var(--accent-amber-soft);
   --color-accent-amber-foreground: var(--accent-amber-foreground);
+  --color-category-purple: var(--category-purple);
   --font-display:
     "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC",
     system-ui, sans-serif;
@@ -131,6 +132,7 @@
   --accent-amber-strong: oklch(0.45 0.14 62);
   --accent-amber-soft: oklch(0.52 0.13 68 / 12%);
   --accent-amber-foreground: oklch(0.99 0.005 95);
+  --category-purple: oklch(0.48 0.17 310);
 }
 
 .dark {
@@ -169,6 +171,7 @@
   --accent-amber-strong: oklch(0.86 0.15 75);
   --accent-amber-soft: oklch(0.8 0.14 72 / 16%);
   --accent-amber-foreground: oklch(0.16 0.01 95);
+  --category-purple: oklch(0.74 0.13 310);
 }
 
 @layer base {
