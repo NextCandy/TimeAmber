@@ -71,6 +71,10 @@
   --color-brand-1: var(--brand-1);
   --color-brand-2: var(--brand-2);
   --color-brand-3: var(--brand-3);
+  --color-accent-amber: var(--accent-amber);
+  --color-accent-amber-strong: var(--accent-amber-strong);
+  --color-accent-amber-soft: var(--accent-amber-soft);
+  --color-accent-amber-foreground: var(--accent-amber-foreground);
   --font-display:
     "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC",
     system-ui, sans-serif;
@@ -118,6 +122,15 @@
   --brand-1: oklch(0.6 0.2 266);
   --brand-2: oklch(0.52 0.18 268);
   --brand-3: oklch(0.44 0.16 270);
+
+  /* 琥珀点缀。蓝色仍是唯一主色，琥珀只出现在阅读进度、TOC 当前项、
+     归档热力条、引用块与行内代码上 —— 呼应「时光琥珀」的名字而不夺主色。
+     叫 accent-amber 是为了跟既有的 --accent（蓝色系强调背景）区分开。
+     亮色模式压到 L=0.52 才够 4.5:1，别照搬深色那档的亮琥珀。 */
+  --accent-amber: oklch(0.52 0.13 68);
+  --accent-amber-strong: oklch(0.45 0.14 62);
+  --accent-amber-soft: oklch(0.52 0.13 68 / 12%);
+  --accent-amber-foreground: oklch(0.99 0.005 95);
 }
 
 .dark {
@@ -150,6 +163,12 @@
   --brand-1: oklch(0.68 0.18 266);
   --brand-2: oklch(0.58 0.16 270);
   --brand-3: oklch(0.48 0.14 272);
+
+  /* 深底上的琥珀要提亮到 L=0.80 才够对比，见 :root 那组的说明。 */
+  --accent-amber: oklch(0.8 0.14 72);
+  --accent-amber-strong: oklch(0.86 0.15 75);
+  --accent-amber-soft: oklch(0.8 0.14 72 / 16%);
+  --accent-amber-foreground: oklch(0.16 0.01 95);
 }
 
 @layer base {
@@ -303,7 +322,7 @@
 
 .article-prose blockquote {
   margin: 1.2em 0;
-  border-left: 3px solid var(--color-primary);
+  border-left: 3px solid var(--color-accent-amber);
   padding: 0.2em 0 0.2em 1em;
   color: var(--color-muted-foreground);
   font-style: italic;
@@ -319,8 +338,8 @@
 .article-prose :not(pre) > code {
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.88em;
-  background: var(--color-muted);
-  color: var(--color-primary);
+  background: var(--color-accent-amber-soft);
+  color: var(--color-accent-amber-strong);
   padding: 0.15em 0.4em;
   border-radius: 0;
   word-break: break-word;

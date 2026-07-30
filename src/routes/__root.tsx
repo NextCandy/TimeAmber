@@ -15,6 +15,7 @@ import { SITE_URL } from "../lib/brand";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
+import { BackToTop } from "../components/layout/BackToTop";
 import { AdminStoreProvider, useAdminStore } from "../lib/admin-store";
 import { loadPublicChrome } from "../lib/state.functions";
 import { Toaster } from "../components/ui/sonner";
@@ -191,6 +192,8 @@ function RootComponent() {
           </main>
           {isChrome && <Footer />}
         </div>
+        {/* 后台自带侧栏与工具条，右下角留给它自己用 */}
+        {isChrome && <BackToTop />}
         <Toaster position="top-center" richColors />
       </AdminStoreProvider>
     </QueryClientProvider>

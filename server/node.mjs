@@ -6,6 +6,8 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { createGzip } from "node:zlib";
 
+import { clipShellResponse, isClipHtml } from "./clip-shell.mjs";
+
 const port = Number(process.env.PORT || 3000);
 const clientRoot = resolve(process.cwd(), "dist/client");
 const mediaRoot = resolve(process.env.MEDIA_ROOT || "/data/media");
@@ -27,15 +29,24 @@ const contentTypes = {
   ".woff2": "font/woff2",
 };
 
-async function fileResponse(root, pathname, immutable = false) {
+async function fileResponse(root, pathname, immutable = false, clip = false) {
   const clean = normalize(decodeURIComponent(pathname)).replace(/^([/\\]*\.\.[/\\])+/, "");
   const target = resolve(root, clean.replace(/^[/\\]+/, ""));
   if (!target.startsWith(root) || target === root) return null;
   try {
     const info = await stat(target);
     if (!info.isFile()) return null;
+    const contentType = contentTypes[extname(target).toLowerCase()] || "application/octet-stream";
+
+    // 剪藏快照在正文前插一条本站标注条（来源、剪藏时间、返回入口），见 clip-shell.mjs。
+    // 套壳失败一律回退成原样的静态响应，不让读者吃到 500。
+    if (clip && isClipHtml(target)) {
+      const shelled = await clipShellResponse(target, info, contentType);
+      if (shelled) return shelled;
+    }
+
     const headers = new Headers({
-      "content-type": contentTypes[extname(target).toLowerCase()] || "application/octet-stream",
+      "content-type": contentType,
       "content-length": String(info.size),
       "cache-control": immutable || target.includes(`${join("assets", "")}`)
         ? "public, max-age=31536000, immutable"
@@ -126,7 +137,7 @@ createServer(async (req, res) => {
     }
     const mediaPath = url.pathname.startsWith("/cdn/") ? url.pathname.slice(5) : "";
     const staticResult = mediaPath
-      ? await fileResponse(mediaRoot, mediaPath, true)
+      ? await fileResponse(mediaRoot, mediaPath, true, true)
       : await fileResponse(clientRoot, url.pathname);
     const request = new Request(url, {
       method: req.method,

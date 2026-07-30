@@ -76,7 +76,7 @@ export function TableOfContents({ items }: { items: TocItem[] }) {
                   it.level === 2 ? "pl-5" : "pl-3"
                 } ${
                   isActive
-                    ? "border-primary text-foreground"
+                    ? "border-accent-amber text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >

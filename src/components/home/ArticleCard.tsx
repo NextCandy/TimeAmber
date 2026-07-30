@@ -13,12 +13,21 @@ export function ArticleCard({ post, className = "" }: { post: HomePost; classNam
       <h3 className="line-clamp-2 min-w-0 text-[17px] leading-[1.45] font-medium tracking-[-0.012em] text-foreground transition-colors [overflow-wrap:anywhere] group-hover:text-primary">
         {post.title}
       </h3>
-      <time
-        dateTime={post.publishAt}
-        className="font-latin shrink-0 text-[11px] leading-5 tracking-[0.06em] text-[var(--text-faint)]"
-      >
-        {formatDateKey(post.publishAt)}
-      </time>
+      {/* 分类与日期竖排收在右侧：行高由 auto-rows-fr 等分（约 90px），
+          两行小字塞得下，而在标题下方另起一行会顶破「首页刚好一屏」的前提。 */}
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        {post.category && (
+          <span className="text-[10px] leading-4 tracking-[0.04em] text-[var(--text-faint)] transition-colors group-hover:text-accent-amber">
+            {post.category}
+          </span>
+        )}
+        <time
+          dateTime={post.publishAt}
+          className="font-latin text-[11px] leading-5 tracking-[0.06em] text-[var(--text-faint)]"
+        >
+          {formatDateKey(post.publishAt)}
+        </time>
+      </div>
     </div>
   );
 

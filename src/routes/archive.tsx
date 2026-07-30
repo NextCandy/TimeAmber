@@ -56,10 +56,10 @@ function ContributionCalendar({ counts }: { counts: number[] }) {
   const level = (n: number) => {
     if (n === 0) return "bg-muted/30";
     const r = n / max;
-    if (r > 0.75) return "bg-primary";
-    if (r > 0.5) return "bg-primary/70";
-    if (r > 0.25) return "bg-primary/45";
-    return "bg-primary/25";
+    if (r > 0.75) return "bg-accent-amber";
+    if (r > 0.5) return "bg-accent-amber/70";
+    if (r > 0.25) return "bg-accent-amber/45";
+    return "bg-accent-amber/25";
   };
   return (
     <div className="mt-3 flex flex-wrap gap-1.5">

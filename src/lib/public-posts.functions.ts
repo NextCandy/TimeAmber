@@ -305,6 +305,31 @@ export type RelatedPost = {
   openIn?: "_blank" | "_self";
 };
 
+type RelatedRow = {
+  slug: unknown;
+  title: unknown;
+  publish_at: unknown;
+  created_at: unknown;
+  post_type: unknown;
+  external_url: unknown;
+  open_in: unknown;
+};
+
+function toRelatedPost(row: RelatedRow): RelatedPost {
+  const isHtml = row.post_type === "html" && !!row.external_url;
+  const item: RelatedPost = {
+    slug: String(row.slug),
+    title: String(row.title ?? ""),
+    publishAt: asIso(row.publish_at, row.created_at),
+    type: isHtml ? "html" : "markdown",
+  };
+  if (isHtml) {
+    item.externalUrl = String(row.external_url);
+    item.openIn = row.open_in === "_self" ? "_self" : "_blank";
+  }
+  return item;
+}
+
 const relatedInput = z.object({
   slug: z.string().trim().min(1).max(300),
   limit: z.number().int().min(1).max(24).optional(),
@@ -319,17 +344,7 @@ export const loadRelatedPosts = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<RelatedPost[]> => {
     const sql = db();
     const limit = data.limit ?? 12;
-    const rows = await sql<
-      {
-        slug: unknown;
-        title: unknown;
-        publish_at: unknown;
-        created_at: unknown;
-        post_type: unknown;
-        external_url: unknown;
-        open_in: unknown;
-      }[]
-    >`
+    const rows = await sql<RelatedRow[]>`
       with target as (
         select id, category from public.posts where slug = ${data.slug} limit 1
       ),
@@ -356,20 +371,54 @@ export const loadRelatedPosts = createServerFn({ method: "GET" })
       order by score desc, coalesce(publish_at, created_at) desc
       limit ${limit}
     `;
-    return rows.map((row) => {
-      const isHtml = row.post_type === "html" && !!row.external_url;
-      const item: RelatedPost = {
-        slug: String(row.slug),
-        title: String(row.title ?? ""),
-        publishAt: asIso(row.publish_at, row.created_at),
-        type: isHtml ? "html" : "markdown",
-      };
-      if (isHtml) {
-        item.externalUrl = String(row.external_url);
-        item.openIn = row.open_in === "_self" ? "_self" : "_blank";
-      }
-      return item;
-    });
+    return rows.map(toRelatedPost);
+  });
+
+const adjacentInput = z.object({ slug: z.string().trim().min(1).max(300) });
+
+/** prev 是时间线上更早的一篇，next 是更新的一篇；到头了就是 null。 */
+export type AdjacentPosts = { prev: RelatedPost | null; next: RelatedPost | null };
+
+/**
+ * 上一篇 / 下一篇。
+ * 比较的是 (发布时间, id) 元组而不是单看时间 —— 剪藏是整批同步进来的，
+ * 同一秒里躺着几十篇 publish_at 完全相同的文章，只比时间会一次跳过一大片，
+ * 或者两篇互相指向对方原地打转。
+ */
+export const loadAdjacentPosts = createServerFn({ method: "GET" })
+  .inputValidator((value: z.infer<typeof adjacentInput>) => adjacentInput.parse(value))
+  .handler(async ({ data }): Promise<AdjacentPosts> => {
+    const sql = db();
+    const rows = await sql<(RelatedRow & { dir: unknown })[]>`
+      with target as (
+        select id, coalesce(publish_at, created_at) as ts
+        from public.posts where slug = ${data.slug} limit 1
+      )
+      (
+        select 'prev' as dir, p.slug, p.title, p.publish_at, p.created_at,
+               p.post_type, p.external_url, p.open_in
+        from public.posts p, target
+        where p.published = true and (p.publish_at is null or p.publish_at <= now())
+          and (coalesce(p.publish_at, p.created_at), p.id) < (target.ts, target.id)
+        order by coalesce(p.publish_at, p.created_at) desc, p.id desc
+        limit 1
+      )
+      union all
+      (
+        select 'next' as dir, p.slug, p.title, p.publish_at, p.created_at,
+               p.post_type, p.external_url, p.open_in
+        from public.posts p, target
+        where p.published = true and (p.publish_at is null or p.publish_at <= now())
+          and (coalesce(p.publish_at, p.created_at), p.id) > (target.ts, target.id)
+        order by coalesce(p.publish_at, p.created_at) asc, p.id asc
+        limit 1
+      )
+    `;
+    const pick = (dir: string) => {
+      const row = rows.find((r) => String(r.dir) === dir);
+      return row ? toRelatedPost(row) : null;
+    };
+    return { prev: pick("prev"), next: pick("next") };
   });
 
 /** ⌘K 面板一次要的三组结果。 */

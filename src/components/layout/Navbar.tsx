@@ -10,6 +10,7 @@ import type { ThemePreference } from "@/lib/theme";
 const NAV = [
   { to: "/", label: "首页" },
   { to: "/archive", label: "归档" },
+  { to: "/categories", label: "分类" },
   { to: "/about", label: "关于" },
   { to: "/friends", label: "友链" },
 ] as const;

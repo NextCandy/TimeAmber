@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Clock, ExternalLink, Copy, Share2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, ExternalLink, Copy, Share2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import mediumZoom from "medium-zoom";
@@ -9,10 +9,16 @@ import { DEFAULT_POST_COVER, SITE_URL } from "@/lib/brand";
 import { toMetaDescription } from "@/lib/strip-markdown";
 import { linkRel, linkTarget } from "@/lib/post-link";
 import { loadPublicPost } from "@/lib/state.functions";
-import { loadRelatedPosts, type RelatedPost } from "@/lib/public-posts.functions";
+import {
+  loadAdjacentPosts,
+  loadRelatedPosts,
+  type AdjacentPosts,
+  type RelatedPost,
+} from "@/lib/public-posts.functions";
 import { renderMarkdownFn } from "@/lib/markdown.functions";
 import { TableOfContents, extractToc } from "@/components/post/TableOfContents";
 import { ReadingControls, useReadingPrefs } from "@/components/post/ReadingControls";
+import { Breadcrumb } from "@/components/layout/Breadcrumb";
 
 // og:image / JSON-LD 里的图必须是绝对地址：社交平台与搜索引擎不解析相对路径，
 // 而封面可能是站内相对路径（/supabase/...）、绝对 URL 或 data: URL（后者无法被抓取，回退默认封面）。
@@ -27,9 +33,13 @@ export const Route = createFileRoute("/posts/$slug")({
   loader: async ({ params }) => {
     // 相关推荐同一套权重挪到了 SQL 里，只回 12 条 —— 原来是靠 root loader
     // 下发的全部文章在浏览器里算分，那份数据现在不再进 payload。
-    const [dbPost, related] = await Promise.all([
+    const [dbPost, related, adjacent] = await Promise.all([
       loadPublicPost({ data: { slug: params.slug } }).catch(() => null),
       loadRelatedPosts({ data: { slug: params.slug } }).catch(() => []),
+      loadAdjacentPosts({ data: { slug: params.slug } }).catch((): AdjacentPosts => ({
+        prev: null,
+        next: null,
+      })),
     ]);
     const post = dbPost ?? POSTS.find((p) => p.slug === params.slug) ?? null;
 
@@ -44,7 +54,7 @@ export const Route = createFileRoute("/posts/$slug")({
 
     const contentHtml =
       post && post.content ? await renderMarkdownFn({ data: { md: post.content } }) : "";
-    return { post, contentHtml, related };
+    return { post, contentHtml, related, adjacent };
   },
   head: ({ loaderData, params }) => {
     const post = loaderData?.post;
@@ -104,7 +114,7 @@ function ReadingProgress() {
   return (
     <div className="fixed inset-x-0 top-0 z-50 h-0.5">
       <div
-        className="h-full bg-primary transition-[width] duration-150 ease-out"
+        className="h-full bg-accent-amber transition-[width] duration-150 ease-out"
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -158,6 +168,61 @@ function SharePost({ url, title }: { url: string; title: string }) {
   );
 }
 
+/**
+ * 上一篇 / 下一篇。两侧各占一半，缺一边时另一边不撑满 —— 半张卡片配一片
+ * 空白比强行拉伸更容易看出「到头了」。剪藏类文章同样直连离线页，
+ * 免得白绕一次 /posts/ 重定向。
+ */
+function AdjacentNav({ items }: { items: AdjacentPosts }) {
+  if (!items.prev && !items.next) return null;
+
+  const cell =
+    "group flex min-w-0 flex-1 flex-col gap-1.5 border border-border px-4 py-3.5 transition-colors hover:border-accent-amber/50 hover:bg-accent/25 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+  const label = "inline-flex items-center gap-1 text-[11px] text-muted-foreground";
+  const title =
+    "line-clamp-2 text-sm leading-snug font-medium transition-colors [overflow-wrap:anywhere] group-hover:text-primary";
+
+  const body = (post: RelatedPost, dir: "prev" | "next") => (
+    <>
+      <span className={`${label} ${dir === "next" ? "justify-end" : ""}`}>
+        {dir === "prev" ? (
+          <>
+            <ArrowLeft className="h-3 w-3" /> 上一篇
+          </>
+        ) : (
+          <>
+            下一篇 <ArrowRight className="h-3 w-3" />
+          </>
+        )}
+      </span>
+      <span className={`${title} ${dir === "next" ? "text-right" : ""}`}>{post.title}</span>
+    </>
+  );
+
+  const link = (post: RelatedPost, dir: "prev" | "next") =>
+    post.type === "html" && post.externalUrl ? (
+      <a
+        href={post.externalUrl}
+        target={linkTarget(post.externalUrl)}
+        rel={linkRel(post.externalUrl)}
+        className={cell}
+      >
+        {body(post, dir)}
+      </a>
+    ) : (
+      <Link to="/posts/$slug" params={{ slug: post.slug }} className={cell}>
+        {body(post, dir)}
+      </Link>
+    );
+
+  return (
+    <nav aria-label="上一篇下一篇" className="mt-10 flex flex-col gap-3 sm:flex-row">
+      {items.prev ? link(items.prev, "prev") : <span className="hidden flex-1 sm:block" />}
+      {items.next ? link(items.next, "next") : <span className="hidden flex-1 sm:block" />}
+    </nav>
+  );
+}
+
 // 相关文章：紧凑卡片可以容纳更多内容，优先共同标签，其次同分类，取前 12 篇。
 function RelatedPosts({ items }: { items: RelatedPost[] }) {
   if (!items.length) return null;
@@ -208,7 +273,7 @@ function RelatedPosts({ items }: { items: RelatedPost[] }) {
 
 function PostPage() {
   const { slug } = Route.useParams();
-  const { post, contentHtml, related } = Route.useLoaderData();
+  const { post, contentHtml, related, adjacent } = Route.useLoaderData();
   const [prefs, setPrefs] = useReadingPrefs();
 
   // 正文增强（仅客户端）：图片点击放大 + 代码块复制。
@@ -308,6 +373,32 @@ function PostPage() {
     keywords: post.tags.join(", "),
   };
 
+  // 面包屑的结构化版本，让搜索结果里显示「首页 › 分类 › 标题」而不是裸 URL。
+  // 与上面可见的 <Breadcrumb> 保持同样的层级，两边对不上会被判定成误导性标记。
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "首页", item: SITE_URL },
+      ...(post.category
+        ? [
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: post.category,
+              item: `${SITE_URL}/categories?c=${encodeURIComponent(post.category)}`,
+            },
+          ]
+        : []),
+      {
+        "@type": "ListItem",
+        position: post.category ? 3 : 2,
+        name: post.title,
+        item: `${SITE_URL}/posts/${slug}`,
+      },
+    ],
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-6 pt-10 pb-16">
       <ReadingProgress />
@@ -316,12 +407,19 @@ function PostPage() {
         // 转义 < 防止标题里出现 </script> 提前断出脚本。
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
-      <Link
-        to="/"
-        className="mb-6 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="h-3 w-3" /> 返回首页
-      </Link>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd).replace(/</g, "\\u003c") }}
+      />
+      <Breadcrumb
+        items={[
+          { label: "首页", to: "/" },
+          ...(post.category
+            ? [{ label: post.category, to: "/categories", search: { c: post.category } }]
+            : []),
+          { label: post.title },
+        ]}
+      />
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_220px]">
         <article className="min-w-0">
@@ -403,6 +501,7 @@ function PostPage() {
           </div>
 
           <SharePost url={`${SITE_URL}/posts/${slug}`} title={post.title} />
+          <AdjacentNav items={adjacent} />
           <RelatedPosts items={related} />
         </article>
 
