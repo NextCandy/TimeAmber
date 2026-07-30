@@ -17,7 +17,7 @@ export function ArticleCard({ post, className = "" }: { post: HomePost; classNam
           两行小字塞得下，而在标题下方另起一行会顶破「首页刚好一屏」的前提。 */}
       <div className="flex shrink-0 flex-col items-end gap-1">
         {post.category && (
-          <span className="text-[10px] leading-4 tracking-[0.04em] text-[var(--text-faint)] transition-colors group-hover:text-accent-amber">
+          <span className="rounded-full bg-accent-amber-soft px-2 py-0.5 text-[11px] leading-4 font-medium tracking-wide text-accent-amber transition-colors group-hover:bg-accent-amber group-hover:text-accent-amber-foreground">
             {post.category}
           </span>
         )}
