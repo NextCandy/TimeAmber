@@ -125,7 +125,18 @@ function Dashboard() {
         </div>
         <div className="overflow-hidden rounded-xl border border-border/70 bg-card/40">
           {recent.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">还没有文章。</p>
+            <div className="flex flex-col items-center px-6 py-10 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-amber-soft text-accent-amber">
+                <FileText className="h-5 w-5" />
+              </span>
+              <p className="mt-4 text-sm font-medium">还没有发布文章</p>
+              <Link
+                to="/admin/posts/new"
+                className="mt-2 text-sm text-accent-amber transition-colors hover:text-accent-amber-strong hover:underline"
+              >
+                去写第一篇吧 →
+              </Link>
+            </div>
           ) : (
             <ul className="divide-y divide-border/60">
               {recent.map((p) => (
