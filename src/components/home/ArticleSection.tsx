@@ -18,7 +18,7 @@ export function ArticleSection({ posts, totalPosts }: { posts: HomePost[]; total
   return (
     <section
       aria-labelledby="articles-title"
-      className="mx-auto flex w-full max-w-6xl flex-col px-6 pt-6 pb-5 sm:flex-1"
+      className="mx-auto flex w-full max-w-6xl flex-col px-6 pt-5 pb-5 sm:flex-1 sm:pt-4 sm:pb-0"
     >
       <div className="mb-3 flex shrink-0 items-end justify-between gap-4">
         <div>

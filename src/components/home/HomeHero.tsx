@@ -12,7 +12,7 @@ const formatCount = (value: number) => value.toLocaleString("en-US");
 export function HomeHero({ totalPosts, totalTags, totalCategories }: HomeHeroProps) {
   return (
     <section aria-labelledby="home-title" className="home-hero relative isolate overflow-hidden">
-      <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-6 py-8 text-center sm:py-10">
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-6 py-6 text-center sm:py-8">
         <h1
           id="home-title"
           className="text-3xl leading-tight font-bold tracking-[-0.025em] text-foreground sm:text-4xl"
