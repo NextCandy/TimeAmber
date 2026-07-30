@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { LayoutDashboard, Menu, Search } from "lucide-react";
+import { LayoutDashboard, Menu, Rss, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BRAND_ICON } from "@/lib/brand";
 import { useAdminStore } from "@/lib/admin-store";
@@ -109,6 +109,9 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
           >
             <Search className="h-4 w-4" />
           </button>
+          <a href="/rss.xml" aria-label="RSS 订阅" title="RSS 订阅" className={iconButton}>
+            <Rss className="h-4 w-4" />
+          </a>
           <Link to="/admin" aria-label="后台" title="后台" className={iconButton}>
             <LayoutDashboard className="h-4 w-4" />
           </Link>
@@ -176,6 +179,15 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
                   <LayoutDashboard className="h-4 w-4" />
                   后台
                 </Link>
+
+                <a
+                  href="/rss.xml"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >
+                  <Rss className="h-4 w-4" />
+                  RSS 订阅
+                </a>
 
                 <div className="flex items-center justify-between gap-3 px-4 py-2 text-sm text-muted-foreground">
                   <span>切换主题</span>
