@@ -42,8 +42,13 @@ export function ArticleSection({ posts, totalPosts }: { posts: HomePost[]; total
 
       {posts.length > 0 ? (
         <div className="home-list grid grid-cols-1 border-b border-border sm:flex-1 sm:auto-rows-fr sm:grid-cols-2 sm:gap-x-10">
-          {posts.map((post) => (
-            <ArticleCard key={post.slug} post={post} />
+          {posts.map((post, index) => (
+            <ArticleCard
+              key={post.slug}
+              post={post}
+              className="home-list-item"
+              style={{ animationDelay: `${index * 30}ms` }}
+            />
           ))}
         </div>
       ) : (

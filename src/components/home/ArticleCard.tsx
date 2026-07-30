@@ -1,11 +1,20 @@
 import { Link } from "@tanstack/react-router";
+import type { CSSProperties } from "react";
 
 import { formatDateKey } from "@/lib/date";
 import { linkRel, linkTarget } from "@/lib/post-link";
 import type { HomePost } from "@/lib/home.functions";
 
 /** 首页文章卡：仅保留标题与发布日期，降低列表高度和首屏数据量。 */
-export function ArticleCard({ post, className = "" }: { post: HomePost; className?: string }) {
+export function ArticleCard({
+  post,
+  className = "",
+  style,
+}: {
+  post: HomePost;
+  className?: string;
+  style?: CSSProperties;
+}) {
   const isExternal = !!post.externalUrl;
   const inner = (
     // 行会被 auto-rows-fr 拉高到等分高度，内容垂直居中才不会全挤在上沿。
@@ -51,6 +60,7 @@ export function ArticleCard({ post, className = "" }: { post: HomePost; classNam
         target={linkTarget(post.externalUrl)}
         rel={linkRel(post.externalUrl)}
         className={shell}
+        style={style}
       >
         {inner}
       </a>
@@ -58,7 +68,7 @@ export function ArticleCard({ post, className = "" }: { post: HomePost; classNam
   }
 
   return (
-    <Link to="/posts/$slug" params={{ slug: post.slug }} className={shell}>
+    <Link to="/posts/$slug" params={{ slug: post.slug }} className={shell} style={style}>
       {inner}
     </Link>
   );
