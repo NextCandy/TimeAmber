@@ -216,7 +216,10 @@ function AdjacentNav({ items }: { items: AdjacentPosts }) {
     );
 
   return (
-    <nav aria-label="上一篇下一篇" className="mt-10 flex flex-col gap-3 sm:flex-row">
+    <nav
+      aria-label="上一篇下一篇"
+      className="mt-12 flex flex-col gap-3 border-t border-border pt-8 sm:flex-row"
+    >
       {items.prev ? link(items.prev, "prev") : <span className="hidden flex-1 sm:block" />}
       {items.next ? link(items.next, "next") : <span className="hidden flex-1 sm:block" />}
     </nav>
