@@ -92,6 +92,7 @@ export function AdminSidebar() {
                     asChild
                     isActive={isActive(item.to, item.exact)}
                     tooltip={item.label}
+                    className="border-l-[3px] border-l-transparent data-[active=true]:border-l-accent-amber data-[active=true]:bg-accent-amber-soft data-[active=true]:text-foreground"
                   >
                     <Link to={item.to}>
                       <item.icon className="h-4 w-4" />
