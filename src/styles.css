@@ -352,8 +352,9 @@
 .article-prose img {
   max-width: 100%;
   height: auto;
-  border-radius: var(--radius);
-  margin: 1em 0;
+  border-radius: calc(var(--radius) + 0.5rem);
+  margin: 1.5em 0;
+  box-shadow: 0 10px 18px -12px color-mix(in oklch, var(--foreground) 28%, transparent);
   cursor: zoom-in;
 }
 
