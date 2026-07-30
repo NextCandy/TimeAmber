@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Clock, ExternalLink, Copy, Share2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, ExternalLink, Copy, Heart, Share2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import mediumZoom from "medium-zoom";
@@ -11,8 +11,11 @@ import { linkRel, linkTarget } from "@/lib/post-link";
 import { loadPublicPost } from "@/lib/state.functions";
 import {
   loadAdjacentPosts,
+  loadPostReactionSummary,
   loadRelatedPosts,
+  togglePostReaction,
   type AdjacentPosts,
+  type PostReactionSummary,
   type RelatedPost,
 } from "@/lib/public-posts.functions";
 import { renderMarkdownFn } from "@/lib/markdown.functions";
@@ -33,12 +36,16 @@ export const Route = createFileRoute("/posts/$slug")({
   loader: async ({ params }) => {
     // 相关推荐同一套权重挪到了 SQL 里，只回 6 条 —— 原来是靠 root loader
     // 下发的全部文章在浏览器里算分，那份数据现在不再进 payload。
-    const [dbPost, related, adjacent] = await Promise.all([
+    const [dbPost, related, adjacent, reaction] = await Promise.all([
       loadPublicPost({ data: { slug: params.slug } }).catch(() => null),
       loadRelatedPosts({ data: { slug: params.slug, limit: 6 } }).catch(() => []),
       loadAdjacentPosts({ data: { slug: params.slug } }).catch((): AdjacentPosts => ({
         prev: null,
         next: null,
+      })),
+      loadPostReactionSummary({ data: { slug: params.slug } }).catch((): PostReactionSummary => ({
+        count: 0,
+        liked: false,
       })),
     ]);
     const post = dbPost ?? POSTS.find((p) => p.slug === params.slug) ?? null;
@@ -54,7 +61,7 @@ export const Route = createFileRoute("/posts/$slug")({
 
     const contentHtml =
       post && post.content ? await renderMarkdownFn({ data: { md: post.content } }) : "";
-    return { post, contentHtml, related, adjacent };
+    return { post, contentHtml, related, adjacent, reaction };
   },
   head: ({ loaderData, params }) => {
     const post = loaderData?.post;
@@ -122,8 +129,34 @@ function ReadingProgress() {
 }
 
 // 分享：复制链接 + Twitter/Telegram/微博。
-function SharePost({ url, title }: { url: string; title: string }) {
+function reactionVisitorKey(): string | null {
+  try {
+    const storageKey = "timeamber.reaction-visitor";
+    const existing = localStorage.getItem(storageKey);
+    if (existing) return existing;
+    const created = crypto.randomUUID();
+    localStorage.setItem(storageKey, created);
+    return created;
+  } catch {
+    return null;
+  }
+}
+
+function SharePost({
+  slug,
+  url,
+  title,
+  initialReaction,
+}: {
+  slug: string;
+  url: string;
+  title: string;
+  initialReaction: PostReactionSummary;
+}) {
   const enc = encodeURIComponent;
+  const [reaction, setReaction] = useState(initialReaction);
+  const [visitorKey, setVisitorKey] = useState<string | null>(null);
+  const [liking, setLiking] = useState(false);
   const links = [
     {
       label: "Twitter / X",
@@ -141,8 +174,44 @@ function SharePost({ url, title }: { url: string; title: string }) {
       () => toast.error("复制失败，请手动复制"),
     );
   }
+
+  useEffect(() => {
+    const key = reactionVisitorKey();
+    setVisitorKey(key);
+    if (!key) return;
+    void loadPostReactionSummary({ data: { slug, visitorKey: key } })
+      .then(setReaction)
+      .catch(() => {});
+  }, [slug]);
+
+  async function toggleLike() {
+    if (!visitorKey || liking) return;
+    setLiking(true);
+    try {
+      setReaction(await togglePostReaction({ data: { slug, visitorKey } }));
+    } catch {
+      toast.error("点赞失败，请稍后重试");
+    } finally {
+      setLiking(false);
+    }
+  }
+
   return (
-    <div className="mt-10 flex flex-wrap items-center gap-2 border-t border-border/60 pt-6">
+    <div className="mt-5 flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={toggleLike}
+        disabled={!visitorKey || liking}
+        aria-pressed={reaction.liked}
+        className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+          reaction.liked
+            ? "border-accent-amber/50 bg-accent-amber-soft text-accent-amber"
+            : "border-border text-muted-foreground hover:border-accent-amber/50 hover:text-accent-amber"
+        }`}
+      >
+        <Heart className={`h-3 w-3 ${reaction.liked ? "fill-current" : ""}`} />
+        喜欢 {reaction.count}
+      </button>
       <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
         <Share2 className="h-3.5 w-3.5" /> 分享
       </span>
@@ -276,7 +345,7 @@ function RelatedPosts({ items }: { items: RelatedPost[] }) {
 
 function PostPage() {
   const { slug } = Route.useParams();
-  const { post, contentHtml, related, adjacent } = Route.useLoaderData();
+  const { post, contentHtml, related, adjacent, reaction } = Route.useLoaderData();
   const [prefs, setPrefs] = useReadingPrefs();
 
   // 正文增强（仅客户端）：图片点击放大 + 代码块复制。
@@ -458,6 +527,12 @@ function PostPage() {
                 </a>
               )}
             </div>
+            <SharePost
+              slug={slug}
+              url={`${SITE_URL}/posts/${slug}`}
+              title={post.title}
+              initialReaction={reaction}
+            />
           </header>
 
           <img
@@ -503,7 +578,6 @@ function PostPage() {
             )}
           </div>
 
-          <SharePost url={`${SITE_URL}/posts/${slug}`} title={post.title} />
           <AdjacentNav items={adjacent} />
           <RelatedPosts items={related} />
         </article>

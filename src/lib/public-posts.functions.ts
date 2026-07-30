@@ -374,6 +374,73 @@ export const loadRelatedPosts = createServerFn({ method: "GET" })
     return rows.map(toRelatedPost);
   });
 
+export type PostReactionSummary = { count: number; liked: boolean };
+
+const reactionInput = z.object({
+  slug: z.string().trim().min(1).max(300),
+  visitorKey: z.string().trim().min(16).max(120).optional(),
+});
+const toggleReactionInput = reactionInput.required({ visitorKey: true });
+
+async function hashReactionVisitor(slug: string, visitorKey: string): Promise<string> {
+  const bytes = new TextEncoder().encode(`${slug}:${visitorKey}`);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/** 点赞总数可 SSR；传匿名 visitorKey 时额外返回当前浏览器是否点过赞。 */
+export const loadPostReactionSummary = createServerFn({ method: "GET" })
+  .inputValidator((value: z.infer<typeof reactionInput>) => reactionInput.parse(value))
+  .handler(async ({ data }): Promise<PostReactionSummary> => {
+    const sql = db();
+    const visitorHash = data.visitorKey
+      ? await hashReactionVisitor(data.slug, data.visitorKey)
+      : null;
+    const [row] = await sql<{ count: unknown; liked: unknown }[]>`
+      select
+        count(*)::int as count,
+        coalesce(bool_or(ip_hash = ${visitorHash}), false) as liked
+      from public.reactions
+      where post_slug = ${data.slug} and type = 'like'
+    `;
+    return { count: Number(row?.count ?? 0), liked: Boolean(row?.liked) };
+  });
+
+/** 同一浏览器再次点击会取消；库里只保存按文章加盐后的 SHA-256。 */
+export const togglePostReaction = createServerFn({ method: "POST" })
+  .inputValidator((value: z.infer<typeof toggleReactionInput>) => toggleReactionInput.parse(value))
+  .handler(async ({ data }): Promise<PostReactionSummary> => {
+    const sql = db();
+    const visitorHash = await hashReactionVisitor(data.slug, data.visitorKey);
+    return sql.begin(async (tx) => {
+      const deleted = await tx<{ id: unknown }[]>`
+        delete from public.reactions
+        where post_slug = ${data.slug} and type = 'like' and ip_hash = ${visitorHash}
+        returning id
+      `;
+      let liked = false;
+      if (deleted.length === 0) {
+        const inserted = await tx<{ id: unknown }[]>`
+          insert into public.reactions (post_slug, type, ip_hash)
+          select slug, 'like', ${visitorHash}
+          from public.posts
+          where slug = ${data.slug}
+            and published = true
+            and (publish_at is null or publish_at <= now())
+          on conflict (post_slug, type, ip_hash) do nothing
+          returning id
+        `;
+        liked = inserted.length > 0;
+      }
+      const [row] = await tx<{ count: unknown }[]>`
+        select count(*)::int as count
+        from public.reactions
+        where post_slug = ${data.slug} and type = 'like'
+      `;
+      return { count: Number(row?.count ?? 0), liked };
+    });
+  });
+
 const adjacentInput = z.object({ slug: z.string().trim().min(1).max(300) });
 
 /** prev 是时间线上更早的一篇，next 是更新的一篇；到头了就是 null。 */
