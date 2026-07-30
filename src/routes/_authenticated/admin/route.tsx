@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminGlobalSearch } from "@/components/admin/AdminGlobalSearch";
 import { useAdminStore } from "@/lib/admin-store";
 import { sendNotify } from "@/lib/notify.functions";
 
@@ -229,6 +230,7 @@ function AdminLayout() {
               <span className="text-muted-foreground/50">/</span>
               <span className="font-display font-medium text-foreground">{title}</span>
             </nav>
+            <AdminGlobalSearch />
           </header>
           <main className="flex-1 overflow-x-hidden bg-linear-to-b from-background to-muted/20 p-6">
             <Outlet />
