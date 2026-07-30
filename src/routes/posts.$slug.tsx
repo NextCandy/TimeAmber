@@ -186,10 +186,17 @@ function SharePost({
 
   async function toggleLike() {
     if (!visitorKey || liking) return;
+    const previous = reaction;
+    const nextLiked = !previous.liked;
+    setReaction({
+      liked: nextLiked,
+      count: Math.max(0, previous.count + (nextLiked ? 1 : -1)),
+    });
     setLiking(true);
     try {
       setReaction(await togglePostReaction({ data: { slug, visitorKey } }));
     } catch {
+      setReaction(previous);
       toast.error("点赞失败，请稍后重试");
     } finally {
       setLiking(false);
