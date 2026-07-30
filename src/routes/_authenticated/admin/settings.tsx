@@ -522,6 +522,7 @@ function SettingsPage() {
             <AlertDialogFooter>
               <AlertDialogCancel>取消</AlertDialogCancel>
               <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={() => {
                   resetAll();
                   toast.success("已重置");

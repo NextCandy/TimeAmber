@@ -120,7 +120,7 @@ function CategoriesPage() {
                       </Button>
                       <Button
                         size="icon"
-                        variant="ghost"
+                        variant="destructive"
                         disabled={used > 0}
                         title={used > 0 ? "请先迁移这些文章" : ""}
                         onClick={() => {
@@ -129,7 +129,7 @@ function CategoriesPage() {
                           void run(() => deleteCategoryRow({ data: { name: c.name } }), "已删除");
                         }}
                       >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </>

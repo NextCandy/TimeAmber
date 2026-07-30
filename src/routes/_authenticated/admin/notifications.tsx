@@ -644,7 +644,7 @@ function NotificationsPage() {
               <Download className="mr-1.5 h-3.5 w-3.5" /> 导出 CSV
             </Button>
             <Button
-              variant="ghost"
+              variant="destructive"
               size="sm"
               disabled={store.notifyReceipts.length === 0}
               onClick={() => {

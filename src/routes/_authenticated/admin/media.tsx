@@ -410,7 +410,7 @@ function MediaPage() {
                     <Copy className="h-3.5 w-3.5" />
                   </button>
                   <button
-                    className="rounded-md bg-background/90 p-1 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    className="rounded-md bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90"
                     onClick={() => store.removeMedia(m.id)}
                     aria-label="删除"
                   >
@@ -442,7 +442,7 @@ function MediaPage() {
               <Download className="mr-1.5 h-3.5 w-3.5" /> 导出 CSV
             </Button>
             <Button
-              variant="ghost"
+              variant="destructive"
               size="sm"
               disabled={store.mediaFailures.length === 0}
               onClick={() => {

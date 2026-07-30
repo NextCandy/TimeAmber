@@ -759,11 +759,11 @@ function BackupPage() {
                   </Button>
                   <Button
                     size="icon"
-                    variant="ghost"
+                    variant="destructive"
                     onClick={() => store.removeSnapshot(s.id, { actor })}
                     aria-label="删除快照"
                   >
-                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </li>
@@ -827,7 +827,7 @@ function BackupPage() {
             </Button>
             <Button
               size="sm"
-              variant="ghost"
+              variant="destructive"
               onClick={() => store.clearAudit()}
             >
               清空
@@ -1499,7 +1499,7 @@ function AlertsSection() {
         </div>
         <Button
           size="sm"
-          variant="ghost"
+          variant="destructive"
           disabled={alerts.length === 0}
           onClick={() => store.clearAlerts()}
         >

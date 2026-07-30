@@ -305,7 +305,7 @@ function DiagnosticsPage() {
             <Activity className="h-4 w-4 text-primary" />
             <h2 className="font-display text-base font-semibold">最近导航（{perfs.length}）</h2>
           </div>
-          <Button variant="ghost" size="sm" onClick={clearPerfs}>
+          <Button variant="destructive" size="sm" onClick={clearPerfs}>
             <Trash2 className="mr-1.5 h-3.5 w-3.5" /> 清空
           </Button>
         </div>
@@ -365,7 +365,7 @@ function DiagnosticsPage() {
                 {k}
               </Button>
             ))}
-            <Button variant="ghost" size="sm" onClick={clearLogs}>
+            <Button variant="destructive" size="sm" onClick={clearLogs}>
               <Trash2 className="mr-1.5 h-3.5 w-3.5" /> 清空
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setLogs(getLogs())}>
@@ -415,7 +415,7 @@ function DiagnosticsPage() {
             </h2>
           </div>
           <Button
-            variant="ghost"
+            variant="destructive"
             size="sm"
             disabled={store.diagnosticsArchives.length === 0}
             onClick={() => {

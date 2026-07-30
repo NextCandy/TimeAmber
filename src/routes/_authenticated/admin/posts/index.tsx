@@ -242,11 +242,11 @@ function PostsList() {
                     </Button>
                     <Button
                       size="icon"
-                      variant="ghost"
+                      variant="destructive"
                       onClick={() => setPendingDelete(p.slug)}
                       aria-label="删除"
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </li>
@@ -293,7 +293,12 @@ function PostsList() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>删除</AlertDialogAction>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              删除
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

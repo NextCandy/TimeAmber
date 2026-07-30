@@ -76,7 +76,7 @@ function TagsPage() {
                   removeTag(t.name);
                   void run(() => deleteTagRow({ data: { name: t.name } }), "已删除");
                 }}
-                className="ml-0.5 text-muted-foreground transition-colors hover:text-destructive"
+                className="ml-0.5 inline-flex rounded-full bg-destructive p-0.5 text-destructive-foreground transition-colors hover:bg-destructive/90"
                 aria-label={`删除 ${t.name}`}
               >
                 <X className="h-3 w-3" />

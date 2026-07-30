@@ -111,14 +111,14 @@ function FriendsPage() {
                   </Button>
                   <Button
                     size="icon"
-                    variant="ghost"
+                    variant="destructive"
                     onClick={() => {
                       suppressNextPersist();
                       removeFriend(f.name);
                       void persist(friends.filter((item) => item.name !== f.name));
                     }}
                   >
-                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </li>
