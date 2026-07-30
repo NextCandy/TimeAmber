@@ -31,11 +31,11 @@ function absolutePostImage(cover?: string): string {
 
 export const Route = createFileRoute("/posts/$slug")({
   loader: async ({ params }) => {
-    // 相关推荐同一套权重挪到了 SQL 里，只回 12 条 —— 原来是靠 root loader
+    // 相关推荐同一套权重挪到了 SQL 里，只回 6 条 —— 原来是靠 root loader
     // 下发的全部文章在浏览器里算分，那份数据现在不再进 payload。
     const [dbPost, related, adjacent] = await Promise.all([
       loadPublicPost({ data: { slug: params.slug } }).catch(() => null),
-      loadRelatedPosts({ data: { slug: params.slug } }).catch(() => []),
+      loadRelatedPosts({ data: { slug: params.slug, limit: 6 } }).catch(() => []),
       loadAdjacentPosts({ data: { slug: params.slug } }).catch((): AdjacentPosts => ({
         prev: null,
         next: null,
@@ -226,15 +226,15 @@ function AdjacentNav({ items }: { items: AdjacentPosts }) {
   );
 }
 
-// 相关文章：紧凑卡片可以容纳更多内容，优先共同标签，其次同分类，取前 12 篇。
+// 相关文章：优先共同标签，其次同分类，最多 6 篇；桌面三列、手机单列。
 function RelatedPosts({ items }: { items: RelatedPost[] }) {
   if (!items.length) return null;
   const rowClass =
-    "group flex items-start justify-between gap-6 border-t border-border px-2 py-4 transition-colors hover:bg-accent/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+    "group flex h-full flex-col justify-between gap-4 border border-border bg-card/40 p-4 transition-all hover:-translate-y-0.5 hover:border-accent-amber/50 hover:bg-accent-amber-soft/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:hover:translate-y-0";
   return (
     <section className="mt-12 border-t border-border/60 pt-8">
       <h2 className="mb-4 font-display text-lg font-semibold">相关文章</h2>
-      <ul className="grid grid-cols-1 border-b border-border sm:grid-cols-2 sm:gap-x-8">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {items.map((p) => {
           const inner = (
             <>
@@ -243,7 +243,7 @@ function RelatedPosts({ items }: { items: RelatedPost[] }) {
               </span>
               <time
                 dateTime={p.publishAt}
-                className="font-latin mt-0.5 shrink-0 text-[11px] leading-5 tracking-[0.06em] text-[var(--text-faint)]"
+                className="font-latin shrink-0 text-[11px] leading-5 tracking-[0.06em] text-[var(--text-faint)]"
               >
                 {formatDateKey(p.publishAt)}
               </time>

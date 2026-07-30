@@ -343,7 +343,7 @@ export const loadRelatedPosts = createServerFn({ method: "GET" })
   .inputValidator((value: z.infer<typeof relatedInput>) => relatedInput.parse(value))
   .handler(async ({ data }): Promise<RelatedPost[]> => {
     const sql = db();
-    const limit = data.limit ?? 12;
+    const limit = data.limit ?? 6;
     const rows = await sql<RelatedRow[]>`
       with target as (
         select id, category from public.posts where slug = ${data.slug} limit 1
