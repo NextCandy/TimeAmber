@@ -39,31 +39,39 @@ function FriendCard({ f }: { f: Friend }) {
       target="_blank"
       rel="noopener noreferrer"
       title={f.desc || f.name}
-      className="group flex h-full flex-col items-center rounded-2xl border border-border bg-card px-4 py-5 text-center transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className="group flex h-full items-start gap-4 rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-accent-amber hover:bg-accent-amber-soft/30 hover:shadow-glow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
-      {/* 定高且 shrink-0：同一行的图标都落在同一条基线上，不随名字长短上下浮动。
-          object-contain 让宽字标和方形图标都完整显示，不裁切不变形。 */}
-      <span className="flex h-12 w-full shrink-0 items-center justify-center">
+      <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/70 bg-background/70 p-2">
         {icon && !imgFailed ? (
           <img
             src={icon}
             alt=""
             loading="lazy"
             decoding="async"
-            className="max-h-12 max-w-full object-contain"
+            className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
             onError={() => setImgFailed(true)}
           />
         ) : (
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-border/60 bg-background/60 text-base font-semibold text-muted-foreground">
+          <span className="flex h-full w-full items-center justify-center rounded-lg bg-accent-amber-soft text-lg font-semibold text-accent-amber">
             {initial}
           </span>
         )}
       </span>
 
-      {/* 名字占满图标下方剩余空间并在其中居中：grid 让同行卡片等高，
-          名字换行行数不同也不会一个贴顶、一个悬空。允许换行，不截断。 */}
-      <span className="mt-3 flex flex-1 items-center justify-center text-sm leading-snug font-medium text-foreground transition-colors [overflow-wrap:anywhere] group-hover:text-primary">
-        {f.name}
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block text-base leading-snug font-medium text-foreground transition-colors [overflow-wrap:anywhere] group-hover:text-accent-amber">
+          {f.name}
+        </span>
+        {f.desc && (
+          <span className="mt-1.5 line-clamp-3 block text-sm leading-6 text-muted-foreground">
+            {f.desc}
+          </span>
+        )}
+        {f.group && (
+          <span className="mt-3 inline-flex rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            {f.group}
+          </span>
+        )}
       </span>
     </a>
   );
@@ -72,8 +80,8 @@ function FriendCard({ f }: { f: Friend }) {
 function EmptyState({ email }: { email?: string }) {
   return (
     <div className="mx-auto max-w-md rounded-2xl border border-border bg-card/50 p-10 text-center">
-      <span className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
-        <Link2 className="h-6 w-6 text-primary" />
+      <span className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-accent-amber/30 bg-accent-amber-soft">
+        <Link2 className="h-6 w-6 text-accent-amber" />
       </span>
       <h2 className="font-display text-xl font-semibold">友链暂未开放</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -157,7 +165,7 @@ function FriendsPage() {
                     <span className="text-xs font-normal text-muted-foreground">{list.length}</span>
                   </h2>
                 )}
-                <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {list.map((f) => (
                     <li key={f.name}>
                       <FriendCard f={f} />
