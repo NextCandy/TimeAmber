@@ -500,6 +500,20 @@
   font-feature-settings: "tnum";
 }
 
+/* 首页 Hero 只用 5% 左右的琥珀色径向光晕，亮暗主题均从同一 token 派生。 */
+.home-hero::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 52% 95% at 50% 12%,
+    color-mix(in oklch, var(--accent-amber) 7%, transparent),
+    transparent 72%
+  );
+}
+
 /* 卡片封面缺图时的品牌渐变占位 */
 @utility cover-gradient {
   background-image: linear-gradient(
@@ -516,9 +530,8 @@
  * 130px 以上、空得发散，矮屏又会顶出滚动条。所以服务端固定下发 18 篇
  * （见 home.functions.ts 的 LATEST_LIMIT），这里按视口高度隐藏尾部。
  *
- * 每档的算法：列表可用高度 ≈ 视口 - 313（顶栏 73 + 页脚 116 + 区块留白与
- * 标题 124），除以目标行高 ~90px 得行数，两列所以条数 = 行数 × 2。
- * 实测行高落在 77–100px 之间。
+ * Hero 加入后，列表会继续用 flex-1 吃掉首屏剩余空间；下列档位限制最高行数，
+ * 避免高屏把文章行拉得发散，也让矮屏自然少显示两行。移动端仍完整展示。
  *
  * 只在 sm 以上生效：移动端是单列长滚动，本来就该全部显示。
  */

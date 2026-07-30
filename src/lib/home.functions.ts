@@ -22,6 +22,8 @@ export type HomePost = {
 export type HomeData = {
   latest: HomePost[];
   totalPosts: number;
+  totalTags: number;
+  totalCategories: number;
 };
 
 // 桌面两列，最多九行。实际显示几篇由 styles.css 里 .home-list 的视口高度断点决定
@@ -56,7 +58,7 @@ export const loadHomeData = createServerFn({ method: "GET" }).handler(
   async (): Promise<HomeData> => {
     const sql = db();
 
-    const [latestRows, totalRows] = await Promise.all([
+    const [latestRows, statsRows] = await Promise.all([
       sql<PostRow[]>`
         select
           slug, title, category, publish_at, created_at, post_type, external_url, open_in
@@ -67,16 +69,24 @@ export const loadHomeData = createServerFn({ method: "GET" }).handler(
         order by coalesce(publish_at, created_at) desc
         limit ${LATEST_LIMIT}
       `,
-      sql<{ count: unknown }[]>`
-        select count(*)::int as count
-        from public.posts
-        where published = true and coalesce(listed, true) = true
+      sql<{ posts: unknown; tags: unknown; categories: unknown }[]>`
+        select
+          count(distinct p.id)::int as posts,
+          count(distinct pt.tag_id)::int as tags,
+          count(distinct nullif(p.category, ''))::int as categories
+        from public.posts p
+        left join public.post_tags pt on pt.post_id = p.id
+        where p.published = true
+          and coalesce(p.listed, true) = true
+          and (p.publish_at is null or p.publish_at <= now())
       `,
     ]);
 
     return {
       latest: latestRows.map(toHomePost),
-      totalPosts: Number(totalRows[0]?.count ?? 0),
+      totalPosts: Number(statsRows[0]?.posts ?? 0),
+      totalTags: Number(statsRows[0]?.tags ?? 0),
+      totalCategories: Number(statsRows[0]?.categories ?? 0),
     };
   },
 );
