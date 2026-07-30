@@ -192,6 +192,15 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  .dark body {
+    background-image: radial-gradient(
+      ellipse 70% 45% at 50% -10%,
+      color-mix(in oklch, var(--accent-amber) 5%, transparent),
+      transparent 72%
+    );
+    background-attachment: fixed;
+  }
+
   h1,
   h2,
   h3,
