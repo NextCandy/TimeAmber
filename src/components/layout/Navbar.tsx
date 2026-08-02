@@ -67,15 +67,16 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
     "inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
   return (
-    <header
-      className={`sticky top-0 z-40 w-full transition-all duration-300 ${
-        scrolled
-          ? "border-b border-border/60 bg-background/70 backdrop-blur-xl"
-          : "border-b border-transparent bg-transparent"
-      }`}
-    >
-      {/* 三栏等分栅格：导航始终居中，不受左右两侧宽度影响 */}
-      <div className="mx-auto grid h-[72px] max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-6">
+    <header className="sticky top-0 z-40 w-full px-3 pt-3 sm:px-4 sm:pt-4">
+      {/* 悬浮胶囊外壳：滚动时毛玻璃 + 发丝边框 + 轻阴影。
+          内层保持三栏等分栅格，导航始终居中。 */}
+      <div
+        className={`mx-auto grid h-[64px] max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-2xl border px-4 transition-all duration-300 sm:px-6 ${
+          scrolled
+            ? "border-border/60 bg-background/75 shadow-[0_8px_30px_-12px_color-mix(in_oklch,var(--foreground)_18%,transparent)] backdrop-blur-xl"
+            : "border-transparent bg-transparent"
+        }`}
+      >
         <Link to="/" className="group col-start-1 flex items-center gap-2.5 justify-self-start">
           <img src={BRAND_ICON} alt="" className="h-8 w-8 object-contain drop-shadow-brand-sm" />
           <span className="font-brand text-2xl leading-none font-normal tracking-tight">

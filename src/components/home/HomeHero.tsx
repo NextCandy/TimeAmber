@@ -25,50 +25,56 @@ export function HomeHero({ totalPosts, totalTags, totalCategories }: HomeHeroPro
           时光成珀，字字如初。一个关于剪藏、自建服务与 AI Agent 实践的中文博客。
         </p>
 
-        <dl className="mt-5 flex flex-wrap items-center justify-center gap-x-0 text-sm text-muted-foreground">
-          <div className="px-4 first:pl-0 sm:px-6">
-            <dt className="sr-only">文章数量</dt>
-            <dd>
-              <Link
-                to="/archive"
-                className="group inline-flex items-baseline gap-1.5 transition-colors hover:text-foreground"
-              >
-                <span className="font-latin text-base font-semibold text-accent-amber tabular-nums group-hover:text-accent-amber-strong">
-                  {formatCount(totalPosts)}
-                </span>
-                篇文章
-              </Link>
-            </dd>
+        <dl className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground">
+          <div className="rounded-2xl border border-border/70 bg-card/70 p-1.5 shadow-[0_4px_16px_-8px_color-mix(in_oklch,var(--foreground)_15%,transparent)] backdrop-blur-sm">
+            <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-2">
+              <dt className="sr-only">文章数量</dt>
+              <dd>
+                <Link
+                  to="/archive"
+                  className="group inline-flex items-baseline gap-1.5 transition-colors hover:text-foreground"
+                >
+                  <span className="font-latin text-base font-semibold text-accent-amber tabular-nums group-hover:text-accent-amber-strong">
+                    {formatCount(totalPosts)}
+                  </span>
+                  篇文章
+                </Link>
+              </dd>
+            </div>
           </div>
-          <div className="border-l border-border px-4 sm:px-6">
-            <dt className="sr-only">标签数量</dt>
-            <dd>
-              <Link
-                to="/categories"
-                search={{ tag: undefined, c: undefined }}
-                className="group inline-flex items-baseline gap-1.5 transition-colors hover:text-foreground"
-              >
-                <span className="font-latin text-base font-semibold text-accent-amber tabular-nums group-hover:text-accent-amber-strong">
-                  {formatCount(totalTags)}
-                </span>
-                个标签
-              </Link>
-            </dd>
+          <div className="rounded-2xl border border-border/70 bg-card/70 p-1.5 shadow-[0_4px_16px_-8px_color-mix(in_oklch,var(--foreground)_15%,transparent)] backdrop-blur-sm">
+            <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-2">
+              <dt className="sr-only">标签数量</dt>
+              <dd>
+                <Link
+                  to="/categories"
+                  search={{ tag: undefined, c: undefined }}
+                  className="group inline-flex items-baseline gap-1.5 transition-colors hover:text-foreground"
+                >
+                  <span className="font-latin text-base font-semibold text-accent-amber tabular-nums group-hover:text-accent-amber-strong">
+                    {formatCount(totalTags)}
+                  </span>
+                  个标签
+                </Link>
+              </dd>
+            </div>
           </div>
-          <div className="border-l border-border px-4 last:pr-0 sm:px-6">
-            <dt className="sr-only">分类数量</dt>
-            <dd>
-              <Link
-                to="/categories"
-                search={{ tag: undefined, c: undefined }}
-                className="group inline-flex items-baseline gap-1.5 transition-colors hover:text-foreground"
-              >
-                <span className="font-latin text-base font-semibold text-accent-amber tabular-nums group-hover:text-accent-amber-strong">
-                  {formatCount(totalCategories)}
-                </span>
-                个分类
-              </Link>
-            </dd>
+          <div className="rounded-2xl border border-border/70 bg-card/70 p-1.5 shadow-[0_4px_16px_-8px_color-mix(in_oklch,var(--foreground)_15%,transparent)] backdrop-blur-sm">
+            <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-2">
+              <dt className="sr-only">分类数量</dt>
+              <dd>
+                <Link
+                  to="/categories"
+                  search={{ tag: undefined, c: undefined }}
+                  className="group inline-flex items-baseline gap-1.5 transition-colors hover:text-foreground"
+                >
+                  <span className="font-latin text-base font-semibold text-accent-amber tabular-nums group-hover:text-accent-amber-strong">
+                    {formatCount(totalCategories)}
+                  </span>
+                  个分类
+                </Link>
+              </dd>
+            </div>
           </div>
         </dl>
       </div>

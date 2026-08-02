@@ -30,6 +30,40 @@
   font-display: swap;
 }
 
+/* Chakra Petch — impeccable 风格主字体（拉丁/数字）。
+   中文回退走 --font-sans 里的 Noto Sans SC / PingFang SC。 */
+@font-face {
+  font-family: "Chakra Petch";
+  src: url("/fonts/ChakraPetch-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Chakra Petch";
+  src: url("/fonts/ChakraPetch-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Chakra Petch";
+  src: url("/fonts/ChakraPetch-600.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Chakra Petch";
+  src: url("/fonts/ChakraPetch-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /*
@@ -77,11 +111,12 @@
   --color-accent-amber-foreground: var(--accent-amber-foreground);
   --color-category-purple: var(--category-purple);
   --font-display:
-    "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC",
-    system-ui, sans-serif;
+    "Chakra Petch", "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC",
+    "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
   --font-sans:
-    "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    "Chakra Petch", "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC",
+    "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    system-ui, sans-serif;
   --font-brand: "A Song For Jennifer", "JetBrains Mono", cursive;
 
   /* 光晕统一引用主色，自动跟随主题。 */
@@ -95,83 +130,86 @@
   --radius: 0;
   color-scheme: light;
 
-  --background: oklch(0.962 0.006 95);
-  --foreground: oklch(0.18 0.008 95);
-  --card: oklch(0.985 0.004 95);
-  --card-foreground: oklch(0.18 0.008 95);
-  --popover: oklch(0.985 0.004 95);
-  --popover-foreground: oklch(0.18 0.008 95);
-  --primary: oklch(0.485 0.272 266);
-  --primary-foreground: oklch(0.98 0.005 95);
-  --primary-glow: oklch(0.6 0.22 266);
-  --secondary: oklch(0.93 0.008 95);
-  --secondary-foreground: oklch(0.22 0.01 95);
-  --muted: oklch(0.94 0.006 95);
-  --muted-foreground: oklch(0.45 0.015 95);
-  --accent: oklch(0.91 0.07 266);
-  --accent-foreground: oklch(0.22 0.08 266);
-  --destructive: oklch(0.52 0.2 25);
+  /* 奶油白基调（impeccable 风格）：
+     background 略暖的白，card 纯白，正文深棕墨色。 */
+  --background: oklch(0.975 0.008 85);
+  --foreground: oklch(0.22 0.02 60);
+  --card: oklch(0.99 0.005 85);
+  --card-foreground: oklch(0.22 0.02 60);
+  --popover: oklch(0.99 0.005 85);
+  --popover-foreground: oklch(0.22 0.02 60);
+  /* 主色：琥珀金 #CC8800 系 */
+  --primary: oklch(0.6 0.16 70);
+  --primary-foreground: oklch(0.99 0.005 85);
+  --primary-glow: oklch(0.68 0.15 70);
+  --secondary: oklch(0.93 0.012 75);
+  --secondary-foreground: oklch(0.28 0.03 60);
+  --muted: oklch(0.94 0.01 80);
+  --muted-foreground: oklch(0.48 0.03 55);
+  --accent: oklch(0.92 0.06 65);
+  --accent-foreground: oklch(0.28 0.08 55);
+  --destructive: oklch(0.55 0.2 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.3 0.01 95 / 16%);
-  --input: oklch(0.3 0.01 95 / 28%);
-  --ring: oklch(0.485 0.272 266 / 55%);
-  --overlay: oklch(0.15 0.01 95);
-  --success: oklch(0.43 0.1 155);
-  --success-foreground: oklch(0.3 0.08 155);
-  --warning: oklch(0.52 0.12 75);
-  --warning-foreground: oklch(0.34 0.09 70);
-  --brand-1: oklch(0.6 0.2 266);
-  --brand-2: oklch(0.52 0.18 268);
-  --brand-3: oklch(0.44 0.16 270);
+  --border: oklch(0.35 0.03 60 / 18%);
+  --input: oklch(0.35 0.03 60 / 28%);
+  --ring: oklch(0.6 0.16 70 / 55%);
+  --overlay: oklch(0.2 0.03 55);
+  --success: oklch(0.45 0.11 155);
+  --success-foreground: oklch(0.32 0.09 155);
+  --warning: oklch(0.55 0.12 75);
+  --warning-foreground: oklch(0.38 0.1 70);
+  --brand-1: oklch(0.62 0.15 65);
+  --brand-2: oklch(0.55 0.14 55);
+  --brand-3: oklch(0.48 0.13 45);
 
-  /* 琥珀点缀。蓝色仍是唯一主色，琥珀只出现在阅读进度、TOC 当前项、
-     归档热力条、引用块与行内代码上 —— 呼应「时光琥珀」的名字而不夺主色。
-     叫 accent-amber 是为了跟既有的 --accent（蓝色系强调背景）区分开。
-     亮色模式压到 L=0.52 才够 4.5:1，别照搬深色那档的亮琥珀。 */
-  --accent-amber: oklch(0.52 0.13 68);
-  --accent-amber-strong: oklch(0.45 0.14 62);
-  --accent-amber-soft: oklch(0.52 0.13 68 / 12%);
-  --accent-amber-foreground: oklch(0.99 0.005 95);
+  /* 焦橙点缀（impeccable secondary #C55221 系）。
+     主色切到琥珀后，accent-amber 升级为焦橙，负责阅读进度、
+     TOC 当前项、归档热力条、引用块与行内代码 —— 琥珀与焦橙同族不打架。
+     亮色模式压到 L=0.5 才够 4.5:1。 */
+  --accent-amber: oklch(0.55 0.17 50);
+  --accent-amber-strong: oklch(0.48 0.18 45);
+  --accent-amber-soft: oklch(0.55 0.17 50 / 13%);
+  --accent-amber-foreground: oklch(0.99 0.005 85);
   --category-purple: oklch(0.48 0.17 310);
 }
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.18 0.008 95);
-  --foreground: oklch(0.94 0.006 95);
-  --card: oklch(0.23 0.008 95);
-  --card-foreground: oklch(0.94 0.006 95);
-  --popover: oklch(0.23 0.008 95);
-  --popover-foreground: oklch(0.94 0.006 95);
-  --primary: oklch(0.621 0.204 273);
-  --primary-foreground: oklch(0.15 0.01 95);
-  --primary-glow: oklch(0.72 0.18 273);
-  --secondary: oklch(0.28 0.008 95);
-  --secondary-foreground: oklch(0.94 0.006 95);
-  --muted: oklch(0.25 0.008 95);
-  --muted-foreground: oklch(0.72 0.012 95);
-  --accent: oklch(0.28 0.09 266);
-  --accent-foreground: oklch(0.95 0.006 95);
-  --destructive: oklch(0.68 0.19 25);
+  --background: oklch(0.19 0.012 60);
+  --foreground: oklch(0.93 0.01 75);
+  --card: oklch(0.24 0.014 60);
+  --card-foreground: oklch(0.93 0.01 75);
+  --popover: oklch(0.24 0.014 60);
+  --popover-foreground: oklch(0.93 0.01 75);
+  --primary: oklch(0.78 0.14 70);
+  --primary-foreground: oklch(0.17 0.02 60);
+  --primary-glow: oklch(0.85 0.12 72);
+  --secondary: oklch(0.29 0.014 60);
+  --secondary-foreground: oklch(0.93 0.01 75);
+  --muted: oklch(0.26 0.014 60);
+  --muted-foreground: oklch(0.72 0.02 65);
+  --accent: oklch(0.3 0.07 55);
+  --accent-foreground: oklch(0.94 0.01 75);
+  --destructive: oklch(0.7 0.19 27);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.92 0.006 95 / 17%);
-  --input: oklch(0.92 0.006 95 / 30%);
-  --ring: oklch(0.621 0.204 273 / 60%);
-  --overlay: oklch(0.05 0.01 95);
-  --success: oklch(0.72 0.12 155);
-  --success-foreground: oklch(0.82 0.1 155);
-  --warning: oklch(0.78 0.13 75);
-  --warning-foreground: oklch(0.84 0.11 75);
-  --brand-1: oklch(0.68 0.18 266);
-  --brand-2: oklch(0.58 0.16 270);
-  --brand-3: oklch(0.48 0.14 272);
+  --border: oklch(0.9 0.01 75 / 17%);
+  --input: oklch(0.9 0.01 75 / 30%);
+  --ring: oklch(0.78 0.14 70 / 60%);
+  --overlay: oklch(0.07 0.015 55);
+  --success: oklch(0.74 0.12 155);
+  --success-foreground: oklch(0.84 0.1 155);
+  --warning: oklch(0.8 0.13 75);
+  --warning-foreground: oklch(0.86 0.11 75);
+  --brand-1: oklch(0.85 0.12 70);
+  --brand-2: oklch(0.75 0.11 60);
+  --brand-3: oklch(0.65 0.1 50);
 
-  /* 深底上的琥珀要提亮到 L=0.80 才够对比，见 :root 那组的说明。 */
-  --accent-amber: oklch(0.8 0.14 72);
-  --accent-amber-strong: oklch(0.86 0.15 75);
-  --accent-amber-soft: oklch(0.8 0.14 72 / 16%);
-  --accent-amber-foreground: oklch(0.16 0.01 95);
-  --category-purple: oklch(0.74 0.13 310);
+  /* 深底上的焦橙提亮到 L=0.8 才够对比。 */
+  --accent-amber: oklch(0.8 0.15 55);
+  --accent-amber-strong: oklch(0.86 0.14 60);
+  --accent-amber-soft: oklch(0.8 0.15 55 / 16%);
+  --accent-amber-foreground: oklch(0.17 0.02 60);
+  --category-purple: oklch(0.76 0.13 310);
 }
 
 @layer base {
@@ -226,6 +264,19 @@
   ::selection {
     background: color-mix(in oklch, var(--primary) 30%, transparent);
     color: var(--color-foreground);
+  }
+
+  /* 全局胶片噪点：fixed 覆盖层，只加在 body 上不随滚动重绘，
+     打破纯色平面的生硬感（impeccable 风格的纸面质感）。 */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.02;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   }
 }
 

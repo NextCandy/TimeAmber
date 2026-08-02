@@ -20,13 +20,13 @@ export function ArticleCard({
     // 行会被 auto-rows-fr 拉高到等分高度，内容垂直居中才不会全挤在上沿。
     <div className="flex min-w-0 flex-1 items-center gap-4 py-3">
       {post.cover && (
-        <span className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border/70 bg-card">
+        <span className="h-20 w-20 shrink-0 rounded-xl border border-border/70 bg-card p-[3px] shadow-[0_2px_8px_-4px_color-mix(in_oklch,var(--foreground)_20%,transparent)]">
           <img
             src={post.cover}
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+            className="h-full w-full rounded-lg object-cover transition-transform duration-300 ease-out group-hover:scale-105"
           />
         </span>
       )}
