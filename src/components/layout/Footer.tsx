@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
+import { Rss } from "lucide-react";
 
 import { BRAND_ICON } from "@/lib/brand";
 import { useAdminStore } from "@/lib/admin-store";
 
 export function Footer() {
   const { settings } = useAdminStore();
+  const year = new Date().getFullYear();
 
   return (
     // 与正文同底色，只用一条发丝线分隔 —— 原来那块加深的色带把页面切成了两截。
@@ -15,7 +17,22 @@ export function Footer() {
           <span className="font-brand text-xl leading-none">{settings.siteTitle}</span>
         </Link>
 
-        <p className="font-latin text-[var(--text-faint)]">Built with TanStack Start + Supabase</p>
+        <p className="text-[var(--text-faint)]">时光成珀，字字如初。</p>
+
+        <div className="flex items-center gap-4">
+          <a
+            href="/rss.xml"
+            aria-label="RSS 订阅"
+            title="RSS 订阅"
+            className="inline-flex items-center gap-1.5 font-latin text-[var(--text-faint)] transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <Rss className="h-3.5 w-3.5" />
+            RSS
+          </a>
+          <span className="font-latin text-xs text-[var(--text-faint)]">
+            © {year} {settings.siteTitle}
+          </span>
+        </div>
       </div>
     </footer>
   );

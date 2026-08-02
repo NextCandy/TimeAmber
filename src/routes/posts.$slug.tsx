@@ -514,7 +514,7 @@ function PostPage() {
               ))}
             </div>
 
-            <h1 className="break-words font-display text-3xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere] sm:text-4xl">
+            <h1 className="break-words font-display text-3xl font-bold leading-tight tracking-[-0.03em] [overflow-wrap:anywhere] sm:text-4xl">
               {post.title}
             </h1>
 

@@ -51,7 +51,7 @@ export function ArticleCard({
     </div>
   );
 
-  const shell = `group flex min-w-0 border-t border-border px-2 transition-all hover:translate-x-1 hover:bg-accent/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:hover:translate-x-0 ${className}`;
+  const shell = `group flex min-w-0 border-t border-border px-2 transition-all duration-300 hover:translate-x-1 hover:bg-accent/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:hover:translate-x-0 ${className}`;
 
   if (isExternal && post.externalUrl) {
     return (

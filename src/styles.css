@@ -192,6 +192,17 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* 亮色模式也加一层极淡的晨雾径向光晕，与深色模式的做法对称；
+     强度压到 3% 以下，保晨雾青的干净底色。 */
+  body {
+    background-image: radial-gradient(
+      ellipse 70% 45% at 50% -10%,
+      color-mix(in oklch, var(--accent-amber) 3%, transparent),
+      transparent 72%
+    );
+    background-attachment: fixed;
+  }
+
   .dark body {
     background-image: radial-gradient(
       ellipse 70% 45% at 50% -10%,
@@ -208,7 +219,8 @@
   h5,
   h6 {
     font-family: var(--font-sans);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
   }
 
   ::selection {
@@ -278,6 +290,33 @@
     );
 }
 
+/* Hero 入场：标题 / 副标题 / 统计交错淡入上浮，只动 transform+opacity。
+   亮色与深色主题共用；配合 prefers-reduced-motion 全局关闭。 */
+@keyframes hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-hero > div > * {
+  opacity: 0;
+  animation: hero-enter 520ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+.home-hero > div > :nth-child(1) {
+  animation-delay: 40ms;
+}
+.home-hero > div > :nth-child(2) {
+  animation-delay: 120ms;
+}
+.home-hero > div > :nth-child(3) {
+  animation-delay: 200ms;
+}
+
 /* Subtle grain noise overlay for card title blocks */
 @utility grain {
   position: relative;
@@ -306,6 +345,14 @@
 .article-prose {
   color: var(--color-foreground);
   overflow-wrap: anywhere;
+  /* 正文可读宽度：长行拖垮阅读节奏，限制在舒适区间。
+     用 ch 而非容器宽度，字号由 ReadingControls 缩放时自动跟随。 */
+  max-width: 68ch;
+}
+
+/* 剪藏摘要与正文同宽，避免比正文窄一截的视觉错位。 */
+.article-prose > p:first-child.text-lg {
+  max-width: 62ch;
 }
 
 .article-prose h1,
@@ -378,7 +425,9 @@
 .article-prose blockquote {
   margin: 1.2em 0;
   border-left: 3px solid var(--color-accent-amber);
-  padding: 0.2em 0 0.2em 1em;
+  background: var(--color-accent-amber-soft);
+  padding: 0.6em 1em;
+  border-radius: 0 0.5rem 0.5rem 0;
   color: var(--color-muted-foreground);
   font-style: italic;
 }
@@ -395,8 +444,8 @@
   font-size: 0.88em;
   background: var(--color-accent-amber-soft);
   color: var(--color-accent-amber-strong);
-  padding: 0.15em 0.4em;
-  border-radius: 0;
+  padding: 0.18em 0.42em;
+  border-radius: 0.375rem;
   word-break: break-word;
 }
 
@@ -404,10 +453,21 @@
 .article-prose img {
   max-width: 100%;
   height: auto;
-  border-radius: 0.5rem;
-  margin: 1.5em 0;
-  box-shadow: 0 10px 18px -12px color-mix(in oklch, var(--foreground) 28%, transparent);
+  border-radius: 0.75rem;
+  margin: 1.5em 0 0.5em;
+  box-shadow:
+    0 14px 28px -14px color-mix(in oklch, var(--foreground) 30%, transparent),
+    0 2px 6px -2px color-mix(in oklch, var(--foreground) 12%, transparent);
   cursor: zoom-in;
+}
+
+/* 图片说明（figcaption）：紧随图片下方，弱化但不至于消失。 */
+.article-prose figcaption {
+  margin: 0 0 1.5em;
+  font-size: 0.85em;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+  text-align: center;
 }
 
 /* 表格：窄屏可横向滚动 */
