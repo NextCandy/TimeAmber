@@ -111,12 +111,11 @@
   --color-accent-amber-foreground: var(--accent-amber-foreground);
   --color-category-purple: var(--category-purple);
   --font-display:
-    "Chakra Petch", "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC",
-    "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+    "Chakra Petch", "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC", "Noto Sans SC",
+    "PingFang SC", system-ui, sans-serif;
   --font-sans:
-    "Chakra Petch", "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC",
-    "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
-    system-ui, sans-serif;
+    "Chakra Petch", "Geist", "Geist Variable", "Manrope", "Noto Sans CJK SC", "Noto Sans SC",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
   --font-brand: "A Song For Jennifer", "JetBrains Mono", cursive;
 
   /* 光晕统一引用主色，自动跟随主题。 */
@@ -129,6 +128,20 @@
 :root {
   --radius: 0;
   color-scheme: light;
+
+  /* 全局动效 token：所有微动效从这里复用，避免每个组件自行发明节奏。 */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-press: 160ms;
+  --duration-hover: 200ms;
+  --duration-tooltip: 180ms;
+  --duration-dropdown: 220ms;
+  --duration-drawer: 300ms;
+  --duration-toast: 200ms;
+  --duration-list: 240ms;
+  --duration-theme: 200ms;
+  --duration-hero: 420ms;
 
   /* 奶油白基调（impeccable 风格）：
      background 略暖的白，card 纯白，正文深棕墨色。 */
@@ -228,6 +241,9 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition:
+      background-color var(--duration-theme) var(--ease-in-out),
+      color var(--duration-theme) var(--ease-in-out);
   }
 
   /* 亮色模式也加一层极淡的晨雾径向光晕，与深色模式的做法对称；
@@ -280,17 +296,6 @@
   }
 }
 
-@keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @keyframes home-list-enter {
   from {
     opacity: 0;
@@ -302,25 +307,9 @@
   }
 }
 
-.page-transition {
-  animation: page-enter 220ms ease-out both;
-}
-
 .home-list-item {
   opacity: 0;
-  animation: home-list-enter 260ms ease-out forwards;
-}
-
-@view-transition {
-  navigation: auto;
-}
-
-::view-transition-old(root) {
-  animation-duration: 120ms;
-}
-
-::view-transition-new(root) {
-  animation-duration: 220ms;
+  animation: home-list-enter var(--duration-list) var(--ease-out) forwards;
 }
 
 /* Hero 背景光晕 */
@@ -356,7 +345,7 @@
 
 .home-hero > div > * {
   opacity: 0;
-  animation: hero-enter 520ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  animation: hero-enter var(--duration-hero) var(--ease-drawer) forwards;
 }
 .home-hero > div > :nth-child(1) {
   animation-delay: 40ms;
@@ -594,8 +583,8 @@
   background: transparent;
   cursor: pointer;
   transition:
-    color 0.15s,
-    border-color 0.15s;
+    color var(--duration-press) var(--ease-out),
+    border-color var(--duration-press) var(--ease-out);
 }
 .article-prose .code-copy:hover {
   color: var(--color-primary);
