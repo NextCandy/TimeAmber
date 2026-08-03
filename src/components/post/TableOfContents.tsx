@@ -65,9 +65,10 @@ export function TableOfContents({ items }: { items: TocItem[] }) {
                   e.preventDefault();
                   const el = document.getElementById(it.id);
                   if (el) {
+                    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
                     window.scrollTo({
                       top: el.getBoundingClientRect().top + window.scrollY - 80,
-                      behavior: "smooth",
+                      behavior: reduce ? "auto" : "smooth",
                     });
                     history.replaceState(null, "", `#${it.id}`);
                   }

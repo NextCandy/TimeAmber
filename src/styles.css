@@ -750,6 +750,25 @@
   animation: theme-icon-morph 150ms var(--ease-out) both;
 }
 
+.reading-progress {
+  height: 1px;
+  opacity: 0.55;
+  transition: opacity var(--duration-hover) var(--ease-out);
+}
+
+.reading-progress > div {
+  transform-origin: left top;
+  transition: transform var(--duration-hover) var(--ease-out);
+}
+
+.reading-progress.is-scrolling {
+  opacity: 1;
+}
+
+.reading-progress.is-scrolling > div {
+  transform: scaleY(3);
+}
+
 @keyframes skeleton-shimmer {
   from {
     transform: translateX(-100%);

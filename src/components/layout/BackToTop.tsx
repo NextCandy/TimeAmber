@@ -33,7 +33,7 @@ export function BackToTop() {
       title="回到顶部"
       tabIndex={visible ? 0 : -1}
       aria-hidden={!visible}
-      className={`press-feedback fixed right-5 bottom-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-lg backdrop-blur transition-all duration-200 hover:border-accent-amber/60 hover:text-accent-amber focus-visible:ring-2 focus-visible:ring-accent-amber focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none ${
+      className={`press-feedback fixed right-5 bottom-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-lg backdrop-blur transition-all duration-[var(--duration-hover)] hover:border-accent-amber/60 hover:text-accent-amber focus-visible:ring-2 focus-visible:ring-accent-amber focus-visible:ring-offset-2 focus-visible:outline-none ${
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"
       }`}
     >
