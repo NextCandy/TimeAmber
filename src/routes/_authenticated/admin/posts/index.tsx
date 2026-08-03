@@ -435,7 +435,43 @@ function PostsList() {
           <span className="sr-only">搜索文章</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索标题、slug、分类、标签…" className="pl-9" />
- ����G����ƭy�t) => updateSearch({ sort: event.target.value as SortKey })}
+        </label>
+        <select
+          value={search.status ?? "all"}
+          onChange={(event) => updateSearch({ status: event.target.value === "all" ? undefined : event.target.value as StatusFilter })}
+          className="rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground"
+        >
+          <option value="all">全部状态</option>
+          <option value="published">已发布</option>
+          <option value="draft">草稿</option>
+        </select>
+        <select
+          value={search.view ?? "active"}
+          onChange={(event) => updateSearch({ view: event.target.value === "trash" ? "trash" : undefined })}
+          className="rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground"
+        >
+          <option value="active">正常文章</option>
+          <option value="trash">回收站</option>
+        </select>
+        <select
+          value={search.cat ?? "all"}
+          onChange={(event) => updateSearch({ cat: event.target.value === "all" ? undefined : event.target.value })}
+          className="max-w-48 rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground"
+        >
+          <option value="all">全部分类</option>
+          {pageData.categories.map((category) => <option key={category} value={category}>{category}</option>)}
+        </select>
+        <label className="text-xs text-muted-foreground">
+          从
+          <input type="date" value={search.from ?? ""} onChange={(event) => updateSearch({ from: event.target.value || undefined })} className="ml-1 rounded-md border border-border bg-card px-2 py-2 text-xs text-foreground" />
+        </label>
+        <label className="text-xs text-muted-foreground">
+          到
+          <input type="date" value={search.to ?? ""} onChange={(event) => updateSearch({ to: event.target.value || undefined })} className="ml-1 rounded-md border border-border bg-card px-2 py-2 text-xs text-foreground" />
+        </label>
+        <select
+          value={search.sort ?? "new"}
+          onChange={(event) => updateSearch({ sort: event.target.value as SortKey })}
           className="rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground"
         >
           <option value="new">发布时间（新→旧）</option>

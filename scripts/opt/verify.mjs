@@ -382,4 +382,566 @@ async function collectBrowserPage({ browser, baseUrl, pageInfo, path, viewportMo
     };
     record.contribution = Object.values(record.resources.reduce((groups, resource) => {
       const category = resource.thirdParty ? "ç¬¬ä¸‰æ–¹" : resource.category;
-      groups[category] ||= { category, requests: 0, transferKB: 0, firstScreenKB: 0, ç½µ¶‰žËkºwµçUÉ”¹É•…Í½¸ñð™…¥±ÕÉ”¹µ•ÍÍ…”ñð€‹šr«¦k¢þ‰õ€¤€èlˆ´ƒš^ƒ–’Ç¢Ò—¦†çŽ‰t¤°(€€€€ˆˆ°(€t¹©½¥¸ ‰q¸ˆ¤ì)ô()…Íå¹Œ™Õ¹Ñ¥½¸±…Ñ•ÍÑI•Á½ÉÐ¡±…‰•°¤ì(€ÑÉäì(€€€½¹ÍÐ•¹ÑÉ¥•Ì€ô…Ý…¥ÐÉ•…‘‘¥È¡IA=IQM}I==P°ìÝ¥Ñ¡¥±•QåÁ•ÌèÑÉÕ”ô¤ì(€€€É•ÑÕÉ¸•¹ÑÉ¥•Ì(€€€€€€¹™¥±Ñ•È ¡•¹ÑÉä¤€ôø•¹ÑÉä¹¥Í¥É•Ñ½Éä ¤€˜˜•¹ÑÉä¹¹…µ”¹ÍÑ…ÉÑÍ]¥Ñ ¡€‘íÍ…™•¥±•9…µ”¡±…‰•°¥ôµ€¤¤(€€€€€€¹Ñ½M½ÉÑ• ¡„°ˆ¤€ôøˆ¹¹…µ”¹±½…±•½µÁ…É”¡„¹¹…µ”¤¥lÁtü¹¹…µ”ñð€ˆˆì(€ô…Ñ ì(€€€É•ÑÕÉ¸€ˆˆì(€ô)ô()…Íå¹Œ™Õ¹Ñ¥½¸½µÁ…É•I•Á½ÉÑÌ¡É•Á½ÉÑ¥È°½µÁ…É•1…‰•°°ÕÉÉ•¹ÑI…Ü¤ì(€¥˜€ …½µÁ…É•1…‰•°¤É•ÑÕÉ¸¹Õ±°ì(€½¹ÍÐ¹…µ”€ô…Ý…¥Ð±…Ñ•ÍÑI•Á½ÉÐ¡½µÁ…É•1…‰•°¤ì(€¥˜€ …¹…µ”¤É•ÑÕÉ¸ìÍÑ…ÑÕÌè€‰M-%@ˆ°É•…Í½¸èƒš&û’â7–"À½µÁ…É”ƒš*—–F(€‘í½µÁ…É•1…‰•±õ€ôì(€½¹ÍÐÁÉ•Ù¥½ÕÌ€ô…Ý…¥Ð¥µÁ½ÉÐ ˆ¸½±¥ˆ½½µµ½¸¹µ©Ìˆ¤¹Ñ¡•¸ ¡µ½‘Õ±”¤€ôøµ½‘Õ±”¹É•…‘)Í½¸¡©½¥¸¡IA=IQM}I==P°¹…µ”°€‰É…Ü¹©Í½¸ˆ¤°¹Õ±°¤¤ì(€¥˜€ …ÁÉ•Ù¥½ÕÌ¤É•ÑÕÉ¸ìÍÑ…ÑÕÌè€‰M-%@ˆ°É•…Í½¸è½µÁ…É”ƒš*—–F+žòë–ÂDÉ…Ü¹©Í½¸è€‘í¹…µ•õ€ôì(€½¹ÍÐÕÉÉ•¹Ñ5…À€ô¹•Ü5…À¡µ•ÑÉ¥I½ÝÌ¡ÕÉÉ•¹ÑI…Ü¹Á…•I•½É‘Ì¤¹µ…À ¡É½Ü¤€ôøm€‘íÉ½Ü¹Á…•ô¼‘íÉ½Ü¹Ù¥•ÝÁ½ÉÑô¼‘íÉ½Ü¹Í•¹…É¥½ô¼‘íÉ½Ü¹µ•ÑÉ¥õ€°É½Ü¹Ù…±Õ•t¤¤ì(€½¹ÍÐÁÉ•Ù¥½ÕÍ5…À€ô¹•Ü5…À¡µ•ÑÉ¥I½ÝÌ¡ÁÉ•Ù¥½ÕÌ¹Á…•I•½É‘Ìñðmt¤¹µ…À ¡É½Ü¤€ôøm€‘íÉ½Ü¹Á…•ô¼‘íÉ½Ü¹Ù¥•ÝÁ½ÉÑô¼‘íÉ½Ü¹Í•¹…É¥½ô¼‘íÉ½Ü¹µ•ÑÉ¥õ€°É½Ü¹Ù…±Õ•t¤¤ì(€½¹ÍÐÉ½ÝÌ€ômtì(€™½È€¡½¹ÍÐm­•ä°ÕÉÉ•¹Ñt½˜ÕÉÉ•¹Ñ5…À¤ì(€€€½¹ÍÐÁÉ•Ù¥½ÕÍY…±Õ”€ôÁÉ•Ù¥½ÕÍ5…À¹•Ð¡­•ä¤ì(€€€¥˜€ …9Õµ‰•È¹¥Í¥¹¥Ñ”¡9Õµ‰•È¡ÕÉÉ•¹Ð¤¤ñð€…9Õµ‰•È¹¥Í¥¹¥Ñ”¡9Õµ‰•È¡ÁÉ•Ù¥½ÕÍY…±Õ”¤¤¤½¹Ñ¥¹Õ”ì(€€€½¹ÍÐ‘•±Ñ„€ô9Õµ‰•È¡ÕÉÉ•¹Ð¤€´9Õµ‰•È¡ÁÉ•Ù¥½ÕÍY…±Õ”¤ì(€€€É½ÝÌ¹ÁÕÍ ¡ì­•ä°‰•™½É”èÁÉ•Ù¥½ÕÍY…±Õ”°…™Ñ•ÈèÕÉÉ•¹Ð°‘•±Ñ„°É…Ñ¥¼èÁÉ•Ù¥½ÕÍY…±Õ”€ü‘•±Ñ„€¼9Õµ‰•È¡ÁÉ•Ù¥½ÕÍY…±Õ”¤€è€À°ÍÑ…ÑÕÌè‘•±Ñ„€ø€À€ü€‰]I8ˆ€è€‰AMLˆô¤ì(€ô(€½¹ÍÐµ…É­‘½Ý¸€ôl(€€€€Œƒ¦ª3¢¾–¾çš¾S¾òh‘í½µÁ…É•1…‰•±ôƒŠH€‘íÕÉÉ•¹ÑI…Ü¹±…‰•±õ€°(€€€€ˆˆ°(€€€€´ƒ–~ëžêÿš*—–F+¾òh‘í¹…µ•õ€°(€€€€ˆ´ƒš¶–ó’î¢†£šVÃ–ó–Š{–*ƒ¾òo–¾ç’ê81@½Q	P½1L¿’öOžž¼¿¢¾ßšÆšVÃ¦k–âãš?–FÏžv–*–2[¾ò3¢¾ßžîO–B#¦Šžº_–"“–ºkŽˆ°(€€€€ˆˆ°(€€€€‰ðƒ¦R¸ðƒšRç–&4ðƒšRç–B8ðƒ–>c–2[¦<ðƒ–>c–2[š¾S’ú,ðƒ–"“–ºhðˆ°(€€€€‰ð€´´´ð€´´´èð€´´´èð€´´´èð€´´´èð€´´´ðˆ°(€€€€¸¸¹É½ÝÌ¹µ…À ¡É½Ü¤€ôøð€‘íÉ½Ü¹­•åôð€‘íÉ½Ü¹‰•™½É•ôð€‘íÉ½Ü¹…™Ñ•Éôð€‘íÉ½Õ¹¡É½Ü¹‘•±Ñ„°€Ì¥ôð€‘ì¡É½Ü¹É…Ñ¥¼€¨€ÄÀÀ¤¹Ñ½¥á• È¥ô”ð€‘íÉ½Ü¹ÍÑ…ÑÕÍôñ€¤°(€€€€ˆˆ°(€t¹©½¥¸ ‰q¸ˆ¤ì(€…Ý…¥ÐÝÉ¥Ñ•Q•áÐ¡©½¥¸¡É•Á½ÉÑ¥È°€‰‘¥™˜¹µˆ¤°µ…É­‘½Ý¸¤ì(€É•ÑÕÉ¸ìÍÑ…ÑÕÌè€‰AMLˆ°½µÁ…É•è¹…µ”°É½ÝÌôì)ô()…Íå¹Œ™Õ¹Ñ¥½¸…ÁÁ•¹‘!¥ÍÑ½Éä¡É•½É‘Ì°‰Õ‘•ÑI½ÝÍY…±Õ”°É•Á½ÉÑ%°¥Ð¤ì(€…Ý…¥Ð•¹ÍÕÉ•¥È¡!%MQ=Ie}I==P¤ì(€½¹ÍÐ±¥¹•Ì€ôÉ•½É‘Ì¹µ…À ¡É•½É¤€ôø)M=8¹ÍÑÉ¥¹¥™ä¡ì(€€€Ñ¥µ•ÍÑ…µÀè¹½Ý%Í¼ ¤°(€€€½µµ¥Ðè¥Ð¹½µµ¥Ð°(€€€‰É…¹ è¥Ð¹‰É…¹ °(€€€ÁÈè¥Ð¹ÁÈ°(€€€Ñ¥Ñ±”è¥Ð¹Ñ¥Ñ±”°(€€€…ÕÑ¡½Èè¥Ð¹…ÕÑ¡½È°(€€€Á…”èÉ•½É¹Á…”°(€€€Ù¥•ÝÁ½ÉÐèÉ•½É¹Ù¥•ÝÁ½ÉÐ°(€€€Í•¹…É¥¼èÉ•½É¹Í•¹…É¥¼°(€€€‘ÁÈèÉ•½É¹Ù¥•ÝÁ½ÉÑ9…µ”€ôôô€‰µ½‰¥±”´ÌäÀˆ€ü€¡M9I%=MmÉ•½É¹Í•¹…É¥½tü¹‘ÁÈñð€Ä¤€è€Ä°(€€€™¥ÉÍÑMÉ••¹-èÉ•½É¹µ•ÑÉ¥Ìü¹™¥ÉÍÑMÉ••¹-€üü¹Õ±°°(€€€Ñ½Ñ…±-èÉ•½É¹µ•ÑÉ¥Ìü¹Ñ½Ñ…±-€üü¹Õ±°°(€€€1@èÉ•½É¹µ•ÑÉ¥Ìü¹1@€üüÉ•½É¹±¥¡Ñ¡½ÕÍ”ü¹µ•ÑÉ¥Ìü¹1@€üü¹Õ±°°(€€€1LèÉ•½É¹µ•ÑÉ¥Ìü¹1L€üüÉ•½É¹±¥¡Ñ¡½ÕÍ”ü¹µ•ÑÉ¥Ìü¹1L€üü¹Õ±°°(€€€Q	PèÉ•½É¹µ•ÑÉ¥Ìü¹Q	P€üüÉ•½É¹±¥¡Ñ¡½ÕÍ”ü¹µ•ÑÉ¥Ìü¹Q	P€üü¹Õ±°°(€€€¥µ…•M¡…É”èÉ•½É¹µ•ÑÉ¥Ìü¹¥µ…•M¡…É”€üü¹Õ±°°(€€€É•ÅÕ•ÍÑÌèÉ•½É¹µ•ÑÉ¥Ìü¹É•ÅÕ•ÍÑÌ€üü¹Õ±°°(€€€©Í½¹1‘A…ÍÍI…Ñ”èÉ•½É¹Í¡•µ„ü¹Í¡•µ…MÕµµ…Éäü¹±•¹Ñ €üÉ•½É¹Í¡•µ„¹Í¡•µ…MÕµµ…Éä¹É•‘Õ” ¡ÍÕ´°¥Ñ•´¤€ôøÍÕ´€¬¥Ñ•´¹½Ù•É…”°€À¤€¼É•½É¹Í¡•µ„¹Í¡•µ…MÕµµ…Éä¹±•¹Ñ €è¹Õ±°°(€€€Í¥Ñ•µ…Á	åÑ•ÌèÉ•½É¹Í¥Ñ•µ…Á	åÑ•Ì€üü¹Õ±°°(€€€€Ù¥ÍÕ…±¥™™I…Ñ¥¼èÉ•½É¹Ù¥ÍÕ…±¥™™I…Ñ¥¼€üü¹Õ±°°(€€€€½¹ÑÉ¥‰ÕÑ¥½¸è€¡É•½É¹½¹ÑÉ¥‰ÕÑ¥½¸ñðmt¤(€€€€€€€¹Ñ½M½ÉÑ• ¡„°ˆ¤€ôø9Õµ‰•È¡ˆ¹ÑÉ…¹Í™•É-ñð€À¤€´9Õµ‰•È¡„¹ÑÉ…¹Í™•É-ñð€À¤¤(€€€€€€€¹Í±¥” À°€ÄÀ¤(€€€€€€€¹µ…À ¡¥Ñ•´¤€ôø€¡ì…Ñ•½Éäè¥Ñ•´¹…Ñ•½Éä°ÑÉ…¹Í™•É-èÉ½Õ¹¡¥Ñ•´¹ÑÉ…¹Í™•É-°€È¤°Í¡…É”è¥Ñ•´¹Í¡…É”ô¤¤°(€€€€‰Õ‘•Ðè‰Õ‘•ÑI½ÝÍY…±Õ”¹™¥±Ñ•È ¡É½Ü¤€ôøÉ½Ü¹Á…”€ôôôÉ•½É¹Á…”€˜˜É½Ü¹Ù¥•ÝÁ½ÉÐ€ôôôÉ•½É¹Ù¥•ÝÁ½ÉÐ€˜˜É½Ü¹Í•¹…É¥¼€ôôôÉ•½É¹Í•¹…É¥¼¤¹•Ù•Éä ¡É½Ü¤€ôøÉ½Ü¹ÍÑ…ÑÕÌ€ôôô€‰AMLˆ¤°(€€€Í¹…ÁÍ¡½Ñ%èÁÉ½•ÍÌ¹•¹Ø¹=AQ}M9AM!=Q}%ñð€ˆˆ°(€€€É•Á½ÉÑ%°(€ô¤¤ì(€…Ý…¥Ð…ÁÁ•¹‘¥±”¡©½¥¸¡!%MQ=Ie}I==P°€‰µ•ÑÉ¥Ì¹©Í½¹°ˆ¤°€‘í±¥¹•Ì¹©½¥¸ ‰q¸ˆ¥õq¹€°€‰ÕÑ˜àˆ¤ì)ô()…Íå¹Œ™Õ¹Ñ¥½¸ÝÉ¥Ñ•I•ÁÉ¼¡É•Á½ÉÑ¥È°±…‰•°°‰…Í•UÉ°¤ì(€½¹ÍÐÍÉ¥ÁÐ€ô€Œ„½ÕÍÈ½‰¥¸½•¹Ø‰…Í¡q¹Í•Ð€µ•Õ¼Á¥Á•™…¥±q¹	M}UI0ôˆ‘íÍ…¹¥Ñ¥é•=É¥¥¸¡‰…Í•UÉ°¥ô‰q¹1	0ô‰É•ÁÉ¼´¡‘…Ñ”€¬•d•´•´• •4•L¤‰q¹q¹¥˜ml€µ¸€ˆ‘ìœ‘í=AQ}	M}UI0èµôôˆutìÑ¡•¸	M}UI0ôˆ‘ìœ‘í=AQ}	M}UI1ôôˆì™¥q¹¹½‘”€´µÙ•ÉÍ¥½¹q¹¹Á´€´µÙ•ÉÍ¥½¹q¹•¡¼€‰I•ÁÉ½‘Õ¥¹œ€‘í±…‰•±ô…Ð€‘ìœ‘í	M}UI1ôô‰q¹¹Á´ÉÕ¸½ÁÐéÙ•É¥™ä€´´€´µ±…‰•°€ˆ‘ìœ‘í1	1ôôˆ€´µ‰…Í”µÕÉ°€ˆ‘ìœ‘í	M}UI1ôôˆ€ˆ‘ìœ‘íôô‰q¹€ì(€…Ý…¥ÐÝÉ¥Ñ•Q•áÐ¡©½¥¸¡É•Á½ÉÑ¥È°€‰É•ÁÉ¼¹Í ˆ¤°ÍÉ¥ÁÐ¤ì)ô()…Íå¹Œ™Õ¹Ñ¥½¸µ…¥¸ ¤ì(€½¹ÍÐ…ÉÌ€ôÁ…ÉÍ•ÉÌ ¤ì(€½¹ÍÐ±…‰•°€ôMÑÉ¥¹œ¡…ÉÌ¹±…‰•°ñð€‰‰•™½É”ˆ¤ì(€½¹ÍÐ‰…Í•UÉ°€ôMÑÉ¥¹œ¡…ÉÍl‰‰…Í”µÕÉ°‰tñðÁÉ½•ÍÌ¹•¹Ø¹=AQ}	M}UI0ñðU1Q}	M}UI0¤¹É•Á±…” ½p¼¼°€ˆˆ¤ì(€½¹ÍÐÍ•±•Ñ•‘A…•Ì€ôÁ…•9…µ•Ì¡…ÉÌ¤ì(€½¹ÍÐµ½‘•Ì€ôÉ•ÅÕ•ÍÑ•‘Y¥•ÝÁ½ÉÑ5½‘•Ì¡…ÉÌ¤ì(€½¹ÍÐÍ•¹…É¥½9…µ”€ôMÑÉ¥¹œ¡…ÉÌ¹Í•¹…É¥¼ñð€‰™…ÍÐˆ¤ì(€½¹ÍÐÉ•Á½ÉÑ¥È€ô…Ý…¥ÐÉ•…Ñ•I•Á½ÉÑ¥É•Ñ½Éä¡±…‰•°¤ì(€½¹ÍÐÉ•Á½ÉÑ%€ôÉ•Á½ÉÑ¥È¹ÍÁ±¥Ð ½mqp½t¼¤¹Á½À ¤ì(€½¹ÍÐ¥Ð€ô¥Ñ5•Ñ…‘…Ñ„¡AI=)Q}I==P¤ì(€½¹ÍÐÁ…•I•½É‘Ì€ômtì(€½¹ÍÐ±¥¡Ñ¡½ÕÍ•IÕ¹Ì€ômtì(€½¹ÍÐ™…¥±ÕÉ•Ì€ômtì(€½¹ÍÐ‰Õ‘•Ñ½¹™¥œ€ô…Ý…¥Ð±½…‘	Õ‘•Ð ¤ì(€±•Ð‰É½ÝÍ•Èì(€±•Ð‰É½ÝÍ•ÉÉÉ½È€ô¹Õ±°ì(€ÑÉäì(€€€‰É½ÝÍ•È€ô…Ý…¥Ð¡É½µ¥Õ´¹±…Õ¹ ¡ì¡•…‘±•ÍÌèÑÉÕ”°•á•ÕÑ…‰±•A…Ñ èÁÉ½•ÍÌ¹•¹Ø¹=AQ}!I=5}AQ ñð¡É½µ¥Õ´¹•á•ÕÑ…‰±•A…Ñ  ¤ô¤ì(€ô…Ñ €¡•ÉÉ½È¤ì(€€€‰É½ÝÍ•ÉÉÉ½È€ôMÑÉ¥¹œ¡•ÉÉ½È¤ì(€€€™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰%0ˆ°Í½Á”è€‰‰É½ÝÍ•Èˆ°É•…Í½¸è¡É½µ¥Õ´ƒ–B¿–*£–’Ç¢Ò”è€‘í‰É½ÝÍ•ÉÉÉ½Éõ€ô¤ì(€ô((€™½È€¡½¹ÍÐÁ…•%¹™¼½˜Í•±•Ñ•‘A…•Ì¤ì(€€€½¹ÍÐÁ…Ñ €ôÁ…•%¹™¼¹…ÉÑ¥±”€ü…Ý…¥Ð‘¥Í½Ù•ÉÉÑ¥±•A…Ñ ¡‰…Í•UÉ°°…ÉÌ¹…ÉÑ¥±”ñð€ˆˆ¤€èÁ…•%¹™¼¹Á…Ñ ì(€€€™½È€¡½¹ÍÐµ½‘”½˜µ½‘•Ì¤ì(€€€€€¥˜€ …‰É½ÝÍ•È¤‰É•…¬ì(€€€€€½¹ÍÐÉ•½É€ô…Ý…¥Ð½±±•Ñ	É½ÝÍ•ÉA…”¡ì‰É½ÝÍ•È°‰…Í•UÉ°°Á…•%¹™¼°Á…Ñ °Ù¥•ÝÁ½ÉÑ5½‘•Y…±Õ”èµ½‘”°Í•¹…É¥½9…µ”ô¤ì(€€€€€Á…•I•½É‘Ì¹ÁÕÍ ¡É•½É¤ì(€€€€€¥˜€¡É•½É¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌèÉ•½É¹ÍÑ…ÑÕÌ°Í½Á”è€‘íÉ•½É¹Á…•ô¼‘íµ½‘•õ€°É•…Í½¸èÉ•½É¹É•…Í½¸ô¤ì(€€€€€¥˜€¡É•½É¹¥µ…•!•…±Ñ ü¹µ¥ÍÍ¥¹±Ðü¹±•¹Ñ ¤™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰%0ˆ°Í½Á”è€‘íÉ•½É¹Á…•ô¼‘íµ½‘•ô½…±Ñ€°É•…Í½¸èƒžòë–ÂD…±Ð€‘íÉ•½É¹¥µ…•!•…±Ñ ¹µ¥ÍÍ¥¹±Ð¹±•¹Ñ¡ôƒ’â©€°¥Ñ•µÌèÉ•½É¹¥µ…•!•…±Ñ ¹µ¥ÍÍ¥¹±Ðô¤ì(€€€€€¥˜€¡É•½É¹¥µ…•!•…±Ñ ü¹µ¥ÍÍ¥¹¥µ•¹Í¥½¹Ìü¹±•¹Ñ ¤™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰%0ˆ°Í½Á”è€‘íÉ•½É¹Á…•ô¼‘íµ½‘•ô½‘¥µ•¹Í¥½¹Í€°É•…Í½¸èƒžòë–ÂG–º÷¦®`€‘íÉ•½É¹¥µ…•!•…±Ñ ¹µ¥ÍÍ¥¹¥µ•¹Í¥½¹Ì¹±•¹Ñ¡ôƒ’â©€°¥Ñ•µÌèÉ•½É¹¥µ…•!•…±Ñ ¹µ¥ÍÍ¥¹¥µ•¹Í¥½¹Ìô¤ì(€€€€€¥˜€¡É•½É¹¥µ…•!•…±Ñ ü¹‰É½­•¸ü¹±•¹Ñ ¤™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰%0ˆ°Í½Á”è€‘íÉ•½É¹Á…•ô¼‘íµ½‘•ô½¥µ…•Í€°É•…Í½¸èƒ–nûž&!QQ@ƒ–’Ç¢Ò”€‘íÉ•½É¹¥µ…•!•…±Ñ ¹‰É½­•¸¹±•¹Ñ¡ôƒ’â©€°¥Ñ•µÌèÉ•½É¹¥µ…•!•…±Ñ ¹‰É½­•¸ô¤ì(€€€€€¥˜€¡É•½É¹¥µ…•!•…±Ñ ü¹¹½¹5½‘•É¸ü¹±•¹Ñ ¤™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰]I8ˆ°Í½Á”è€‘íÉ•½É¹Á…•ô¼‘íµ½‘•ô½µ½‘•É¸µ¥µ…•Í€°É•…Í½¸èƒ¦v{ž:Ã’î–nûž&š‚ó–ò<€‘íÉ•½É¹¥µ…•!•…±Ñ ¹¹½¹5½‘•É¸¹±•¹Ñ¡ôƒ’â©€°¥Ñ•µÌèÉ•½É¹¥µ…•!•…±Ñ ¹¹½¹5½‘•É¸ô¤ì((€€€€€¥˜€¡1%!Q!=UM}AL¹¡…Ì¡Á…•%¹™¼¹¹…µ”¤¤ì(€€€€€€€½¹ÍÐ±¥¡Ñ¡½ÕÍ”€ô…Ý…¥ÐÉÕ¹1¥¡Ñ¡½ÕÍ•5•‘¥…¸¡ìÉ•Á½ÉÑ¥È°ÕÉ°èÉ•½É¹ÕÉ°°µ½‘”°±…‰•°è€‘íÁ…•%¹™¼¹­•åô´‘íµ½‘•õ€ô¤ì(€€€€€€€±¥¡Ñ¡½ÕÍ”¹Á…”€ôÁ…•%¹™¼¹¹…µ”ì(€€€€€€€±¥¡Ñ¡½ÕÍ•IÕ¹Ì¹ÁÕÍ ¡±¥¡Ñ¡½ÕÍ”¤ì(€€€€€€€É•½É¹±¥¡Ñ¡½ÕÍ”€ô±¥¡Ñ¡½ÕÍ”ì(€€€€€€€¥˜€¡±¥¡Ñ¡½ÕÍ”¹ÍÑ…ÑÕÌ€„ôô€‰%0ˆ€˜˜±¥¡Ñ¡½ÕÍ”¹µ•ÑÉ¥Ì¤ì(€€€€€€€€€É•½É¹µ•ÑÉ¥Ì€ôì€¸¸¹É•½É¹µ•ÑÉ¥Ì°€¸¸¹±¥¡Ñ¡½ÕÍ”¹µ•ÑÉ¥Ìôì(€€€€€€€ô(€€€€€€€¥˜€¡±¥¡Ñ¡½ÕÍ”¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤ì(€€€€€€€€€™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰%0ˆ°Í½Á”è±¥¡Ñ¡½ÕÍ”¼‘íÁ…•%¹™¼¹¹…µ•ô¼‘íµ½‘•õ€°É•…Í½¸è±¥¡Ñ¡½ÕÍ”¹•ÉÉ½Èñð€‰1¥¡Ñ¡½ÕÍ”ƒ–’Ç¢Ò”ˆô¤ì(€€€€€€€ô•±Í”¥˜€¡±¥¡Ñ¡½ÕÍ”¹ÍÑ…ÑÕÌ€ôôô€‰]I8ˆ¤ì(€€€€€€€€€™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰]I8ˆ°Í½Á”è±¥¡Ñ¡½ÕÍ”¼‘íÁ…•%¹™¼¹¹…µ•ô¼‘íµ½‘•õ€°É•…Í½¸è€‰1¥¡Ñ¡½ÕÍ”ƒ’â'š²‡¦š‚ßšr«–£¦£š"C–*¾ò3’öÿžR£–>¿žR£š‚ßšr³’â·’ö7šVÀˆô¤ì(€€€€€€€ô(€€€€€ô(€€€ô(€ô(€¥˜€¡‰É½ÝÍ•È¤…Ý…¥Ð‰É½ÝÍ•È¹±½Í” ¤ì(€¥˜€ …‰É½ÝÍ•È€˜˜€…‰É½ÝÍ•ÉÉÉ½È¤™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰%0ˆ°Í½Á”è€‰‰É½ÝÍ•Èˆ°É•…Í½¸è€‹šÊ‡šr'–>¿žR£šÖ?¢ž#–f ˆô¤ì((€½¹ÍÐÍ¡•µ…I•ÍÕ±ÑÌ€ômtì(€™½È€¡½¹ÍÐÉ•½É½˜Á…•I•½É‘Ì¹™¥±Ñ•È ¡¥Ñ•´¤€ôø¥Ñ•´¹ÍÑ…ÑÕÌ€„ôô€‰%0ˆ¤¤ì(€€€ÑÉäì(€€€€€½¹ÍÐÉ•ÍÁ½¹Í”€ô…Ý…¥Ð™•Ñ¡]¥Ñ¡Q¥µ•½ÕÐ¡É•½É¹ÕÉ°°íô°€ÈÁ|ÀÀÀ¤ì(€€€€€½¹ÍÐ¡Ñµ°€ô…Ý…¥ÐÉ•ÍÁ½¹Í”¹Ñ•áÐ ¤ì(€€€€€½¹ÍÐÍ¡•µ„€ô…Ý…¥ÐÙ…±¥‘…Ñ•)Í½¹1¡ì¡Ñµ°°Á…•UÉ°èÉ•½É¹ÕÉ°°‰…Í•UÉ°°¡•­%µ…•Ìè€…¡…Í±…œ¡…ÉÌ°€‰Í­¥Àµ¥µ…”µ¡ÑÑÀˆ¤ô¤ì(€€€€€É•½É¹Í¡•µ„€ôÍ¡•µ„ì(€€€€€Í¡•µ…I•ÍÕ±ÑÌ¹ÁÕÍ ¡Í¡•µ„¤ì(€€€€€¥˜€¡Í¡•µ„¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰%0ˆ°Í½Á”èÍ¡•µ„¼‘íÉ•½É¹Á…•õ€°É•…Í½¸è€‘íÍ¡•µ„¹¥ÍÍÕ•Ì¹±•¹Ñ¡ôƒšv„)M=8µ1½…¹½¹¥…°ƒ¦^»¦Ša€°¥Ñ•µÌèÍ¡•µ„¹¥ÍÍÕ•Ìô¤ì(€€€€€•±Í”¥˜€¡Í¡•µ„¹ÍÑ…ÑÕÌ€ôôô€‰]I8ˆ¤™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰]I8ˆ°Í½Á”èÍ¡•µ„¼‘íÉ•½É¹Á…•õ€°É•…Í½¸è€‘íÍ¡•µ„¹¥ÍÍÕ•Ì¹±•¹Ñ¡ôƒšv„)M=8µ1ƒ¢¶›–F)€°¥Ñ•µÌèÍ¡•µ„¹¥ÍÍÕ•Ìô¤ì(€€€ô…Ñ €¡•ÉÉ½È¤ì(€€€€€™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰%0ˆ°Í½Á”èÍ¡•µ„¼‘íÉ•½É¹Á…•õ€°É•…Í½¸èMÑÉ¥¹œ¡•ÉÉ½È¤ô¤ì(€€€ô(€ô(€½¹ÍÐ½µ‰¥¹•‘M¡•µ„€ôì(€€€ÍÑ…ÑÕÌèÍ¡•µ…I•ÍÕ±ÑÌ¹Í½µ” ¡¥Ñ•´¤€ôø¥Ñ•´¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤€ü€‰%0ˆ€èÍ¡•µ…I•ÍÕ±ÑÌ¹Í½µ” ¡¥Ñ•´¤€ôø¥Ñ•´¹ÍÑ…ÑÕÌ€ôôô€‰]I8ˆ¤€ü€‰]I8ˆ€èÍ¡•µ…I•ÍÕ±ÑÌ¹±•¹Ñ €ü€‰AMLˆ€è€‰M-%@ˆ°(€€€Á…•ÌèÍ¡•µ…I•ÍÕ±ÑÌ°(€€€Í¡•µ…MÕµµ…ÉäèÍ¡•µ…I•ÍÕ±ÑÌ¹™±…Ñ5…À ¡¥Ñ•´¤€ôø¥Ñ•´¹Í¡•µ…MÕµµ…Éäñðmt¤°(€€€¥ÍÍÕ•ÌèÍ¡•µ…I•ÍÕ±ÑÌ¹™±…Ñ5…À ¡¥Ñ•´¤€ôø¥Ñ•´¹¥ÍÍÕ•Ìñðmt¤°(€ôì((€½¹ÍÐÍ¥Ñ•µ…ÁI•ÍÕ±Ð€ô…Ý…¥ÐÙ…±¥‘…Ñ•M¥Ñ•µ…À¡ì‰…Í•UÉ°°•áÁ•Ñ•‘A…Ñ¡ÌèMQQ%}M%Q5A}AQ!Lô¤ì(€¥˜€¡Í¥Ñ•µ…ÁI•ÍÕ±Ð¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰%0ˆ°Í½Á”è€‰Í¥Ñ•µ…Àˆ°É•…Í½¸èÍ¥Ñ•µ…ÁI•ÍÕ±Ð¹™…¥±ÕÉ•Ì¹µ…À ¡¥Ñ•´¤€ôø¥Ñ•´¹É•…Í½¸¤¹©½¥¸ ‹¾òlˆ¤ô¤ì(€•±Í”¥˜€¡Í¥Ñ•µ…ÁI•ÍÕ±Ð¹ÍÑ…ÑÕÌ€ôôô€‰]I8ˆ¤™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰]I8ˆ°Í½Á”è€‰Í¥Ñ•µ…Àˆ°É•…Í½¸èÍ¥Ñ•µ…ÁI•ÍÕ±Ð¹Ý…É¹¥¹Ì¹µ…À ¡¥Ñ•´¤€ôø¥Ñ•´¹É•…Í½¸¤¹©½¥¸ ‹¾òlˆ¤ô¤ì(€™½È€¡½¹ÍÐÉ•½É½˜Á…•I•½É‘Ì¤É•½É¹Í¥Ñ•µ…Á	åÑ•Ì€ôÍ¥Ñ•µ…ÁI•ÍÕ±Ð¹É½½Ðü¹‰åÑ•Ì€üü¹Õ±°ì(€½¹ÍÐÉ½‰½ÑÍI•ÍÕ±Ð€ô…Ý…¥Ð€¡…Íå¹Œ€ ¤€ôøì(€€€ÑÉäì(€€€€€½¹ÍÐÉ•ÍÁ½¹Í”€ô…Ý…¥Ð™•Ñ¡]¥Ñ¡Q¥µ•½ÕÐ¡É•Í½±Ù•UÉ°¡‰…Í•UÉ°°€ˆ½É½‰½ÑÌ¹ÑáÐˆ¤°íô°€ÄÕ|ÀÀÀ¤ì(€€€€€½¹ÍÐÑ•áÐ€ô…Ý…¥ÐÉ•ÍÁ½¹Í”¹Ñ•áÐ ¤ì(€€€€€½¹ÍÐ½¬€ôÉ•ÍÁ½¹Í”¹½¬€˜˜€½UÍ•Èµ…•¹ÐéqÌ©p¨½¤¹Ñ•ÍÐ¡Ñ•áÐ¤€˜˜€½M¥Ñ•µ…ÀéqÌ©qL¬½¤¹Ñ•ÍÐ¡Ñ•áÐ¤€˜˜€„½¥Í…±±½ÜéqÌ©p½qÌ¨½¥´¹Ñ•ÍÐ¡Ñ•áÐ¤ì(€€€€€É•ÑÕÉ¸ìÍÑ…ÑÕÌè½¬€ü€‰AMLˆ€è€‰%0ˆ°½‘”èÉ•ÍÁ½¹Í”¹ÍÑ…ÑÕÌ°‰½‘äèÑ•áÐ¹É•Á±…” ½¡ÑÑÁÌüép½p½myqÌ½t¬½¤°€‰m½É¥¥¹tˆ¤ôì(€€€ô…Ñ €¡•ÉÉ½È¤ì(€€€€€É•ÑÕÉ¸ìÍÑ…ÑÕÌè€‰%0ˆ°É•…Í½¸èMÑÉ¥¹œ¡•ÉÉ½È¤ôì(€€€ô(€ô¤ ¤ì(€¥˜€¡É½‰½ÑÍI•ÍÕ±Ð¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰%0ˆ°Í½Á”è€‰É½‰½ÑÌ¹ÑáÐˆ°É•…Í½¸èÉ½‰½ÑÍI•ÍÕ±Ð¹É•…Í½¸ñð!QQ@€‘íÉ½‰½ÑÍI•ÍÕ±Ð¹½‘•õ€ô¤ì((€½¹ÍÐ‰…Í•±¥¹”€ô€…‰Õ‘•Ñ½¹™¥œ¹•™™•Ñ¥Ù”ì(€½¹ÍÐ•™™•Ñ¥Ù•	Õ‘•Ð€ô‰…Í•±¥¹”€ü•™™•Ñ¥Ù•	Õ‘•Ñ½È¡‰Õ‘•Ñ½¹™¥œ¹½¹™¥ÕÉ•°Á…•I•½É‘Ì¤€è‰Õ‘•Ñ½¹™¥œ¹•™™•Ñ¥Ù”ì(€½¹ÍÐ‰Õ‘•ÑI½ÝÍY…±Õ”€ô‰Õ‘•ÑI½ÝÌ¡Á…•I•½É‘Ì°•™™•Ñ¥Ù•	Õ‘•Ð°‰…Í•±¥¹”¤ì(€¥˜€ …‰…Í•±¥¹”¤ì(€€€™…¥±ÕÉ•Ì¹ÁÕÍ  ¸¸¹‰Õ‘•ÑI½ÝÍY…±Õ”¹™¥±Ñ•È ¡É½Ü¤€ôøÉ½Ü¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤¹µ…À ¡É½Ü¤€ôø€¡ìÍÑ…ÑÕÌè€‰%0ˆ°Í½Á”è‰Õ‘•Ð¼‘íÉ½Ü¹Á…•ô¼‘íÉ½Ü¹Ù¥•ÝÁ½ÉÑô¼‘íÉ½Ü¹µ•ÑÉ¥õ€°É•…Í½¸è€‘íÉ½Ü¹…ÑÕ…±ô€ø€‘íÉ½Ü¹‰Õ‘•Ñ÷¾ò ‘ì¡9Õµ‰•È¡É½Ü¹É…Ñ¥¼¤€¨€ÄÀÀ¤¹Ñ½¥á• Ä¥ô—¾ò%€°µ•ÑÉ¥ŒèÉ½Ü¹µ•ÑÉ¥Œô¤¤¤ì(€€€™…¥±ÕÉ•Ì¹ÁÕÍ  ¸¸¹‰Õ‘•ÑI½ÝÍY…±Õ”¹™¥±Ñ•È ¡É½Ü¤€ôøÉ½Ü¹ÍÑ…ÑÕÌ€ôôô€‰]I8ˆ¤¹µ…À ¡É½Ü¤€ôø€¡ìÍÑ…ÑÕÌè€‰]I8ˆ°Í½Á”è‰Õ‘•Ð¼‘íÉ½Ü¹Á…•ô¼‘íÉ½Ü¹Ù¥•ÝÁ½ÉÑô¼‘íÉ½Ü¹µ•ÑÉ¥õ€°É•…Í½¸è€‘íÉ½Ü¹…ÑÕ…±ô€ø€‘íÉ½Ü¹‰Õ‘•Ñ÷¾ò#¢¶›š"K¾ò%€°µ•ÑÉ¥ŒèÉ½Ü¹µ•ÑÉ¥Œô¤¤¤ì(€ô(€…Ý…¥Ð•¹ÍÕÉ•¥È¡!%MQ=Ie}I==P¤ì(€¥˜€¡‰…Í•±¥¹”¤…Ý…¥ÐÝÉ¥Ñ•)Í½¸¡‰Õ‘•Ñ½¹™¥œ¹•™™•Ñ¥Ù•¥±”°•™™•Ñ¥Ù•	Õ‘•Ð¤ì((€½¹ÍÐ¥µ…•Y½±Õµ”€ô…Ý…¥Ð±½…‘%µ…•Y½±Õµ•I•Á½ÉÐ ¤ì(€¥µ…•Y½±Õµ”¹Á…•Ì€ôÁ…•%µ…•Y½±Õµ”¡Á…•I•½É‘Ì¤ì(€¥˜€¡¥µ…•Y½±Õµ”¹ÍÑ…ÑÕÌ€ôôô€‰]I8ˆ¤ì(€€€™…¥±ÕÉ•Ì¹ÁÕÍ ¡ìÍÑ…ÑÕÌè€‰]I8ˆ°Í½Á”è€‰¥µ…•Ìˆ°É•…Í½¸èƒ–nûž&šÒûžRš*—–F+–¶c–r €‘í¥µ…•Y½±Õµ”¹½Ù•ÉQ¡É•Í¡½±ü¹±•¹Ñ ñð€Áôƒ¦†ç¢Úš‚š"X€‘í¥µ…•Y½±Õµ”¹…‰…¹‘½¹•ü¹±•¹Ñ ñð€Áôƒ¦†ç¢Ò’òc–2[šRû–ò€ô¤ì(€ô((€½¹ÍÐÉ…Ü€ôì(€€€±…‰•°°(€€€É•Á½ÉÑ%°(€€€•¹•É…Ñ•‘Ðè¹½Ý%Í¼ ¤°(€€€‰…Í•UÉ°èÍ…¹¥Ñ¥é•=É¥¥¸¡‰…Í•UÉ°¤°(€€€¥Ð°(€€€•¹Øèì¹½‘”èÁÉ½•ÍÌ¹Ù•ÉÍ¥½¸°Á±…Ñ™½É´èÁÉ½•ÍÌ¹Á±…Ñ™½É´°…É èÁÉ½•ÍÌ¹…É °¤è	½½±•…¸¡ÁÉ½•ÍÌ¹•¹Ø¹$¤°Í•¹…É¥¼èÍ•¹…É¥½9…µ”°Ù¥•ÝÁ½ÉÑ5½‘•Ìèµ½‘•Ìô°(€€€Á…•I•½É‘Ì°(€€€±¥¡Ñ¡½ÕÍ•IÕ¹Ì°(€€€Í¡•µ„è½µ‰¥¹•‘M¡•µ„°(€€€Í¥Ñ•µ…ÀèÍ¥Ñ•µ…ÁI•ÍÕ±Ð°(€€€É½‰½ÑÌèÉ½‰½ÑÍI•ÍÕ±Ð°(€€€¥µ…•Y½±Õµ”°(€€€‰Õ‘•Ðèì‰…Í•±¥¹”°½¹™¥ÕÉ•è‰Õ‘•Ñ½¹™¥œ¹½¹™¥ÕÉ•°•™™•Ñ¥Ù”è•™™•Ñ¥Ù•	Õ‘•Ð°É½ÝÌè‰Õ‘•ÑI½ÝÍY…±Õ”ô°(€€€™…¥±ÕÉ•Ì°(€ôì(€…Ý…¥ÐÝÉ¥Ñ•)Í½¸¡©½¥¸¡É•Á½ÉÑ¥È°€‰É…Ü¹©Í½¸ˆ¤°Í…¹¥Ñ¥é•I•Á½ÉÑY…±Õ”¡É…Ü¤¤ì(€…Ý…¥ÐÝÉ¥Ñ•Q•áÐ¡©½¥¸¡É•Á½ÉÑ¥È°€‰µ•ÑÉ¥Ì¹ÍØˆ¤°Ñ½ÍØ¡µ•ÑÉ¥I½ÝÌ¡Á…•I•½É‘Ì¤°l‰Á…”ˆ°€‰Ù¥•ÝÁ½ÉÐˆ°€‰Í•¹…É¥¼ˆ°€‰µ•ÑÉ¥Œˆ°€‰Ù…±Õ”‰t¤¤ì(€…Ý…¥ÐÝÉ¥Ñ•Q•áÐ¡©½¥¸¡É•Á½ÉÑ¥È°€‰É•Í½ÕÉ•Ì¹ÍØˆ¤°Ñ½ÍØ¡É•Í½ÕÉ•I½ÝÌ¡Á…•I•½É‘Ì¤°l‰Á…”ˆ°€‰Ù¥•ÝÁ½ÉÐˆ°€‰Í•¹…É¥¼ˆ°€‰ÕÉ°ˆ°€‰ÑåÁ”ˆ°€‰…Ñ•½Éäˆ°€‰ÑÉ…¹Í™•É-ˆ°€‰ÍÑ…ÑÕÌˆ°€‰™¥ÉÍÑMÉ••¸ˆ°€‰Ñ¡¥É‘A…ÉÑäˆ°€‰…¡•!¥Ð‰t¤¤ì(€…Ý…¥ÐÝÉ¥Ñ•Q•áÐ¡©½¥¸¡É•Á½ÉÑ¥È°€‰‰Õ‘•Ð¹ÍØˆ¤°Ñ½ÍØ¡‰Õ‘•ÑI½ÝÍY…±Õ”°l‰Á…”ˆ°€‰Ù¥•ÝÁ½ÉÐˆ°€‰Í•¹…É¥¼ˆ°€‰µ•ÑÉ¥Œˆ°€‰‰Õ‘•Ðˆ°€‰…ÑÕ…°ˆ°€‰‘¥™™•É•¹”ˆ°€‰É…Ñ¥¼ˆ°€‰ÍÑ…ÑÕÌ‰t¤¤ì(€½¹ÍÐÍ¡•µ…I½ÝÌ€ô½µ‰¥¹•‘M¡•µ„¹Á…•Ì¹™±…Ñ5…À ¡¥Ñ•´¤€ôø€¡¥Ñ•´¹¥ÍÍÕ•Ìñðmt¤¹µ…À ¡¥ÍÍÕ”¤€ôø€¡ìÁ…”èÉ•‘…ÑUÉ°¡¥Ñ•´¹Á…•UÉ°¤°ÑåÁ”è¥ÍÍÕ”¹ÑåÁ”°Á…Ñ è¥ÍÍÕ”¹Á…Ñ °ÍÑ…ÑÕÌè¥ÍÍÕ”¹ÍÑ…ÑÕÌ°µ•ÍÍ…”èÍ…¹¥Ñ¥é•I•Á½ÉÑY…±Õ”¡¥ÍÍÕ”¹µ•ÍÍ…”ñð€ˆˆ¤°Ù…±Õ”èÍ…¹¥Ñ¥é•I•Á½ÉÑY…±Õ”¡¥ÍÍÕ”¹Ù…±Õ”ñð€ˆˆ¤°•áÁ•Ñ•èÍ…¹¥Ñ¥é•I•Á½ÉÑY…±Õ”¡¥ÍÍÕ”¹•áÁ•Ñ•ñð€ˆˆ¤ô¤¤¤ì(€…Ý…¥ÐÝÉ¥Ñ•Q•áÐ¡©½¥¸¡É•Á½ÉÑ¥È°€‰Í¡•µ„µÉ•ÍÕ±ÑÌ¹ÍØˆ¤°Ñ½ÍØ¡Í¡•µ…I½ÝÌ°l‰Á…”ˆ°€‰ÑåÁ”ˆ°€‰Á…Ñ ˆ°€‰ÍÑ…ÑÕÌˆ°€‰µ•ÍÍ…”ˆ°€‰Ù…±Õ”ˆ°€‰•áÁ•Ñ•‰t¤¤ì(€…Ý…¥ÐÝÉ¥Ñ•)Í½¸¡©½¥¸¡É•Á½ÉÑ¥È°€‰•¹Ø¹©Í½¸ˆ¤°É…Ü¹•¹Ø¤ì(€…Ý…¥ÐÝÉ¥Ñ•I•ÁÉ¼¡É•Á½ÉÑ¥È°±…‰•°°‰…Í•UÉ°¤ì(€¥˜€¡™…¥±ÕÉ•Ì¹Í½µ” ¡™…¥±ÕÉ”¤€ôø™…¥±ÕÉ”¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤¤ì(€€€…Ý…¥ÐÝÉ¥Ñ•)Í½¸¡©½¥¸¡É•Á½ÉÑ¥È°€‰™…¥±ÕÉ•Ì¹©Í½¸ˆ¤°™…¥±ÕÉ•Ì¹™¥±Ñ•È ¡™…¥±ÕÉ”¤€ôø™…¥±ÕÉ”¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤¤ì(€€€…Ý…¥ÐÝÉ¥Ñ•Q•áÐ¡©½¥¸¡É•Á½ÉÑ¥È°€‰™…¥±ÕÉ•Ì¹ÍØˆ¤°Ñ½ÍØ¡™…¥±ÕÉ•Ì¹™¥±Ñ•È ¡™…¥±ÕÉ”¤€ôø™…¥±ÕÉ”¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤°l‰ÍÑ…ÑÕÌˆ°€‰Í½Á”ˆ°€‰É•…Í½¸ˆ°€‰µ•ÑÉ¥Œ‰t¤¤ì(€ô(€…Ý…¥ÐÝÉ¥Ñ•Q•áÐ¡©½¥¸¡É•Á½ÉÑ¥È°€‰É•Á½ÉÐ¹µˆ¤°µ…É­‘½Ý¹I•Á½ÉÐ¡ì±…‰•°°‰…Í•UÉ°°¥Ð°Á…•I•½É‘Ì°±¥¡Ñ¡½ÕÍ•IÕ¹Ì°Í¡•µ…I•ÍÕ±ÑÌè½µ‰¥¹•‘M¡•µ„°Í¥Ñ•µ…ÁI•ÍÕ±Ð°É½‰½ÑÍI•ÍÕ±Ð°‰Õ‘•ÑI½ÝÍY…±Õ”°¥µ…•Y½±Õµ”°É•Á½ÉÑ¥È°™…¥±ÕÉ•Ìô¤¤ì(€½¹ÍÐ½µÁ…É”€ô…Ý…¥Ð½µÁ…É•I•Á½ÉÑÌ¡É•Á½ÉÑ¥È°…ÉÌ¹½µÁ…É”°ì±…‰•°°Á…•I•½É‘Ìô¤ì(€…Ý…¥Ð…ÁÁ•¹‘!¥ÍÑ½Éä¡Á…•I•½É‘Ì°‰Õ‘•ÑI½ÝÍY…±Õ”°É•Á½ÉÑ%°¥Ð¤ì(€½¹ÍÐ…±±É••¸€ô€…™…¥±ÕÉ•Ì¹Í½µ” ¡™…¥±ÕÉ”¤€ôø™…¥±ÕÉ”¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤€˜˜‰Õ‘•ÑI½ÝÍY…±Õ”¹•Ù•Éä ¡É½Ü¤€ôøÉ½Ü¹ÍÑ…ÑÕÌ€ôôô€‰AMLˆñðÉ½Ü¹ÍÑ…ÑÕÌ€ôôô€‰M-%@ˆñðÉ½Ü¹ÍÑ…ÑÕÌ€ôôô€‰	M1%9ˆ¤ì(€¥˜€¡…±±É••¸€˜˜€…‰…Í•±¥¹”¤…Ý…¥ÐÝÉ¥Ñ•)Í½¸¡©½¥¸¡!%MQ=Ie}I==P°€‰±…ÍÐµÁ…ÍÍ¥¹œ¹©Í½¸ˆ¤°ìÉ•Á½ÉÑ%°½µµ¥Ðè¥Ð¹™Õ±±½µµ¥Ð°Ñ¥µ•ÍÑ…µÀè¹½Ý%Í¼ ¤°Í¹…ÁÍ¡½Ñ%èÁÉ½•ÍÌ¹•¹Ø¹=AQ}M9AM!=Q}%ñð€ˆˆô¤ì(€½¹Í½±”¹±½œ¡)M=8¹ÍÑÉ¥¹¥™ä¡ìÉ•Á½ÉÑ¥È°ÍÑ…ÑÕÌè™…¥±ÕÉ•Ì¹Í½µ” ¡™…¥±ÕÉ”¤€ôø™…¥±ÕÉ”¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤€ü€‰%0ˆ€è‰…Í•±¥¹”€ü€‰	M1%9ˆ€è€‰AMLˆ°½µÁ…É”è½µÁ…É”ü¹ÍÑ…ÑÕÌñð€‰M-%@ˆ°™…¥±ÕÉ•Ìè™…¥±ÕÉ•Ì¹±•¹Ñ ô°¹Õ±°°€È¤¤ì(€¥˜€¡™…¥±ÕÉ•Ì¹Í½µ” ¡™…¥±ÕÉ”¤€ôø™…¥±ÕÉ”¹ÍÑ…ÑÕÌ€ôôô€‰%0ˆ¤¤ÁÉ½•ÍÌ¹•á¥Ñ½‘”€ô€Äì)ô()…Ý…¥Ðµ…¥¸ ¤ì
+      groups[category] ||= { category, requests: 0, transferKB: 0, firstScreenKB: 0, thirdPartyRequests: 0 };
+      groups[category].requests += 1;
+      groups[category].transferKB += resource.transferBytes / 1024;
+      groups[category].firstScreenKB += resource.firstScreen ? resource.transferBytes / 1024 : 0;
+      groups[category].thirdPartyRequests += resource.thirdParty ? 1 : 0;
+      return groups;
+    }, {})).map((item) => ({
+      ...item,
+      transferKB: round(item.transferKB, 2),
+      firstScreenKB: round(item.firstScreenKB, 2),
+      share: totalBytes ? round((item.transferKB * 1024) / totalBytes, 4) : 0,
+    }));
+    record.consoleMessages = consoleMessages;
+    record.pageErrors = pageErrors;
+    record.failedRequests = failedRequests;
+    if (record.inspection.textLength < 20) {
+      record.status = "FAIL";
+      record.reason = "é¡µé¢ä¸»ä½“ä¸ºç©ºæˆ–å†…å®¹ä¸è¶³";
+    }
+    if (record.redirectedUrl.includes("/auth") && pageInfo.admin) {
+      record.status = hasFlag(parseArgs(), "allow-missing-admin") ? "SKIP" : "FAIL";
+      record.reason = "åŽå°æµ‹è¯•ä¼šè¯æœªç”Ÿæ•ˆ";
+    }
+    if (consoleMessages.some((message) => message.type === "error") || pageErrors.length) {
+      record.status = record.status === "FAIL" ? "FAIL" : "WARN";
+      record.reason ||= "æ£€æµ‹åˆ°æµè§ˆå™¨æŽ§åˆ¶å°æˆ–é¡µé¢é”™è¯¯";
+    }
+  } catch (error) {
+    record.status = "FAIL";
+    record.reason = String(error);
+  } finally {
+    await context.close();
+  }
+  return record;
+}
+
+async function runLighthouse({ reportDir, url, mode, label, runIndex = 1 }) {
+  const file = join(reportDir, `lighthouse-${safeFileName(label)}-${mode}-run${runIndex}.json`);
+  const cli = join(PROJECT_ROOT, "node_modules", "lighthouse", "cli", "index.js");
+  const args = [
+    cli,
+    url,
+    "--quiet",
+    "--output=json",
+    `--output-path=${file}`,
+    "--only-categories=performance,accessibility,best-practices,seo",
+    `--form-factor=${mode}`,
+    "--throttling-method=devtools",
+    `--screenEmulation.mobile=${mode === "mobile"}`,
+    `--screenEmulation.width=${mode === "mobile" ? 390 : 1440}`,
+    `--screenEmulation.height=${mode === "mobile" ? 844 : 900}`,
+    "--screenEmulation.deviceScaleFactor=1",
+    "--chrome-flags=--headless --no-sandbox --disable-dev-shm-usage",
+  ];
+  const { runProcess } = await import("./lib/common.mjs");
+  const processResult = await runProcess(process.execPath, args, {
+    cwd: PROJECT_ROOT,
+    timeoutMs: 180_000,
+    env: { CHROME_PATH: process.env.OPT_CHROME_PATH || chromium.executablePath() },
+  });
+  if (processResult.code !== 0 || !(await fileExists(file))) {
+    return { status: "FAIL", mode, url: redactUrl(url), error: processResult.stderr.slice(-3000), exitCode: processResult.code };
+  }
+  try {
+    const lhr = JSON.parse(await readFile(file, "utf8"));
+    return { status: "PASS", mode, url: redactUrl(url), lhr, metrics: metricsFromLhr(lhr) };
+  } catch (error) {
+    return { status: "FAIL", mode, url: redactUrl(url), error: `Lighthouse JSON ä¸å¯è§£æž: ${String(error)}` };
+  }
+}
+
+async function runLighthouseMedian({ reportDir, url, mode, label }) {
+  const attempts = [];
+  for (let runIndex = 1; runIndex <= 3; runIndex += 1) {
+    attempts.push(await runLighthouse({ reportDir, url, mode, label, runIndex }));
+  }
+  const passed = attempts.filter((attempt) => attempt.status === "PASS");
+  if (!passed.length) return { status: "FAIL", mode, url: redactUrl(url), attempts, error: attempts.map((attempt) => attempt.error).filter(Boolean).join("ï¼›") };
+  const metrics = {
+    LCP: median(passed.map((attempt) => attempt.metrics.LCP)),
+    CLS: median(passed.map((attempt) => attempt.metrics.CLS)),
+    TBT: median(passed.map((attempt) => attempt.metrics.TBT)),
+    scores: {
+      performance: median(passed.map((attempt) => attempt.metrics.scores.performance)),
+      accessibility: median(passed.map((attempt) => attempt.metrics.scores.accessibility)),
+      bestPractices: median(passed.map((attempt) => attempt.metrics.scores.bestPractices)),
+      seo: median(passed.map((attempt) => attempt.metrics.scores.seo)),
+    },
+  };
+  return { status: passed.length === 3 ? "PASS" : "WARN", mode, url: redactUrl(url), attempts, metrics, lhr: passed[Math.floor(passed.length / 2)].lhr, runs: passed.length };
+}
+
+async function loadBudget() {
+  const configured = JSON.parse(await readFile(join(PROJECT_ROOT, "scripts", "opt", "perf-budget.json"), "utf8"));
+  const effectiveFile = join(HISTORY_ROOT, "effective-budget.json");
+  const effective = await import("./lib/common.mjs").then((module) => module.readJson(effectiveFile, null));
+  return { configured, effective, effectiveFile };
+}
+
+function budgetFor(config, page, mode, metric) {
+  return config?.[page]?.[mode]?.[metric] ?? null;
+}
+
+function budgetCheck(metric, actual, budget, baseline) {
+  if (!Number.isFinite(actual) || !Number.isFinite(budget)) return result("SKIP", `${metric} æ— å¯ç”¨é¢„ç®—æˆ–å®žæµ‹å€¼`, { metric, actual, budget });
+  if (baseline) return result("PASS", `${metric} åŸºçº¿å·²è®°å½•`, { metric, actual, budget, baseline: true });
+  const difference = actual - budget;
+  const ratio = budget === 0 ? (difference > 0 ? 1 : 0) : difference / Math.abs(budget);
+  const status = ratio > 0.05 ? "FAIL" : ratio > 0 ? "WARN" : "PASS";
+  return result(status, `${metric} ${status}`, { metric, actual, budget, difference, ratio });
+}
+
+function effectiveBudgetFor(config, records) {
+  const output = structuredClone(config);
+  for (const record of records) {
+    const mode = record.viewport;
+    const page = record.page;
+    output[page] ||= {};
+    output[page][mode] ||= {};
+    for (const metric of METRICS) {
+      const actual = record.metrics?.[metric];
+      if (!Number.isFinite(actual)) continue;
+      const defaultValue = config?.[page]?.[mode]?.[metric];
+      const currentTarget = metric === "imageShare" || metric === "CLS" || metric === "LCP" || metric === "TBT" || metric === "firstScreenKB" || metric === "totalKB" || metric === "requests"
+        ? actual * 0.95
+        : actual * 0.95;
+      output[page][mode][metric] = Number.isFinite(defaultValue) ? Math.min(defaultValue, currentTarget) : round(currentTarget, 4);
+    }
+  }
+  return output;
+}
+
+function resourceRows(records) {
+  return records.flatMap((record) => (record.resources || []).map((resource) => ({
+    page: record.page,
+    viewport: record.viewport,
+    scenario: record.scenario,
+    url: resource.url,
+    type: resource.requestType,
+    category: resource.category,
+    transferKB: round(resource.transferBytes / 1024, 2),
+    status: resource.status,
+    firstScreen: resource.firstScreen,
+    thirdParty: resource.thirdParty,
+    cacheHit: resource.transferBytes === 0,
+  })));
+}
+
+function metricRows(records) {
+  return records.flatMap((record) => METRICS.map((metric) => ({
+    page: record.page,
+    viewport: record.viewport,
+    scenario: record.scenario,
+    metric,
+    value: record.metrics?.[metric] ?? "",
+  })));
+}
+
+function budgetRows(records, budget, baseline) {
+  return records.flatMap((record) => METRICS.map((metric) => {
+    const actual = record.metrics?.[metric];
+    const configured = budgetFor(budget, record.page, record.viewport, metric);
+    const checked = budgetCheck(metric, actual, configured, baseline);
+    return {
+      page: record.page,
+      viewport: record.viewport,
+      scenario: record.scenario,
+      metric,
+      budget: configured ?? "",
+      actual: actual ?? "",
+      difference: checked.difference ?? "",
+      ratio: checked.ratio ?? "",
+      status: checked.status,
+    };
+  }));
+}
+
+function isImageResource(resource) {
+  return String(resource.contentType || "").startsWith("image/") || /\.(?:avif|webp|png|jpe?g|gif|svg|ico)(?:[?#]|$)/i.test(String(resource.url || ""));
+}
+
+function pageImageVolume(records) {
+  return records.map((record) => {
+    const images = (record.resources || []).filter(isImageResource);
+    const imageBytes = images.reduce((sum, resource) => sum + Number(resource.transferBytes || 0), 0);
+    const avifBytes = images.filter((resource) => /\.avif(?:[?#]|$)/i.test(String(resource.url || ""))).reduce((sum, resource) => sum + Number(resource.transferBytes || 0), 0);
+    const webpBytes = images.filter((resource) => /\.webp(?:[?#]|$)/i.test(String(resource.url || ""))).reduce((sum, resource) => sum + Number(resource.transferBytes || 0), 0);
+    const modernBytes = avifBytes + webpBytes;
+    return {
+      page: record.page,
+      viewport: record.viewport,
+      scenario: record.scenario,
+      images: images.length,
+      imageBytes,
+      avifBytes,
+      webpBytes,
+      modernBytes,
+      modernCoverage: imageBytes ? round(modernBytes / imageBytes, 4) : null,
+    };
+  });
+}
+
+async function loadImageVolumeReport() {
+  const imageRoot = join(REPORTS_ROOT, "images");
+  let directories;
+  try {
+    directories = (await readdir(imageRoot, { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory())
+      .toSorted((a, b) => {
+        const stamp = (name) => name.match(/\d{8}-\d{6}$/)?.[0] || "";
+        return stamp(b.name).localeCompare(stamp(a.name)) || b.name.localeCompare(a.name);
+      });
+  } catch {
+    return { status: "SKIP", reason: "æœªæ‰¾åˆ° AVIF/WebP ç”ŸæˆæŠ¥å‘Š", pages: [] };
+  }
+  const latest = directories.find((entry) => entry.name !== "");
+  if (!latest) return { status: "SKIP", reason: "æœªæ‰¾åˆ° AVIF/WebP ç”ŸæˆæŠ¥å‘Š", pages: [] };
+  const report = await readJson(join(imageRoot, latest.name, "image-report.json"), null);
+  if (!report) return { status: "SKIP", reason: `å›¾ç‰‡æŠ¥å‘Šç¼ºå°‘ image-report.json: ${latest.name}`, pages: [] };
+  const variants = (report.results || []).flatMap((item) => item.variants || []);
+  const actual = variants.filter((item) => item.status !== "failed");
+  const avifBytes = actual.filter((item) => item.format === "avif").reduce((sum, item) => sum + Number(item.bytes || 0), 0);
+  const webpBytes = actual.filter((item) => item.format === "webp").reduce((sum, item) => sum + Number(item.bytes || 0), 0);
+  const derivedBytes = variants.filter((item) => item.status === "done").reduce((sum, item) => sum + Number(item.bytes || 0), 0);
+  const abandoned = variants
+    .filter((item) => item.status === "skipped" && /90%/.test(String(item.reason || "")))
+    .map((item) => ({ id: item.id, width: item.width, format: item.format, bytes: item.bytes, reason: item.reason }));
+  const overThreshold = variants
+    .filter((item) => item.warning)
+    .map((item) => ({ id: item.id, width: item.width, format: item.format, bytes: item.bytes, warning: item.warning }));
+  const sourceBytes = Number(report.summary?.originalBytes || 0);
+  const apply = Boolean(report.apply);
+  const effectiveDerivedBytes = apply ? derivedBytes : Number(report.summary?.plannedDerivedBytes || avifBytes + webpBytes);
+  const savedBytes = sourceBytes - effectiveDerivedBytes;
+  return {
+    status: Number(report.summary?.failed || 0) || overThreshold.length ? "WARN" : "PASS",
+    report: latest.name,
+    adapter: report.adapter,
+    apply,
+    sourceBytes,
+    avifBytes,
+    webpBytes,
+    derivedBytes,
+    plannedDerivedBytes: Number(report.summary?.plannedDerivedBytes || avifBytes + webpBytes),
+    effectiveDerivedBytes,
+    savedBytes,
+    savedPct: sourceBytes ? round(savedBytes / sourceBytes, 4) : null,
+    abandoned,
+    overThreshold,
+    variantCount: variants.length,
+    modernFormatCoverage: actual.length ? round(actual.filter((item) => item.format === "avif" || item.format === "webp").length / actual.length, 4) : null,
+    pages: [],
+  };
+}
+
+function markdownReport({ label, baseUrl, git, pageRecords, lighthouseRuns, schemaResults, sitemapResult, robotsResult, budgetRowsValue, imageVolume, reportDir, failures }) {
+  const statuses = [...pageRecords, ...lighthouseRuns, schemaResults, sitemapResult, robotsResult, imageVolume, ...budgetRowsValue].filter(Boolean).reduce((summary, item) => {
+    const status = item.status || "SKIP";
+    summary[status] = (summary[status] || 0) + 1;
+    return summary;
+  }, { PASS: 0, WARN: 0, FAIL: 0, SKIP: 0 });
+  const lighthouseRows = lighthouseRuns.map((run) => {
+    const metrics = run.metrics || {};
+    return `| ${run.page || "-"} | ${run.mode || "-"} | ${metrics.LCP ?? "-"} | ${metrics.CLS ?? "-"} | ${metrics.TBT ?? "-"} | ${metrics.scores?.performance ?? "-"} | ${metrics.scores?.accessibility ?? "-"} | ${metrics.scores?.bestPractices ?? "-"} | ${metrics.scores?.seo ?? "-"} | ${run.status} |`;
+  });
+  const budgetTable = budgetRowsValue.map((row) => `| ${row.page} | ${row.viewport} | ${row.scenario} | ${row.metric} | ${row.budget || "-"} | ${row.actual || "-"} | ${row.difference || "-"} | ${row.status} |`);
+  const imagePageRows = pageImageVolume(pageRecords).map((row) => `| ${row.page} | ${row.viewport} | ${row.scenario} | ${row.images} | ${round(row.imageBytes / 1024, 2)} | ${round(row.avifBytes / 1024, 2)} | ${round(row.webpBytes / 1024, 2)} | ${row.modernCoverage == null ? "-" : `${(row.modernCoverage * 100).toFixed(2)}%`} |`);
+  return [
+    `# ä¼˜åŒ–éªŒè¯æŠ¥å‘Šï¼š${label}`,
+    "",
+    `- æ—¶é—´ï¼š${nowIso()}`,
+    `- åŸºç¡€ URLï¼š${sanitizeOrigin(baseUrl)}`,
+    `- Commitï¼š${git.commit}ï¼ˆ${git.title || "-"}ï¼‰` ,
+    `- åˆ†æ”¯ï¼š${git.branch}`,
+    `- æŠ¥å‘Šç›®å½•ï¼š${reportDir}`,
+    "",
+    "## çŠ¶æ€æ¦‚è§ˆ",
+    "",
+    `PASS ${statuses.PASS} Â· WARN ${statuses.WARN} Â· FAIL ${statuses.FAIL} Â· SKIP ${statuses.SKIP}`,
+    "",
+    "## åŽŸå§‹æ•°æ®ä¸‹è½½",
+    "",
+    "- [raw.json](./raw.json)ï¼šå®Œæ•´ Lighthouseã€èµ„æºã€é¡µé¢ã€schemaã€sitemap å’Œé¢„ç®—åŽŸå§‹æ•°æ®",
+    "- [metrics.csv](./metrics.csv)ï¼šé¡µé¢ Ã— è§†å£ Ã— åœºæ™¯æŒ‡æ ‡",
+    "- [resources.csv](./resources.csv)ï¼šè¯·æ±‚ã€ç±»åˆ«ã€ä½“ç§¯ã€é¦–å±ã€ç¬¬ä¸‰æ–¹å’Œç¼“å­˜ä¿¡æ¯",
+    "- [budget.csv](./budget.csv)ï¼šé¢„ç®—åˆ¤å®šæ˜Žç»†",
+    "- [schema-results.csv](./schema-results.csv)ï¼šJSON-LD æ ¡éªŒæ˜Žç»†",
+    "- [env.json](./env.json)ï¼šæ— å¯†é’¥å¤çŽ°çŽ¯å¢ƒå…ƒæ•°æ®",
+    "- [repro.sh](./repro.sh)ï¼šä¸€é”®å¤çŽ°å‘½ä»¤",
+    "",
+    "## Lighthouse",
+    "",
+    "| é¡µé¢ | æ¨¡å¼ | LCP(ms) | CLS | TBT(ms) | Performance | Accessibility | Best Practices | SEO | çŠ¶æ€ |",
+    "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+    ...lighthouseRows,
+    lighthouseRows.length ? "" : "- æœªè¿è¡Œ Lighthouseã€‚",
+    "",
+    "## æ€§èƒ½é¢„ç®—",
+    "",
+    "| é¡µé¢ | è§†å£ | åœºæ™¯ | æŒ‡æ ‡ | é¢„ç®— | å®žæµ‹ | å·®å€¼ | åˆ¤å®š |",
+    "| --- | --- | --- | --- | ---: | ---: | ---: | --- |",
+    ...budgetTable,
+    "",
+    "## JSON-LD / sitemap / canonical",
+    "",
+    `- JSON-LDï¼š**${schemaResults.status}**ï¼Œschema ç±»åž‹ ${schemaResults.schemaSummary?.length || 0} ç±»ï¼Œé—®é¢˜ ${schemaResults.issues?.length || 0} æ¡ã€‚`,
+    `- Sitemapï¼š**${sitemapResult.status}**ï¼Œ${sitemapResult.entryCount ?? 0} æ¡ URLï¼Œ${sitemapResult.shards?.length ?? 0} ä¸ªåˆ†ç‰‡ã€‚`,
+    `- robots.txtï¼š**${robotsResult.status}**ã€‚`,
+    "",
+    "## èµ„æºè´¡çŒ®åº¦æ‹†è§£",
+    "",
+    ...pageRecords.flatMap((record) => [
+      `### ${record.page} / ${record.viewport} / ${record.scenario}`,
+      "",
+      "| ç±»åˆ« | è¯·æ±‚æ•° | ä¼ è¾“ KB | é¦–å± KB | å æ¯” | ç¬¬ä¸‰æ–¹è¯·æ±‚ |",
+      "| --- | ---: | ---: | ---: | ---: | ---: |",
+      ...(record.contribution || []).toSorted((a, b) => b.transferKB - a.transferKB).map((item) => `| ${item.category} | ${item.requests} | ${item.transferKB} | ${item.firstScreenKB} | ${(item.share * 100).toFixed(2)}% | ${item.thirdPartyRequests} |`),
+      "",
+    ]),
+    "## Image volume",
+    "",
+    `- Generator report: **${imageVolume.status}**; ${imageVolume.report || imageVolume.reason || "-"}`,
+    imageVolume.sourceBytes == null ? "- No AVIF/WebP generator report was found." : `- Mode ${imageVolume.apply ? "apply" : "dry-run"}; original ${imageVolume.sourceBytes} B; AVIF ${imageVolume.avifBytes} B; WebP ${imageVolume.webpBytes} B; effective derivatives ${imageVolume.effectiveDerivedBytes} B; saved ${imageVolume.savedBytes} B (${imageVolume.savedPct == null ? "-" : `${(imageVolume.savedPct * 100).toFixed(2)}%`}).`,
+    imageVolume.sourceBytes == null ? "" : `- Negative-optimization skips ${imageVolume.abandoned.length}; threshold warnings ${imageVolume.overThreshold.length}; generated modern-format coverage ${imageVolume.modernFormatCoverage == null ? "-" : `${(imageVolume.modernFormatCoverage * 100).toFixed(2)}%`}.`,
+    "",
+    "| Page | Viewport | Scenario | Images | Image KB | AVIF KB | WebP KB | Modern coverage |",
+    "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |",
+    ...(imagePageRows.length ? imagePageRows : ["| - | - | - | - | - | - | - | - |"]),
+    ...(imageVolume.overThreshold.length ? ["", "### Threshold warnings", "", ...imageVolume.overThreshold.map((item) => `- ${item.id} / ${item.format} / ${item.width}w: ${item.bytes} B; ${item.warning}`)] : []),
+    ...(imageVolume.abandoned.length ? ["", "### Abandoned derivatives", "", ...imageVolume.abandoned.map((item) => `- ${item.id} / ${item.format} / ${item.width}w: ${item.reason}`)] : []),
+    "",
+    "## å¤±è´¥é¡¹ä¸Žå½’å› çº¿ç´¢",
+    "",
+    ...(failures.length ? failures.map((failure) => `- **${failure.status || "FAIL"}** ${failure.scope || failure.path || failure.metric || "éªŒè¯é¡¹"}ï¼š${failure.reason || failure.message || "æœªé€šè¿‡"}`) : ["- æ— å¤±è´¥é¡¹ã€‚"]),
+    "",
+  ].join("\n");
+}
+
+async function latestReport(label) {
+  try {
+    const entries = await readdir(REPORTS_ROOT, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory() && entry.name.startsWith(`${safeFileName(label)}-`))
+      .toSorted((a, b) => b.name.localeCompare(a.name))[0]?.name || "";
+  } catch {
+    return "";
+  }
+}
+
+async function compareReports(reportDir, compareLabel, currentRaw) {
+  if (!compareLabel) return null;
+  const name = await latestReport(compareLabel);
+  if (!name) return { status: "SKIP", reason: `æ‰¾ä¸åˆ° compare æŠ¥å‘Š ${compareLabel}` };
+  const previous = await import("./lib/common.mjs").then((module) => module.readJson(join(REPORTS_ROOT, name, "raw.json"), null));
+  if (!previous) return { status: "SKIP", reason: `compare æŠ¥å‘Šç¼ºå°‘ raw.json: ${name}` };
+  const currentMap = new Map(metricRows(currentRaw.pageRecords).map((row) => [`${row.page}/${row.viewport}/${row.scenario}/${row.metric}`, row.value]));
+  const previousMap = new Map(metricRows(previous.pageRecords || []).map((row) => [`${row.page}/${row.viewport}/${row.scenario}/${row.metric}`, row.value]));
+  const rows = [];
+  for (const [key, current] of currentMap) {
+    const previousValue = previousMap.get(key);
+    if (!Number.isFinite(Number(current)) || !Number.isFinite(Number(previousValue))) continue;
+    const delta = Number(current) - Number(previousValue);
+    rows.push({ key, before: previousValue, after: current, delta, ratio: previousValue ? delta / Number(previousValue) : 0, status: delta > 0 ? "WARN" : "PASS" });
+  }
+  const markdown = [
+    `# éªŒè¯å¯¹æ¯”ï¼š${compareLabel} â†’ ${currentRaw.label}`,
+    "",
+    `- åŸºçº¿æŠ¥å‘Šï¼š${name}`,
+    "- æ­£å€¼ä»£è¡¨æ•°å€¼å¢žåŠ ï¼›å¯¹äºŽ LCP/TBT/CLS/ä½“ç§¯/è¯·æ±‚æ•°é€šå¸¸æ„å‘³ç€åŠ£åŒ–ï¼Œè¯·ç»“åˆé¢„ç®—åˆ¤å®šã€‚",
+    "",
+    "| é”® | æ”¹å‰ | æ”¹åŽ | å˜åŒ–é‡ | å˜åŒ–æ¯”ä¾‹ | åˆ¤å®š |",
+    "| --- | ---: | ---: | ---: | ---: | --- |",
+    ...rows.map((row) => `| ${row.key} | ${row.before} | ${row.after} | ${round(row.delta, 3)} | ${(row.ratio * 100).toFixed(2)}% | ${row.status} |`),
+    "",
+  ].join("\n");
+  await writeText(join(reportDir, "diff.md"), markdown);
+  return { status: "PASS", compared: name, rows };
+}
+
+async function appendHistory(records, budgetRowsValue, reportId, git) {
+  await ensureDir(HISTORY_ROOT);
+  const lines = records.map((record) => JSON.stringify({
+    timestamp: nowIso(),
+    commit: git.commit,
+    branch: git.branch,
+    pr: git.pr,
+    title: git.title,
+    author: git.author,
+    page: record.page,
+    viewport: record.viewport,
+    scenario: record.scenario,
+    dpr: record.viewportName === "mobile-390" ? (SCENARIOS[record.scenario]?.dpr || 1) : 1,
+    firstScreenKB: record.metrics?.firstScreenKB ?? null,
+    totalKB: record.metrics?.totalKB ?? null,
+    LCP: record.metrics?.LCP ?? record.lighthouse?.metrics?.LCP ?? null,
+    CLS: record.metrics?.CLS ?? record.lighthouse?.metrics?.CLS ?? null,
+    TBT: record.metrics?.TBT ?? record.lighthouse?.metrics?.TBT ?? null,
+    imageShare: record.metrics?.imageShare ?? null,
+    requests: record.metrics?.requests ?? null,
+    jsonLdPassRate: record.schema?.schemaSummary?.length ? record.schema.schemaSummary.reduce((sum, item) => sum + item.coverage, 0) / record.schema.schemaSummary.length : null,
+    sitemapBytes: record.sitemapBytes ?? null,
+     visualDiffRatio: record.visualDiffRatio ?? null,
+     contribution: (record.contribution || [])
+       .toSorted((a, b) => Number(b.transferKB || 0) - Number(a.transferKB || 0))
+       .slice(0, 10)
+       .map((item) => ({ category: item.category, transferKB: round(item.transferKB, 2), share: item.share })),
+     budget: budgetRowsValue.filter((row) => row.page === record.page && row.viewport === record.viewport && row.scenario === record.scenario).every((row) => row.status === "PASS"),
+    snapshotId: process.env.OPT_SNAPSHOT_ID || "",
+    reportId,
+  }));
+  await appendFile(join(HISTORY_ROOT, "metrics.jsonl"), `${lines.join("\n")}\n`, "utf8");
+}
+
+async function writeRepro(reportDir, label, baseUrl) {
+  const script = `#!/usr/bin/env bash\nset -euo pipefail\nBASE_URL="${sanitizeOrigin(baseUrl)}"\nLABEL="repro-$(date +%Y%m%d-%H%M%S)"\n\nif [[ -n "${'${OPT_BASE_URL:-}'}" ]]; then BASE_URL="${'${OPT_BASE_URL}'}"; fi\nnode --version\nnpm --version\necho "Reproducing ${label} at ${'${BASE_URL}'}"\nnpm run opt:verify -- --label "${'${LABEL}'}" --base-url "${'${BASE_URL}'}" "${'${@}'}"\n`;
+  await writeText(join(reportDir, "repro.sh"), script);
+}
+
+async function main() {
+  const args = parseArgs();
+  const label = String(args.label || "before");
+  const baseUrl = String(args["base-url"] || process.env.OPT_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, "");
+  const selectedPages = pageNames(args);
+  const modes = requestedViewportModes(args);
+  const scenarioName = String(args.scenario || "fast");
+  const reportDir = await createReportDirectory(label);
+  const reportId = reportDir.split(/[\\/]/).pop();
+  const git = gitMetadata(PROJECT_ROOT);
+  const pageRecords = [];
+  const lighthouseRuns = [];
+  const failures = [];
+  const budgetConfig = await loadBudget();
+  let browser;
+  let browserError = null;
+  try {
+    browser = await chromium.launch({ headless: true, executablePath: process.env.OPT_CHROME_PATH || chromium.executablePath() });
+  } catch (error) {
+    browserError = String(error);
+    failures.push({ status: "FAIL", scope: "browser", reason: `Chromium å¯åŠ¨å¤±è´¥: ${browserError}` });
+  }
+
+  for (const pageInfo of selectedPages) {
+    const path = pageInfo.article ? await discoverArticlePath(baseUrl, args.article || "") : pageInfo.path;
+    for (const mode of modes) {
+      if (!browser) break;
+      const record = await collectBrowserPage({ browser, baseUrl, pageInfo, path, viewportModeValue: mode, scenarioName });
+      pageRecords.push(record);
+      if (record.status === "FAIL") failures.push({ status: record.status, scope: `${record.page}/${mode}`, reason: record.reason });
+      if (record.imageHealth?.missingAlt?.length) failures.push({ status: "FAIL", scope: `${record.page}/${mode}/alt`, reason: `ç¼ºå°‘ alt ${record.imageHealth.missingAlt.length} ä¸ª`, items: record.imageHealth.missingAlt });
+      if (record.imageHealth?.missingDimensions?.length) failures.push({ status: "FAIL", scope: `${record.page}/${mode}/dimensions`, reason: `ç¼ºå°‘å®½é«˜ ${record.imageHealth.missingDimensions.length} ä¸ª`, items: record.imageHealth.missingDimensions });
+      if (record.imageHealth?.broken?.length) failures.push({ status: "FAIL", scope: `${record.page}/${mode}/images`, reason: `å›¾ç‰‡ HTTP å¤±è´¥ ${record.imageHealth.broken.length} ä¸ª`, items: record.imageHealth.broken });
+      if (record.imageHealth?.nonModern?.length) failures.push({ status: "WARN", scope: `${record.page}/${mode}/modern-images`, reason: `éžçŽ°ä»£å›¾ç‰‡æ ¼å¼ ${record.imageHealth.nonModern.length} ä¸ª`, items: record.imageHealth.nonModern });
+
+      if (LIGHTHOUSE_PAGES.has(pageInfo.name)) {
+        const lighthouse = await runLighthouseMedian({ reportDir, url: record.url, mode, label: `${pageInfo.key}-${mode}` });
+        lighthouse.page = pageInfo.name;
+        lighthouseRuns.push(lighthouse);
+        record.lighthouse = lighthouse;
+        if (lighthouse.status !== "FAIL" && lighthouse.metrics) {
+          record.metrics = { ...record.metrics, ...lighthouse.metrics };
+        }
+        if (lighthouse.status === "FAIL") {
+          failures.push({ status: "FAIL", scope: `lighthouse/${pageInfo.name}/${mode}`, reason: lighthouse.error || "Lighthouse å¤±è´¥" });
+        } else if (lighthouse.status === "WARN") {
+          failures.push({ status: "WARN", scope: `lighthouse/${pageInfo.name}/${mode}`, reason: "Lighthouse ä¸‰æ¬¡é‡‡æ ·æœªå…¨éƒ¨æˆåŠŸï¼Œä½¿ç”¨å¯ç”¨æ ·æœ¬ä¸­ä½æ•°" });
+        }
+      }
+    }
+  }
+  if (browser) await browser.close();
+  if (!browser && !browserError) failures.push({ status: "FAIL", scope: "browser", reason: "æ²¡æœ‰å¯ç”¨æµè§ˆå™¨" });
+
+  const schemaResults = [];
+  for (const record of pageRecords.filter((item) => item.status !== "FAIL")) {
+    try {
+      const response = await fetchWithTimeout(record.url, {}, 20_000);
+      const html = await response.text();
+      const schema = await validateJsonLd({ html, pageUrl: record.url, baseUrl, checkImages: !hasFlag(args, "skip-image-http") });
+      record.schema = schema;
+      schemaResults.push(schema);
+      if (schema.status === "FAIL") failures.push({ status: "FAIL", scope: `schema/${record.page}`, reason: `${schema.issues.length} æ¡ JSON-LD/canonical é—®é¢˜`, items: schema.issues });
+      else if (schema.status === "WARN") failures.push({ status: "WARN", scope: `schema/${record.page}`, reason: `${schema.issues.length} æ¡ JSON-LD è­¦å‘Š`, items: schema.issues });
+    } catch (error) {
+      failures.push({ status: "FAIL", scope: `schema/${record.page}`, reason: String(error) });
+    }
+  }
+  const combinedSchema = {
+    status: schemaResults.some((item) => item.status === "FAIL") ? "FAIL" : schemaResults.some((item) => item.status === "WARN") ? "WARN" : schemaResults.length ? "PASS" : "SKIP",
+    pages: schemaResults,
+    schemaSummary: schemaResults.flatMap((item) => item.schemaSummary || []),
+    issues: schemaResults.flatMap((item) => item.issues || []),
+  };
+
+  const sitemapResult = await validateSitemap({ baseUrl, expectedPaths: STATIC_SITEMAP_PATHS });
+  if (sitemapResult.status === "FAIL") failures.push({ status: "FAIL", scope: "sitemap", reason: sitemapResult.failures.map((item) => item.reason).join("ï¼›") });
+  else if (sitemapResult.status === "WARN") failures.push({ status: "WARN", scope: "sitemap", reason: sitemapResult.warnings.map((item) => item.reason).join("ï¼›") });
+  for (const record of pageRecords) record.sitemapBytes = sitemapResult.root?.bytes ?? null;
+  const robotsResult = await (async () => {
+    try {
+      const response = await fetchWithTimeout(resolveUrl(baseUrl, "/robots.txt"), {}, 15_000);
+      const text = await response.text();
+      const ok = response.ok && /User-agent:\s*\*/i.test(text) && /Sitemap:\s*\S+/i.test(text) && !/Disallow:\s*\/\s*$/im.test(text);
+      return { status: ok ? "PASS" : "FAIL", code: response.status, body: text.replace(/https?:\/\/[^\s/]+/gi, "[origin]") };
+    } catch (error) {
+      return { status: "FAIL", reason: String(error) };
+    }
+  })();
+  if (robotsResult.status === "FAIL") failures.push({ status: "FAIL", scope: "robots.txt", reason: robotsResult.reason || `HTTP ${robotsResult.code}` });
+
+  const baseline = !budgetConfig.effective;
+  const effectiveBudget = baseline ? effectiveBudgetFor(budgetConfig.configured, pageRecords) : budgetConfig.effective;
+  const budgetRowsValue = budgetRows(pageRecords, effectiveBudget, baseline);
+  if (!baseline) {
+    failures.push(...budgetRowsValue.filter((row) => row.status === "FAIL").map((row) => ({ status: "FAIL", scope: `budget/${row.page}/${row.viewport}/${row.metric}`, reason: `${row.actual} > ${row.budget}ï¼ˆ${(Number(row.ratio) * 100).toFixed(1)}%ï¼‰`, metric: row.metric })));
+    failures.push(...budgetRowsValue.filter((row) => row.status === "WARN").map((row) => ({ status: "WARN", scope: `budget/${row.page}/${row.viewport}/${row.metric}`, reason: `${row.actual} > ${row.budget}ï¼ˆè­¦æˆ’ï¼‰`, metric: row.metric })));
+  }
+  await ensureDir(HISTORY_ROOT);
+  if (baseline) await writeJson(budgetConfig.effectiveFile, effectiveBudget);
+
+  const imageVolume = await loadImageVolumeReport();
+  imageVolume.pages = pageImageVolume(pageRecords);
+  if (imageVolume.status === "WARN") {
+    failures.push({ status: "WARN", scope: "images", reason: `å›¾ç‰‡æ´¾ç”ŸæŠ¥å‘Šå­˜åœ¨ ${imageVolume.overThreshold?.length || 0} é¡¹è¶…æ ‡æˆ– ${imageVolume.abandoned?.length || 0} é¡¹è´Ÿä¼˜åŒ–æ”¾å¼ƒ` });
+  }
+
+  const raw = {
+    label,
+    reportId,
+    generatedAt: nowIso(),
+    baseUrl: sanitizeOrigin(baseUrl),
+    git,
+    env: { node: process.version, platform: process.platform, arch: process.arch, ci: Boolean(process.env.CI), scenario: scenarioName, viewportModes: modes },
+    pageRecords,
+    lighthouseRuns,
+    schema: combinedSchema,
+    sitemap: sitemapResult,
+    robots: robotsResult,
+    imageVolume,
+    budget: { baseline, configured: budgetConfig.configured, effective: effectiveBudget, rows: budgetRowsValue },
+    failures,
+  };
+  await writeJson(join(reportDir, "raw.json"), sanitizeReportValue(raw));
+  await writeText(join(reportDir, "metrics.csv"), toCsv(metricRows(pageRecords), ["page", "viewport", "scenario", "metric", "value"]));
+  await writeText(join(reportDir, "resources.csv"), toCsv(resourceRows(pageRecords), ["page", "viewport", "scenario", "url", "type", "category", "transferKB", "status", "firstScreen", "thirdParty", "cacheHit"]));
+  await writeText(join(reportDir, "budget.csv"), toCsv(budgetRowsValue, ["page", "viewport", "scenario", "metric", "budget", "actual", "difference", "ratio", "status"]));
+  const schemaRows = combinedSchema.pages.flatMap((item) => (item.issues || []).map((issue) => ({ page: redactUrl(item.pageUrl), type: issue.type, path: issue.path, status: issue.status, message: sanitizeReportValue(issue.message || ""), value: sanitizeReportValue(issue.value || ""), expected: sanitizeReportValue(issue.expected || "") })));
+  await writeText(join(reportDir, "schema-results.csv"), toCsv(schemaRows, ["page", "type", "path", "status", "message", "value", "expected"]));
+  await writeJson(join(reportDir, "env.json"), raw.env);
+  await writeRepro(reportDir, label, baseUrl);
+  if (failures.some((failure) => failure.status === "FAIL")) {
+    await writeJson(join(reportDir, "failures.json"), failures.filter((failure) => failure.status === "FAIL"));
+    await writeText(join(reportDir, "failures.csv"), toCsv(failures.filter((failure) => failure.status === "FAIL"), ["status", "scope", "reason", "metric"]));
+  }
+  await writeText(join(reportDir, "report.md"), markdownReport({ label, baseUrl, git, pageRecords, lighthouseRuns, schemaResults: combinedSchema, sitemapResult, robotsResult, budgetRowsValue, imageVolume, reportDir, failures }));
+  const compare = await compareReports(reportDir, args.compare, { label, pageRecords });
+  await appendHistory(pageRecords, budgetRowsValue, reportId, git);
+  const allGreen = !failures.some((failure) => failure.status === "FAIL") && budgetRowsValue.every((row) => row.status === "PASS" || row.status === "SKIP" || row.status === "BASELINE");
+  if (allGreen && !baseline) await writeJson(join(HISTORY_ROOT, "last-passing.json"), { reportId, commit: git.fullCommit, timestamp: nowIso(), snapshotId: process.env.OPT_SNAPSHOT_ID || "" });
+  console.log(JSON.stringify({ reportDir, status: failures.some((failure) => failure.status === "FAIL") ? "FAIL" : baseline ? "BASELINE" : "PASS", compare: compare?.status || "SKIP", failures: failures.length }, null, 2));
+  if (failures.some((failure) => failure.status === "FAIL")) process.exitCode = 1;
+}
+
+await main();
