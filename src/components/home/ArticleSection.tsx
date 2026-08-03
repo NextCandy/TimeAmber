@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
 import { ArticleCard } from "@/components/home/ArticleCard";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,6 +17,12 @@ import type { HomePost } from "@/lib/home.functions";
  * 归档总数并进标题右侧的入口，原本由主理人区承载的这条信息不至于丢掉。
  */
 export function ArticleSection({ posts, totalPosts }: { posts: HomePost[]; totalPosts: number }) {
+  const [listReady, setListReady] = useState(false);
+
+  useEffect(() => {
+    setListReady(true);
+  }, []);
+
   return (
     <section
       aria-labelledby="articles-title"
@@ -42,13 +49,15 @@ export function ArticleSection({ posts, totalPosts }: { posts: HomePost[]; total
       </div>
 
       {posts.length > 0 ? (
-        <div className="home-list grid grid-cols-1 border-b border-border sm:flex-1 sm:auto-rows-fr sm:grid-cols-2 sm:gap-x-8">
+        <div
+          className={`home-list grid grid-cols-1 border-b border-border sm:flex-1 sm:auto-rows-fr sm:grid-cols-2 sm:gap-x-8 ${listReady ? "is-ready" : ""}`}
+        >
           {posts.map((post, index) => (
             <ArticleCard
               key={post.slug}
               post={post}
-              className="home-list-item"
-              style={{ animationDelay: `${index * 30}ms` }}
+              className={index < 4 ? "home-list-item" : ""}
+              style={index < 4 ? { transitionDelay: `${index * 40}ms` } : undefined}
             />
           ))}
         </div>

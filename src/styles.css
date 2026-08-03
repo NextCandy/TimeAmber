@@ -316,20 +316,17 @@
   }
 }
 
-@keyframes home-list-enter {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .home-list-item {
   opacity: 0;
-  animation: home-list-enter var(--duration-list) var(--ease-out) forwards;
+  transform: translateY(12px);
+  transition:
+    opacity var(--duration-list) var(--ease-out),
+    transform var(--duration-list) var(--ease-out);
+}
+
+.home-list.is-ready .home-list-item {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* Hero 背景光晕 */
@@ -847,6 +844,10 @@
     animation-iteration-count: 1 !important;
     transition-duration: 120ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .home-list-item {
+    transition-delay: 0ms !important;
   }
 }
 
