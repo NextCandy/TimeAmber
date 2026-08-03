@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { FolderTree, Loader2, Tag, X, Search } from "lucide-react";
 import { PostCard } from "@/components/home/PostCard";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -70,41 +70,12 @@ function CategoriesPage() {
   const [total, setTotal] = useState(initialPosts.total);
   const [loading, setLoading] = useState(false);
 
-  // 首屏那一页由 loader 给过了，这里只处理切换筛选后的重新取数。
-  const firstRender = useRef(true);
+  // loader 同时负责首屏和筛选参数变化；组件只同步新 loader data，避免同参数再发一次请求。
   useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
-    if (!activeCategory && !activeTag) {
-      setPosts([]);
-      setTotal(0);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    void loadPostsByTaxonomy({
-      data: { category: activeCategory, tag: activeTag, offset: 0, limit: PAGE_SIZE },
-    })
-      .then((res) => {
-        if (cancelled) return;
-        setPosts(res.posts);
-        setTotal(res.total);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPosts([]);
-          setTotal(0);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeCategory, activeTag]);
+    setPosts(initialPosts.posts);
+    setTotal(initialPosts.total);
+    setLoading(false);
+  }, [initialPosts]);
 
   const remaining = total - posts.length;
   const loadMore = () => {

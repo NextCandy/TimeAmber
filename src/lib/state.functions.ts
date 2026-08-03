@@ -4,7 +4,13 @@ import postgres from "postgres";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { AdminState, CoreData } from "@/lib/admin-store";
+import type {
+  AdminState,
+  CoreData,
+  Friend,
+  PublicSiteSettings,
+  SiteSettings,
+} from "@/lib/admin-store";
 import type { Post } from "@/lib/sample-posts";
 
 let database: ReturnType<typeof postgres> | undefined;
@@ -152,34 +158,80 @@ async function readSecret<T>(key: string, fallback: T): Promise<T> {
   return decryptJson<T>(row?.encrypted_value as string | undefined, fallback);
 }
 
-/**
- * 站点外壳数据：导航、页脚、友链、分类与标签清单。
- * 刻意不含 posts —— 这份结果会被 root loader 序列化进**每一个页面**，
- * 而前台只有归档 / 分类 / 搜索 / 相关推荐要文章，它们各自按需取数
- * （见 public-posts.functions.ts）。
- */
+const PUBLIC_SETTING_KEYS = [
+  "authorName",
+  "authorAvatar",
+  "authorBio",
+  "siteTitle",
+  "siteTagline",
+  "siteDescription",
+  "aboutIntro",
+  "aboutQuote",
+  "aboutTechStack",
+  "contactEmail",
+  "contactGithub",
+  "contactTwitter",
+  "contactTelegram",
+  "contactX",
+  "contactWechat",
+  "contactQQ",
+  "contactXiaohongshu",
+  "contactDouyin",
+  "contactNote",
+  "askPublicEnabled",
+] as const satisfies ReadonlyArray<keyof SiteSettings>;
+
+function pickPublicSettings(value: unknown): PublicSiteSettings {
+  const source = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const result: PublicSiteSettings = {};
+  for (const key of PUBLIC_SETTING_KEYS) {
+    const item = source[key];
+    if (typeof item === "string" || typeof item === "boolean") {
+      result[key] = item as never;
+    }
+  }
+  return result;
+}
+
+function mapFriends(rows: Array<Record<string, unknown>>): Friend[] {
+  return rows.map((row) => ({
+    name: String(row.name),
+    url: String(row.url),
+    desc: String(row.description ?? ""),
+    icon: row.icon ? String(row.icon) : undefined,
+    group: row.group_name ? String(row.group_name) : undefined,
+  }));
+}
+
+/** 公开 root 只返回布局真正需要的 friend 与设置白名单，不带 taxonomy 或后台计划。 */
 async function loadChrome(admin: boolean): Promise<Partial<AdminState>> {
   const sql = db();
-  const [categories, tags, friends, settings, schedule] = await Promise.all([
-    sql`select name from public.categories order by name`,
-    sql`select name from public.tags order by name`,
+  const [friends, settings] = await Promise.all([
     admin
       ? sql`select * from public.friends order by sort_order, name`
       : sql`select * from public.friends where published = true order by sort_order, name`,
     readConfig("site", {}),
+  ]);
+  const mappedFriends = mapFriends(friends as Array<Record<string, unknown>>);
+
+  if (!admin) {
+    // Provider 会把这份白名单合并到本地默认 settings；此处只为复用 AdminState
+    // 的现有 server-function 类型做边界断言，运行时不会把未列入白名单的字段带出。
+    return {
+      friends: mappedFriends,
+      settings: pickPublicSettings(settings) as AdminState["settings"],
+    };
+  }
+
+  const [categories, tags, schedule] = await Promise.all([
+    sql`select name from public.categories order by name`,
+    sql`select name from public.tags order by name`,
     readConfig("backup_schedule", {}),
   ]);
-
   return {
     categories: categories.map((row) => ({ name: String(row.name) })),
     tags: tags.map((row) => ({ name: String(row.name) })),
-    friends: friends.map((row) => ({
-      name: String(row.name),
-      url: String(row.url),
-      desc: String(row.description ?? ""),
-      icon: row.icon ? String(row.icon) : undefined,
-      group: row.group_name ? String(row.group_name) : undefined,
-    })),
+    friends: mappedFriends,
     settings: settings as AdminState["settings"],
     schedule: schedule as AdminState["schedule"],
   };

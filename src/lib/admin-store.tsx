@@ -52,6 +52,33 @@ export type SiteSettings = AuthorProfile & {
   askPublicEnabled?: boolean;
 };
 
+/** 公开页面允许进入 root hydration 的站点字段白名单。 */
+export type PublicSiteSettings = Partial<
+  Pick<
+    SiteSettings,
+    | "authorName"
+    | "authorAvatar"
+    | "authorBio"
+    | "siteTitle"
+    | "siteTagline"
+    | "siteDescription"
+    | "aboutIntro"
+    | "aboutQuote"
+    | "aboutTechStack"
+    | "contactEmail"
+    | "contactGithub"
+    | "contactTwitter"
+    | "contactTelegram"
+    | "contactX"
+    | "contactWechat"
+    | "contactQQ"
+    | "contactXiaohongshu"
+    | "contactDouyin"
+    | "contactNote"
+    | "askPublicEnabled"
+  >
+>;
+
 export type ImageHostConfig = {
   provider: "supabase" | "see" | "smms" | "custom";
   endpoint: string;

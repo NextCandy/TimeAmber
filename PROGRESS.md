@@ -48,7 +48,7 @@
 | T31  | Toast 进入/退出与语义图标                        | ✅ 2026-08-03 |
 | T32  | 首屏文章列表 stagger                             | ✅ 2026-08-03 |
 | T33  | 罕见场景 delight 预算                            | ✅ 2026-08-03 |
-| T34  | hydration payload 与后台重复请求治理             | ⏳ 待核验     |
+| T34  | hydration payload 与后台重复请求治理             | ✅ 2026-08-03 |
 | T35  | robots.txt 指向 sitemap                          | ⏳ 待做       |
 | T36  | eslint 构建上下文清理                            | ✅ 2026-08-03 |
 | T37  | createServerFn 校验 API 与当前 TanStack 版本统一 | ✅ 2026-08-03 |

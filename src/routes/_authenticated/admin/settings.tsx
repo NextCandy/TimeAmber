@@ -175,7 +175,7 @@ function SettingsPage() {
     setDraftState(next);
   }, []);
 
-  // 站点状态是分三次异步回填的：loadPublicState -> loadAdminState -> loadAdminMediaState，
+  // 后台状态是分两次异步回填的：loadAdminState -> loadAdminMediaState，
   // 其中 loadAdminState 要拉全部文章，往往几秒后才返回，每次回填都会换一个新的 settings 对象。
   // 这里过去无条件同步草稿，用户正在输入的用户名/简介会被中途重置回服务端旧值，
   // 于是保存下去的仍是旧值（toast 还提示"已保存"）。只在用户没动过表单时才跟随服务端。
