@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Pencil,
@@ -32,8 +32,10 @@ type StatusFilter = "all" | "published" | "draft";
 type SortKey = "new" | "old" | "title" | "reading";
 
 function PostsList() {
-  const { posts, deletePost, setPostStatus, hydrated } = useAdminStore();
+  const { posts, deletePost, setPostStatus, hydrated, fullHydrated } = useAdminStore();
+  const ready = hydrated && fullHydrated;
   const [q, setQ] = useState("");
+  const deferredQuery = useDeferredValue(q);
   const [status, setStatus] = useState<StatusFilter>("all");
   const [cat, setCat] = useState("all");
   const [sort, setSort] = useState<SortKey>("new");
@@ -47,7 +49,7 @@ function PostsList() {
   );
 
   const filtered = useMemo(() => {
-    const k = q.trim().toLowerCase();
+    const k = deferredQuery.trim().toLowerCase();
     const list = posts.filter((p) => {
       const isPub = (p.status ?? "published") === "published";
       if (status === "published" && !isPub) return false;
@@ -69,7 +71,7 @@ function PostsList() {
       return sort === "old" ? cmp : -cmp;
     });
     return sorted;
-  }, [posts, q, status, cat, sort]);
+  }, [posts, deferredQuery, status, cat, sort]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, pageCount);
@@ -93,7 +95,7 @@ function PostsList() {
         <div>
           <h1 className="font-display text-2xl font-semibold">文章</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {hydrated
+            {ready
               ? `共 ${posts.length} 篇 · 筛选后 ${filtered.length} 篇 · 第 ${safePage}/${pageCount} 页`
               : "正在加载文章…"}
           </p>
@@ -175,7 +177,7 @@ function PostsList() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border/70 bg-card/40">
-        {!hydrated ? (
+        {!ready ? (
           <p className="p-8 text-center text-sm text-muted-foreground">正在加载文章…</p>
         ) : filtered.length === 0 ? (
           <p className="p-8 text-center text-sm text-muted-foreground">没有匹配的文章</p>

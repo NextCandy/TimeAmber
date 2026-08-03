@@ -12,7 +12,9 @@ export const Route = createFileRoute("/_authenticated/admin/tags")({
 });
 
 function TagsPage() {
-  const { tags, posts, addTag, removeTag, suppressNextPersist, hydrated } = useAdminStore();
+  const { tags, posts, addTag, removeTag, suppressNextPersist, hydrated, fullHydrated } =
+    useAdminStore();
+  const ready = hydrated && fullHydrated;
 
   // 同分类页：标签改动单独写库，不再挂在会重写全部文章的全量 persist 上。
   async function run(action: () => Promise<unknown>, ok: string) {
@@ -44,7 +46,7 @@ function TagsPage() {
       <header>
         <h1 className="font-display text-2xl font-semibold">标签</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {hydrated ? `共 ${tags.length} 个标签` : "正在加载标签…"}
+          {ready ? `共 ${tags.length} 个标签` : "正在加载标签…"}
         </p>
       </header>
 
@@ -55,14 +57,14 @@ function TagsPage() {
           placeholder="新标签名称"
           maxLength={40}
         />
-        <Button type="submit" disabled={!hydrated}>
+        <Button type="submit" disabled={!ready}>
           <Plus className="mr-1.5 h-4 w-4" />
           添加
         </Button>
       </form>
 
       <div className="flex flex-wrap gap-2">
-        {!hydrated ? (
+        {!ready ? (
           <p className="w-full p-8 text-center text-sm text-muted-foreground">正在加载标签…</p>
         ) : (
           tags.map((t) => {
@@ -90,9 +92,7 @@ function TagsPage() {
             );
           })
         )}
-        {hydrated && tags.length === 0 && (
-          <p className="text-sm text-muted-foreground">还没有标签</p>
-        )}
+        {ready && tags.length === 0 && <p className="text-sm text-muted-foreground">还没有标签</p>}
       </div>
     </div>
   );

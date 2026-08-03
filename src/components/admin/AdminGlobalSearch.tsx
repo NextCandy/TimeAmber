@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { FileText, FolderTree, Search, Tags } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAdminStore } from "@/lib/admin-store";
 
@@ -19,14 +19,22 @@ export function AdminGlobalSearch() {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const q = normalize(query);
+  const q = normalize(useDeferredValue(query));
+  const postIndex = useMemo(
+    () =>
+      posts.map((post) => ({
+        post,
+        haystack: normalize([post.title, post.category, ...post.tags].join(" ")),
+      })),
+    [posts],
+  );
 
   const results = useMemo<SearchResult[]>(() => {
     if (!q) return [];
-    const postHits = posts
-      .filter((post) => normalize([post.title, post.category, ...post.tags].join(" ")).includes(q))
+    const postHits = postIndex
+      .filter(({ haystack }) => haystack.includes(q))
       .slice(0, 6)
-      .map((post) => ({
+      .map(({ post }) => ({
         kind: "post" as const,
         key: `post:${post.slug}`,
         label: post.title,
@@ -52,7 +60,7 @@ export function AdminGlobalSearch() {
         meta: "标签管理",
       }));
     return [...postHits, ...categoryHits, ...tagHits];
-  }, [categories, posts, q, tags]);
+  }, [categories, postIndex, q, tags]);
 
   useEffect(() => {
     const onShortcut = (event: KeyboardEvent) => {

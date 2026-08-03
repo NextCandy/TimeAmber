@@ -18,6 +18,8 @@ import type { HomePost } from "@/lib/home.functions";
  */
 export function ArticleSection({ posts, totalPosts }: { posts: HomePost[]; totalPosts: number }) {
   const [listReady, setListReady] = useState(false);
+  const featured = posts[0];
+  const remainder = posts.slice(1);
 
   useEffect(() => {
     setListReady(true);
@@ -26,9 +28,9 @@ export function ArticleSection({ posts, totalPosts }: { posts: HomePost[]; total
   return (
     <section
       aria-labelledby="articles-title"
-      className="mx-auto flex w-full max-w-6xl flex-col px-6 pt-6 pb-6 sm:flex-1 sm:pt-4 sm:pb-0"
+      className="mx-auto flex w-full max-w-6xl flex-col px-6 pt-10 pb-12 sm:pt-8"
     >
-      <div className="mb-4 flex shrink-0 items-end justify-between gap-4">
+      <div className="mb-6 flex shrink-0 items-end justify-between gap-4">
         <div>
           <p className="font-latin text-xs font-medium tracking-[0.2em] text-primary uppercase">
             Articles
@@ -50,14 +52,23 @@ export function ArticleSection({ posts, totalPosts }: { posts: HomePost[]; total
 
       {posts.length > 0 ? (
         <div
-          className={`home-list grid grid-cols-1 border-b border-border sm:flex-1 sm:auto-rows-fr sm:grid-cols-2 sm:gap-x-8 ${listReady ? "is-ready" : ""}`}
+          className={`home-list grid grid-cols-1 gap-y-1 border-b border-border sm:grid-cols-2 sm:gap-x-4 sm:gap-y-2 ${listReady ? "is-ready" : ""}`}
         >
-          {posts.map((post, index) => (
+          {featured && (
+            <ArticleCard
+              key={featured.slug}
+              post={featured}
+              featured
+              className="home-list-item sm:col-span-2"
+              style={{ transitionDelay: "0ms" }}
+            />
+          )}
+          {remainder.map((post, index) => (
             <ArticleCard
               key={post.slug}
               post={post}
-              className={index < 4 ? "home-list-item" : ""}
-              style={index < 4 ? { transitionDelay: `${index * 40}ms` } : undefined}
+              className={index < 3 ? "home-list-item" : ""}
+              style={index < 3 ? { transitionDelay: `${(index + 1) * 40}ms` } : undefined}
             />
           ))}
         </div>

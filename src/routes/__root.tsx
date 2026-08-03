@@ -186,8 +186,18 @@ function RootComponent() {
         <AnalyticsRecorder />
         <div className="flex min-h-screen flex-col">
           {isChrome && <Navbar initialThemePreference={themePreference} />}
-          {/* flex 列：让首页的文章区能用 flex-1 撑满视口剩余高度（见 ArticleSection） */}
-          <main key={pathname} className="flex flex-1 flex-col">
+          {/* 保留 main 节点，避免每次路由切换都强制重建整棵页面树。 */}
+          <main className="relative flex flex-1 flex-col">
+            <div
+              id="timeamber-scroll-top"
+              aria-hidden="true"
+              className="pointer-events-none absolute top-0 left-0 h-px w-px"
+            />
+            <div
+              id="timeamber-scroll-threshold"
+              aria-hidden="true"
+              className="pointer-events-none absolute top-[600px] left-0 h-px w-px"
+            />
             <Outlet />
           </main>
           {isChrome && <Footer />}

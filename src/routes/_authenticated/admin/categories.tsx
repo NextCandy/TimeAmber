@@ -20,7 +20,9 @@ function CategoriesPage() {
     removeCategory,
     suppressNextPersist,
     hydrated,
+    fullHydrated,
   } = useAdminStore();
+  const ready = hydrated && fullHydrated;
 
   // 分类改动只碰 categories/posts 两张表；走全量 persist 会连带重写上千篇文章，
   // 慢且常超时，改动经常写不进库。
@@ -55,7 +57,7 @@ function CategoriesPage() {
       <header>
         <h1 className="font-display text-2xl font-semibold">分类</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {hydrated ? `共 ${categories.length} 个分类` : "正在加载分类…"}
+          {ready ? `共 ${categories.length} 个分类` : "正在加载分类…"}
         </p>
       </header>
 
@@ -66,7 +68,7 @@ function CategoriesPage() {
           placeholder="新分类名称"
           maxLength={40}
         />
-        <Button type="submit" disabled={!hydrated}>
+        <Button type="submit" disabled={!ready}>
           <Plus className="mr-1.5 h-4 w-4" />
           添加
         </Button>
@@ -74,7 +76,7 @@ function CategoriesPage() {
 
       <div className="overflow-hidden rounded-xl border border-border/70 bg-card/40">
         <ul className="divide-y divide-border/60">
-          {!hydrated ? (
+          {!ready ? (
             <li className="p-8 text-center text-sm text-muted-foreground">正在加载分类…</li>
           ) : (
             categories.map((c) => {

@@ -35,14 +35,16 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
   const navItems = settings.askPublicEnabled ? [...NAV, ASK_NAV] : NAV;
 
   useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > 12);
-      document.documentElement.dataset.scrolled = window.scrollY > 200 ? "true" : "false";
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
+    const sentinel = document.getElementById("timeamber-scroll-top");
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      const next = !entry.isIntersecting;
+      setScrolled(next);
+      document.documentElement.dataset.scrolled = next ? "true" : "false";
+    });
+    observer.observe(sentinel);
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      observer.disconnect();
       delete document.documentElement.dataset.scrolled;
     };
   }, []);

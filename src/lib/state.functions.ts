@@ -12,6 +12,7 @@ import type {
   SiteSettings,
 } from "@/lib/admin-store";
 import type { Post } from "@/lib/sample-posts";
+import { renderMarkdown } from "@/lib/markdown.server";
 
 let database: ReturnType<typeof postgres> | undefined;
 
@@ -261,6 +262,46 @@ async function assertAdmin(userId: string) {
   if (profile?.role !== "admin") throw new Error("Administrator access required");
 }
 
+export const loadAdminSummaryState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<Partial<AdminState>> => {
+    await assertAdmin(context.userId);
+    const sql = db();
+    const [chrome, recentRows, countRows, cloud, ai, alerts] = await Promise.all([
+      loadChrome(true),
+      sql`
+        select
+          id, slug, title, excerpt, category, publish_at, created_at,
+          reading_minutes, published, cover_image, post_type,
+          external_url, open_in
+        from public.posts
+        order by pinned desc, created_at desc
+        limit 5
+      `,
+      sql`select count(*)::int as count from public.posts`,
+      readSecret("cloud", {}),
+      readSecret("ai", {}),
+      sql`select * from public.alerts order by created_at desc limit 100`,
+    ]);
+
+    const emptyTagMap = new Map<number, string[]>();
+    return {
+      ...chrome,
+      posts: recentRows.map((row) => mapPostRow(row, emptyTagMap)),
+      postCount: Number(countRows[0]?.count ?? 0),
+      cloud,
+      ai: ai as AdminState["ai"],
+      alerts: alerts.map((row) => ({
+        id: String(row.id),
+        at: asDate(row.created_at),
+        level: row.level,
+        source: String(row.source),
+        message: String(row.message),
+        acknowledged: Boolean(row.acknowledged),
+      })),
+    };
+  });
+
 export const loadPublicChrome = createServerFn({ method: "GET" }).handler(
   async (): Promise<Partial<AdminState>> => loadChrome(false),
 );
@@ -298,30 +339,37 @@ const publicPostInput = z.object({ slug: z.string().min(1).max(300) });
 
 export const loadPublicPost = createServerFn({ method: "GET" })
   .validator((value: z.infer<typeof publicPostInput>) => publicPostInput.parse(value))
-  .handler(async ({ data }): Promise<Post | null> => {
+  .handler(async ({ data }): Promise<{ post: Post; contentHtml: string } | null> => {
     const sql = db();
     const [row] = await sql`
-      select *
-      from public.posts
-      where slug = ${data.slug}
-        and published = true
-        and (publish_at is null or publish_at <= now())
-      limit 1
-    `;
+        select
+          p.id, p.slug, p.title, p.excerpt, p.category,
+          p.publish_at, p.created_at, p.reading_minutes, p.source,
+          p.content, p.cover_image, p.post_type, p.external_url,
+          p.open_in, p.notion_id, p.notion_last_edited,
+          coalesce(
+            (
+              select array_agg(t.name order by t.name)
+              from public.post_tags pt
+              join public.tags t on t.id = pt.tag_id
+              where pt.post_id = p.id
+            ),
+            '{}'::text[]
+          ) as tag_names
+        from public.posts p
+        where p.slug = ${data.slug}
+          and p.published = true
+          and (p.publish_at is null or p.publish_at <= now())
+        limit 1
+      `;
     if (!row) return null;
-    const tagRows = await sql`
-      select t.name
-      from public.post_tags pt
-      join public.tags t on t.id = pt.tag_id
-      where pt.post_id = ${row.id}
-      order by t.name
-    `;
-    return {
+
+    const post: Post = {
       slug: String(row.slug),
       title: String(row.title),
       excerpt: String(row.excerpt ?? ""),
       category: String(row.category ?? ""),
-      tags: tagRows.map((tag) => String(tag.name)),
+      tags: Array.isArray(row.tag_names) ? row.tag_names.map((tag) => String(tag)) : [],
       publishAt: asDate(row.publish_at ?? row.created_at),
       readingMinutes: Number(row.reading_minutes ?? 1),
       source: row.source ? String(row.source) : undefined,
@@ -334,6 +382,14 @@ export const loadPublicPost = createServerFn({ method: "GET" })
       notionId: row.notion_id ? String(row.notion_id) : undefined,
       notionLastEdited: row.notion_last_edited ? asDate(row.notion_last_edited) : undefined,
     };
+
+    // 客户端导航最慢的一段原来是另一个 renderMarkdown server function 请求。
+    // 和文章查询放进同一个服务端函数，命中 markdown LRU 时也能直接复用缓存。
+    const contentHtml =
+      post.content && !(post.type === "html" && post.externalUrl)
+        ? await renderMarkdown(post.content)
+        : "";
+    return { post, contentHtml };
   });
 
 export const loadAdminState = createServerFn({ method: "GET" })
@@ -347,7 +403,6 @@ export const loadAdminState = createServerFn({ method: "GET" })
       ai,
       snapshots,
       audit,
-      analytics,
       alerts,
       receipts,
       mediaFailures,
@@ -359,17 +414,6 @@ export const loadAdminState = createServerFn({ method: "GET" })
       readSecret("ai", {}),
       sql`select * from public.snapshots order by created_at desc limit 30`,
       sql`select * from public.audit_logs order by created_at desc limit 200`,
-      sql`
-        select created_at, path, payload->>'referrer' as referrer
-        from public.diagnostic_events
-        where event_type = 'page_view'
-          and created_at >= (
-            ((now() at time zone 'Asia/Shanghai')::date - 13)::timestamp
-            at time zone 'Asia/Shanghai'
-          )
-        order by created_at desc
-        limit 10000
-      `,
       sql`select * from public.alerts order by created_at desc limit 100`,
       sql`select * from public.notification_receipts order by created_at desc limit 100`,
       sql`select * from public.media_jobs where status = 'failed' order by updated_at desc limit 100`,
@@ -401,11 +445,6 @@ export const loadAdminState = createServerFn({ method: "GET" })
         action: row.action,
         snapshotId: row.entity_type === "snapshot" ? String(row.entity_id ?? "") : undefined,
         detail: row.detail?.message,
-      })),
-      analytics: analytics.map((row) => ({
-        at: asDate(row.created_at),
-        path: String(row.path ?? "/"),
-        referrer: row.referrer ? String(row.referrer) : undefined,
       })),
       alerts: alerts.map((row) => ({
         id: String(row.id),

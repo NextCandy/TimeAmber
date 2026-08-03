@@ -11,6 +11,7 @@ import {
 import type { Post } from "./sample-posts";
 import {
   loadAdminMediaState,
+  loadAdminSummaryState,
   loadAdminState,
   persistAdminState,
   recordTelemetry,
@@ -18,7 +19,6 @@ import {
   setPostPublished,
   upsertSinglePost,
 } from "./state.functions";
-import { getAuthState } from "./auth.functions";
 import { DEFAULT_AUTHOR_PROFILE, type AuthorProfile } from "./author-profile";
 
 export type Category = { name: string };
@@ -232,6 +232,7 @@ export type BackupSchedule = {
 };
 
 export type AdminState = CoreData & {
+  postCount: number;
   cloud: CloudConfig;
   snapshots: Snapshot[];
   audit: AuditEntry[];
@@ -299,6 +300,7 @@ const DEFAULT_AI: AIConfig = {
 
 const INITIAL_STATE: AdminState = {
   posts: [],
+  postCount: 0,
   categories: [],
   tags: [],
   friends: [],
@@ -369,9 +371,9 @@ type AdminActions = {
   resetContactClicks: () => void;
 };
 
-const AdminContext = createContext<(AdminState & AdminActions & { hydrated: boolean }) | null>(
-  null,
-);
+const AdminContext = createContext<
+  (AdminState & AdminActions & { hydrated: boolean; fullHydrated: boolean }) | null
+>(null);
 
 function coreFrom(s: AdminState): CoreData {
   return {
@@ -404,6 +406,7 @@ export function AdminStoreProvider({
       : INITIAL_STATE,
   );
   const [hydrated, setHydrated] = useState(false);
+  const [fullHydrated, setFullHydrated] = useState(false);
   const adminSessionRef = useRef(false);
   const applyingRemoteRef = useRef(true);
   const skipPersistRef = useRef(false);
@@ -415,6 +418,7 @@ export function AdminStoreProvider({
       applyingRemoteRef.current = true;
       setState((s) => ({
         posts: (parsed.posts ?? s.posts).map(normalizePost),
+        postCount: parsed.postCount ?? (parsed.posts ? parsed.posts.length : s.postCount),
         categories: parsed.categories ?? s.categories,
         tags: parsed.tags ?? s.tags,
         friends: parsed.friends ?? s.friends,
@@ -442,27 +446,44 @@ export function AdminStoreProvider({
       });
     };
 
+    if (enableAdminSync) {
+      setHydrated(false);
+      setFullHydrated(false);
+      adminSessionRef.current = false;
+    }
+
     // 前台页面到此为止：站点设置与友链已经随 SSR 的 initialState 下发过，
     // 再拉一次 loadPublicChrome 只是把同一份数据传两遍；认证状态更是只有后台用得上。
     // 这两个请求原来是串行的，读者打开任何一个前台页面都要多等它们跑完。
     if (!enableAdminSync) {
       setHydrated(true);
+      setFullHydrated(true);
       return;
     }
 
     const load = async () => {
       try {
-        const auth = await getAuthState();
-        if (auth.authenticated) {
-          adminSessionRef.current = true;
-          // 后台这份是全量（含文章与设置），覆盖了前台外壳数据。
-          mergeRemote(await loadAdminState());
-          mergeRemote(await loadAdminMediaState());
-        }
+        const summary = await loadAdminSummaryState();
+        adminSessionRef.current = true;
+        mergeRemote(summary);
+        if (!cancelled) setHydrated(true);
+
+        // 首屏只等待摘要；完整文章、媒体和后台运维状态在页面可交互后并行回填。
+        window.setTimeout(() => {
+          if (cancelled) return;
+          void Promise.all([loadAdminState(), loadAdminMediaState()])
+            .then(([adminData, mediaData]) => {
+              mergeRemote({ ...adminData, ...mediaData });
+              if (!cancelled) setFullHydrated(true);
+            })
+            .catch((error) => {
+              console.error("[TimeAmber] failed to load full admin state", error);
+            });
+        }, 250);
       } catch (error) {
         console.error("[TimeAmber] failed to load server state", error);
       } finally {
-        if (!cancelled) setHydrated(true);
+        if (!cancelled && !adminSessionRef.current) setHydrated(true);
       }
     };
     void load();
@@ -473,7 +494,7 @@ export function AdminStoreProvider({
   }, [enableAdminSync]);
 
   useEffect(() => {
-    if (!hydrated || !adminSessionRef.current || applyingRemoteRef.current) return;
+    if (!hydrated || !fullHydrated || !adminSessionRef.current || applyingRemoteRef.current) return;
     // 设置页已经通过 saveSiteSettings 单独写过库了，跳过这一次全量 persist。
     if (skipPersistRef.current) {
       skipPersistRef.current = false;
@@ -485,7 +506,7 @@ export function AdminStoreProvider({
       });
     }, 800);
     return () => window.clearTimeout(timer);
-  }, [state, hydrated]);
+  }, [state, hydrated, fullHydrated]);
 
   const upsertPost = useCallback((post: Post) => {
     const next = normalizePost(post);
@@ -962,6 +983,7 @@ export function AdminStoreProvider({
     () => ({
       ...state,
       hydrated,
+      fullHydrated,
       upsertPost,
       deletePost,
       setPostStatus,
@@ -1005,6 +1027,7 @@ export function AdminStoreProvider({
     [
       state,
       hydrated,
+      fullHydrated,
       upsertPost,
       deletePost,
       setPostStatus,

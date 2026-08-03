@@ -6,16 +6,19 @@ import { useEffect, useState } from "react";
  *
  * 位置避开了文章页右下角 —— 那儿没有别的常驻元素，但 /cdn/ 剪藏页的返回胶囊
  * 也在右下，两者不会同时出现（剪藏页不走 React），所以可以共用这个角。
- * 滚动监听用 passive，滚动过程中不阻塞合成线程。
+ * 用页面顶部阈值哨兵的 IntersectionObserver，避免每一帧触发 React 重渲染。
  */
 export function BackToTop() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 600);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const sentinel = document.getElementById("timeamber-scroll-threshold");
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setVisible(!entry.isIntersecting);
+    });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
   }, []);
 
   function toTop() {

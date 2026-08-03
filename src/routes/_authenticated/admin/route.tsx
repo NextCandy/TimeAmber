@@ -220,10 +220,10 @@ function AdminLayout() {
     <SidebarProvider>
       <AlertAutoPush />
       <AdminShortcuts />
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="admin-shell flex min-h-screen w-full bg-background">
         <AdminSidebar />
         <div className="flex flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/60 bg-background/82 px-4 shadow-[0_10px_30px_-28px_color-mix(in_oklch,var(--foreground)_50%,transparent)] backdrop-blur-xl">
             <SidebarTrigger />
             <div className="h-5 w-px bg-border/70" />
             <nav className="flex items-center gap-2 text-sm">
@@ -233,7 +233,7 @@ function AdminLayout() {
             </nav>
             <AdminGlobalSearch />
           </header>
-          <main className="flex-1 overflow-x-hidden bg-linear-to-b from-background to-muted/20 p-6">
+          <main className="flex-1 overflow-x-hidden bg-linear-to-b from-background via-background to-muted/25 p-4 sm:p-6 lg:p-8">
             <Outlet />
           </main>
         </div>

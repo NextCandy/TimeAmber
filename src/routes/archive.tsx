@@ -103,7 +103,7 @@ function PostRow({ p }: { p: PostIndexItem }) {
           {inner}
         </a>
       ) : (
-        <Link to="/posts/$slug" params={{ slug: p.slug }} className={cls}>
+        <Link to="/posts/$slug" params={{ slug: p.slug }} preload="intent" className={cls}>
           {inner}
         </Link>
       )}

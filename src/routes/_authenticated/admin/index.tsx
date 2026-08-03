@@ -14,14 +14,14 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 
 function Dashboard() {
   const { visitTrend } = Route.useLoaderData();
-  const { posts, categories, tags, friends, hydrated } = useAdminStore();
+  const { posts, postCount, categories, tags, friends, hydrated } = useAdminStore();
 
   const hasTrend = visitTrend.length > 0;
   const total7d = visitTrend.reduce((sum, d) => sum + d.count, 0);
   const maxPv = Math.max(...visitTrend.map((d) => d.count), 1);
 
   const stats = [
-    { label: "文章", value: posts.length, icon: FileText, to: "/admin/posts" },
+    { label: "文章", value: postCount || posts.length, icon: FileText, to: "/admin/posts" },
     {
       label: "分类",
       value: categories.length,
@@ -59,7 +59,7 @@ function Dashboard() {
           <Link
             key={s.label}
             to={s.to}
-            className="group relative overflow-hidden rounded-xl border border-border/70 bg-linear-to-br from-card via-card to-card/60 p-5 transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-glow"
+            className="admin-stat-card group relative overflow-hidden rounded-xl border border-border/70 bg-linear-to-br from-card via-card to-card/60 p-5"
           >
             <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-primary/5 blur-2xl transition-all group-hover:bg-primary/15" />
             <div className="relative flex items-center justify-between">
@@ -82,7 +82,7 @@ function Dashboard() {
             详细统计 →
           </Link>
         </div>
-        <div className="rounded-xl border border-border/70 bg-card/40 p-5">
+        <div className="admin-surface rounded-xl p-5">
           {hasTrend ? (
             <>
               <div className="mb-3 flex items-baseline gap-2">
@@ -126,7 +126,7 @@ function Dashboard() {
             查看全部 →
           </Link>
         </div>
-        <div className="overflow-hidden rounded-xl border border-border/70 bg-card/40">
+        <div className="admin-surface overflow-hidden rounded-xl">
           {!hydrated ? (
             <p className="px-6 py-10 text-center text-sm text-muted-foreground">正在加载文章…</p>
           ) : recent.length === 0 ? (

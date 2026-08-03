@@ -753,22 +753,35 @@
 }
 
 .reading-progress {
-  height: 1px;
-  opacity: 0.55;
-  transition: opacity var(--duration-hover) var(--ease-out);
+  height: 2px;
+  opacity: 0.8;
 }
 
 .reading-progress > div {
+  transform: scaleX(0);
   transform-origin: left top;
-  transition: transform var(--duration-hover) var(--ease-out);
 }
 
-.reading-progress.is-scrolling {
-  opacity: 1;
+@keyframes timeamber-reading-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
-.reading-progress.is-scrolling > div {
-  transform: scaleY(3);
+@supports (animation-timeline: scroll()) {
+  .reading-progress > div {
+    animation: timeamber-reading-progress linear both;
+    animation-timeline: scroll(root block);
+  }
+}
+
+@supports not (animation-timeline: scroll()) {
+  .reading-progress > div {
+    transform: scaleX(0.02);
+  }
 }
 
 .sheet-overlay[data-state="open"],
@@ -794,6 +807,48 @@
 .skeleton-shimmer {
   position: relative;
   overflow: hidden;
+}
+
+/* 前台编辑型层次：只在真正承载内容的区域使用软表面，避免全页卡片化。 */
+.home-hero {
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+}
+
+.home-hero-index {
+  transition:
+    transform var(--duration-hover) var(--ease-out),
+    border-color var(--duration-hover) var(--ease-out),
+    box-shadow var(--duration-hover) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-hero-index:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklch, var(--accent-amber) 42%, var(--border));
+    box-shadow: 0 24px 50px -34px color-mix(in oklch, var(--accent-amber) 55%, transparent);
+  }
+}
+
+/* 后台是高密度产品界面，统一表面和焦点层次，避免把营销页动效带进数据表。 */
+.admin-surface {
+  border: 1px solid color-mix(in oklch, var(--border) 78%, transparent);
+  background: color-mix(in oklch, var(--card) 78%, transparent);
+  box-shadow: 0 18px 40px -34px color-mix(in oklch, var(--foreground) 42%, transparent);
+}
+
+.admin-stat-card {
+  transition:
+    transform var(--duration-hover) var(--ease-out),
+    border-color var(--duration-hover) var(--ease-out),
+    box-shadow var(--duration-hover) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .admin-stat-card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklch, var(--primary) 50%, var(--border));
+    box-shadow: 0 18px 36px -28px color-mix(in oklch, var(--primary) 68%, transparent);
+  }
 }
 
 .skeleton-shimmer::after {
@@ -823,6 +878,11 @@
 
   .home-list-item {
     transition-delay: 0ms !important;
+  }
+
+  .reading-progress > div {
+    animation: none !important;
+    transform: scaleX(0) !important;
   }
 }
 

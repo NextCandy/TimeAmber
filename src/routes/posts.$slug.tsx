@@ -36,7 +36,7 @@ export const Route = createFileRoute("/posts/$slug")({
   loader: async ({ params }) => {
     // 相关推荐同一套权重挪到了 SQL 里，只回 6 条 —— 原来是靠 root loader
     // 下发的全部文章在浏览器里算分，那份数据现在不再进 payload。
-    const [dbPost, related, adjacent, reaction] = await Promise.all([
+    const [publicPage, related, adjacent, reaction] = await Promise.all([
       loadPublicPost({ data: { slug: params.slug } }).catch(() => null),
       loadRelatedPosts({ data: { slug: params.slug, limit: 6 } }).catch(() => []),
       loadAdjacentPosts({ data: { slug: params.slug } }).catch(
@@ -52,7 +52,7 @@ export const Route = createFileRoute("/posts/$slug")({
         }),
       ),
     ]);
-    const post = dbPost ?? POSTS.find((p) => p.slug === params.slug) ?? null;
+    const post = publicPage?.post ?? POSTS.find((p) => p.slug === params.slug) ?? null;
 
     // 剪藏类文章（VS.DO / 树洞）的正文是一份离线 HTML，externalUrl 指向站内
     // /cdn/... 路径，这里直接跳过去。原先是等页面渲染出来再由客户端
@@ -63,8 +63,11 @@ export const Route = createFileRoute("/posts/$slug")({
       throw redirect({ href: post.externalUrl, reloadDocument: true });
     }
 
+    // 正常路径已经在 loadPublicPost 的同一个服务端请求中完成 Markdown 渲染；
+    // 只有数据库不可用、退回内置样例文章时才需要再走一次兼容渲染。
     const contentHtml =
-      post && post.content ? await renderMarkdownFn({ data: { md: post.content } }) : "";
+      publicPage?.contentHtml ??
+      (post?.content ? await renderMarkdownFn({ data: { md: post.content } }) : "");
     return { post, contentHtml, related, adjacent, reaction };
   },
   head: ({ loaderData, params }) => {
@@ -105,40 +108,11 @@ export const Route = createFileRoute("/posts/$slug")({
   component: PostPage,
 });
 
-// 顶部阅读进度条：宽度 = 已滚动百分比。
+// 顶部阅读进度条交给 CSS scroll timeline，避免每一帧 setState 重渲染文章正文。
 function ReadingProgress() {
-  const [pct, setPct] = useState(0);
-  const [isScrolling, setIsScrolling] = useState(false);
-  useEffect(() => {
-    let idleTimer = 0;
-    const update = () => {
-      const el = document.documentElement;
-      const max = el.scrollHeight - el.clientHeight;
-      setPct(max > 0 ? Math.min(100, (el.scrollTop / max) * 100) : 0);
-    };
-    const onScroll = () => {
-      update();
-      setIsScrolling(true);
-      window.clearTimeout(idleTimer);
-      idleTimer = window.setTimeout(() => setIsScrolling(false), 200);
-    };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", update);
-      window.clearTimeout(idleTimer);
-    };
-  }, []);
   return (
-    <div
-      className={`reading-progress fixed inset-x-0 top-0 z-50 ${isScrolling ? "is-scrolling" : ""}`}
-    >
-      <div
-        className="h-full bg-accent-amber transition-[width] duration-[var(--duration-press)] ease-out"
-        style={{ width: `${pct}%` }}
-      />
+    <div className="reading-progress pointer-events-none fixed inset-x-0 top-0 z-50">
+      <div className="h-full w-full origin-left bg-accent-amber" />
     </div>
   );
 }
@@ -275,7 +249,7 @@ function AdjacentNav({ items }: { items: AdjacentPosts }) {
   if (!items.prev && !items.next) return null;
 
   const cell =
-    "group flex min-w-0 flex-1 flex-col gap-1.5 border border-border px-4 py-3.5 transition-colors hover:border-accent-amber/50 hover:bg-accent/25 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+    "group flex min-w-0 flex-1 flex-col gap-1.5 rounded-xl border border-border bg-card/35 px-4 py-3.5 transition-colors hover:border-accent-amber/50 hover:bg-accent/25 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
   const label = "inline-flex items-center gap-1 text-[11px] text-muted-foreground";
   const title =
     "line-clamp-2 text-sm leading-snug font-medium transition-colors [overflow-wrap:anywhere] group-hover:text-primary";
@@ -308,7 +282,7 @@ function AdjacentNav({ items }: { items: AdjacentPosts }) {
         {body(post, dir)}
       </a>
     ) : (
-      <Link to="/posts/$slug" params={{ slug: post.slug }} className={cell}>
+      <Link to="/posts/$slug" params={{ slug: post.slug }} preload="intent" className={cell}>
         {body(post, dir)}
       </Link>
     );
@@ -328,7 +302,7 @@ function AdjacentNav({ items }: { items: AdjacentPosts }) {
 function RelatedPosts({ items }: { items: RelatedPost[] }) {
   if (!items.length) return null;
   const rowClass =
-    "group flex h-full flex-col justify-between gap-4 border border-border bg-card/40 p-4 transition-all hover:-translate-y-0.5 hover:border-accent-amber/50 hover:bg-accent-amber-soft/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:hover:translate-y-0";
+    "group flex h-full flex-col justify-between gap-4 rounded-xl border border-border bg-card/40 p-4 transition-all hover:-translate-y-0.5 hover:border-accent-amber/50 hover:bg-accent-amber-soft/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:hover:translate-y-0";
   return (
     <section className="mt-12 border-t border-border/60 pt-8">
       <h2 className="mb-4 font-display text-lg font-semibold">相关文章</h2>
@@ -360,7 +334,12 @@ function RelatedPosts({ items }: { items: RelatedPost[] }) {
                   {inner}
                 </a>
               ) : (
-                <Link to="/posts/$slug" params={{ slug: p.slug }} className={rowClass}>
+                <Link
+                  to="/posts/$slug"
+                  params={{ slug: p.slug }}
+                  preload="intent"
+                  className={rowClass}
+                >
                   {inner}
                 </Link>
               )}
@@ -501,7 +480,7 @@ function PostPage() {
   };
 
   return (
-    <div className="mx-auto min-w-0 w-full max-w-6xl px-6 pt-10 pb-16">
+    <div className="mx-auto min-w-0 w-full max-w-6xl px-6 pt-8 pb-16 sm:pt-12">
       <ReadingProgress />
       <script
         type="application/ld+json"
@@ -524,7 +503,7 @@ function PostPage() {
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_220px]">
         <article className="min-w-0">
-          <header className="mb-8">
+          <header className="article-header mb-8">
             <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className="rounded-full border border-border/80 px-2 py-0.5">
                 {post.category}
@@ -567,7 +546,7 @@ function PostPage() {
           <img
             src={post.cover || DEFAULT_POST_COVER}
             alt=""
-            className={`mb-10 h-64 w-full rounded-xl bg-background/70 dark:bg-overlay/20 ${
+            className={`article-cover mb-10 h-64 w-full rounded-2xl border border-border/60 bg-background/70 shadow-[0_24px_50px_-38px_color-mix(in_oklch,var(--foreground)_55%,transparent)] dark:bg-overlay/20 ${
               !post.cover || post.cover === DEFAULT_POST_COVER
                 ? "object-contain p-8"
                 : "object-cover"

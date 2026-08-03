@@ -50,7 +50,7 @@ export function PostCard({ post }: { post: PostCardItem }) {
   }
 
   return (
-    <Link to="/posts/$slug" params={{ slug: post.slug }} className={className}>
+    <Link to="/posts/$slug" params={{ slug: post.slug }} preload="intent" className={className}>
       {body}
     </Link>
   );
