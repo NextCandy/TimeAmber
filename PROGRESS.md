@@ -51,7 +51,7 @@
 | T34  | hydration payload 与后台重复请求治理     | ⏳ 待核验     |
 | T35  | robots.txt 指向 sitemap                  | ⏳ 待做       |
 | T36  | eslint 构建上下文清理                    | ✅ 2026-08-03 |
-| T37  | createServerFn inputValidator 技术债迁移 | ⏳ 待核验     |
+| T37  | createServerFn 校验 API 与当前 TanStack 版本统一 | ✅ 2026-08-03 |
 | T38  | 后台登录后浏览器实测                     | ⏳ 待做       |
 
 ## 各阶段实测结果
@@ -81,6 +81,6 @@
 2. **robots.txt 未指向 sitemap**：源站文件尚未补齐，生产 CDN 行为需随最终部署复测。
 3. **构建上下文脏**：仓库根目录有多个 `*-backup-*/` 目录会被 `eslint .` 扫到，
    贡献了大部分既有 prettier 报错，建议加进 eslint ignore。
-4. **T37 待核验**：当前锁定版本的两个旧 `.validator()` 调用已统一为
+4. **T37 已完成**：当前锁定版本的两个旧 `.validator()` 调用已统一为
    `createServerFn().inputValidator()`，全仓其余调用已是当前 API。
 5. **`/admin` 未做浏览器实测**：后台需要登录，本轮只做了类型与构建验证。
