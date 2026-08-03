@@ -11,6 +11,7 @@ import {
   type PostIndexItem,
 } from "@/lib/public-posts.functions";
 import { SITE_URL } from "@/lib/brand";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/archive")({
   // 只取年月骨架（几十条）。展开某个月才去拿那个月的文章 ——
@@ -144,7 +145,14 @@ function MonthPanel({ year, month, category }: { year: string; month: string; ca
     );
   }
   if (!posts.length) {
-    return <p className="mt-2 px-2 text-xs text-muted-foreground">这个月没有匹配的文章。</p>;
+    return (
+      <EmptyState
+        compact
+        className="mt-2"
+        title="这个月没有匹配的文章"
+        description="换一个月份继续浏览。"
+      />
+    );
   }
   return (
     <ul className="mt-2 border-l border-border/70">
@@ -261,14 +269,10 @@ function ArchivePage() {
             ))}
           </ul>
         ) : (
-          <p className="rounded-xl border border-dashed border-border/80 bg-card/40 p-10 text-center text-sm text-muted-foreground">
-            没有匹配的文章。
-          </p>
+          <EmptyState title="没有匹配的文章" description="换个关键词或分类试试。" />
         )
       ) : years.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border/80 bg-card/40 p-10 text-center text-sm text-muted-foreground">
-          还没有已发布的文章。
-        </p>
+        <EmptyState title="还没有已发布的文章" description="发布文章后，归档会自动出现在这里。" />
       ) : (
         <>
           {years.length > 1 && (

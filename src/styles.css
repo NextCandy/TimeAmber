@@ -674,6 +674,34 @@
   }
 }
 
+@keyframes skeleton-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in oklch, white 22%, transparent) 50%,
+    transparent 80%
+  );
+  transform: translateX(-100%);
+  animation: skeleton-shimmer 1.5s var(--ease-in-out) infinite;
+}
+
 /* 尊重系统「减少动态效果」：缩短非必要动画/过渡，滚动改为瞬时，但保留状态反馈。 */
 @media (prefers-reduced-motion: reduce) {
   *,

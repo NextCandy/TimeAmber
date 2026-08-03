@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import { ArticleCard } from "@/components/home/ArticleCard";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { HomePost } from "@/lib/home.functions";
 
 /**
@@ -52,9 +53,7 @@ export function ArticleSection({ posts, totalPosts }: { posts: HomePost[]; total
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          还没有已发布的文章。
-        </p>
+        <EmptyState title="还没有已发布的文章" description="发布第一篇文章后，它会出现在这里。" />
       )}
     </section>
   );

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FolderTree, Loader2, Tag, X, Search } from "lucide-react";
 import { PostCard } from "@/components/home/PostCard";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   loadPostsByTaxonomy,
   loadTaxonomyCounts,
@@ -142,9 +143,16 @@ function CategoriesPage() {
           </Link>
 
           {posts.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border/80 bg-card/40 p-10 text-center text-sm text-muted-foreground">
-              {loading ? "加载中…" : `这个${activeCategory ? "分类" : "标签"}下还没有文章。`}
-            </p>
+            loading ? (
+              <p className="flex items-center justify-center gap-2 px-2 py-10 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> 加载中…
+              </p>
+            ) : (
+              <EmptyState
+                title={`这个${activeCategory ? "分类" : "标签"}下还没有文章`}
+                description="试试清除筛选，或换一个分类和标签。"
+              />
+            )
           ) : (
             <>
               <div className="flex flex-col border-b border-border">
@@ -312,9 +320,7 @@ function TagCloud({ tags }: { tags: TaxonomyCount[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border/80 bg-card/40 p-8 text-center text-sm text-muted-foreground">
-          没有匹配的标签。
-        </p>
+        <EmptyState compact title="没有匹配的标签" description="换个关键词，或把最少文章数调低。" />
       ) : (
         <ul className="flex flex-wrap items-center gap-2">
           {visible.map(({ name, count }) => (

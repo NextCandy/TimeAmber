@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { FileText, FolderTree, Loader2, Search, Tag } from "lucide-react";
+import { FileText, FolderTree, Loader2, Tag } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -9,6 +9,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { EmptyState } from "@/components/ui/empty-state";
 import { isExternalHref } from "@/lib/post-link";
 import { searchPosts, type SearchResults } from "@/lib/public-posts.functions";
 
@@ -131,12 +132,17 @@ export function SearchDialog({
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> 搜索中…
               </span>
             ) : query ? (
-              <span className="inline-flex flex-col items-center gap-1">
-                <Search className="mb-1 h-5 w-5 opacity-40" />
-                没有匹配「{query}」的内容
-              </span>
+              <EmptyState
+                compact
+                title={`没有匹配「${query}」的内容`}
+                description="换个关键词再试试。"
+              />
             ) : (
-              "输入关键词开始搜索"
+              <EmptyState
+                compact
+                title="输入关键词开始搜索"
+                description="可搜索文章、分类与标签。"
+              />
             )}
           </CommandEmpty>
         )}
