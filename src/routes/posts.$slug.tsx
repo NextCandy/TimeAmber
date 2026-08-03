@@ -501,7 +501,7 @@ function PostPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-6 pt-10 pb-16">
+    <div className="mx-auto min-w-0 w-full max-w-6xl px-6 pt-10 pb-16">
       <ReadingProgress />
       <script
         type="application/ld+json"
