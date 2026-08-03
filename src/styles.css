@@ -140,6 +140,7 @@
   --duration-drawer: 300ms;
   --duration-toast: 200ms;
   --duration-list: 240ms;
+  --duration-card-hover: 400ms;
   --duration-theme: 200ms;
   --duration-hero: 420ms;
 
@@ -649,6 +650,28 @@
 }
 .press-feedback:active:not(:disabled) {
   transform: scale(0.97);
+}
+
+.article-card-shell {
+  transition: box-shadow var(--duration-hover) var(--ease-out);
+}
+
+.article-card-cover {
+  transition: transform var(--duration-card-hover) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .article-card-shell:hover {
+    box-shadow: var(--shadow-glow-soft);
+  }
+
+  .article-card-shell:hover .article-card-cover {
+    transform: scale(1.03);
+  }
+
+  .article-card-shell:hover .article-card-title {
+    color: color-mix(in oklch, var(--accent-amber) 88%, var(--foreground));
+  }
 }
 
 /* 尊重系统「减少动态效果」：缩短非必要动画/过渡，滚动改为瞬时，但保留状态反馈。 */

@@ -26,11 +26,11 @@ export function ArticleCard({
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-full w-full rounded-lg object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+            className="article-card-cover h-full w-full rounded-lg object-cover"
           />
         </span>
       )}
-      <h3 className="line-clamp-2 min-w-0 text-[17px] leading-[1.45] font-medium tracking-[-0.012em] text-foreground transition-colors [overflow-wrap:anywhere] group-hover:text-primary">
+      <h3 className="article-card-title line-clamp-2 min-w-0 text-[17px] leading-[1.45] font-medium tracking-[-0.012em] text-foreground transition-colors [overflow-wrap:anywhere] group-hover:text-primary">
         {post.title}
       </h3>
       {/* 分类与日期竖排收在右侧：行高由 auto-rows-fr 等分（约 90px），
@@ -51,7 +51,7 @@ export function ArticleCard({
     </div>
   );
 
-  const shell = `press-feedback group flex min-w-0 border-t border-border px-2 transition-all duration-300 hover:translate-x-1 hover:bg-accent/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:hover:translate-x-0 ${className}`;
+  const shell = `article-card-shell press-feedback group flex min-w-0 border-t border-border px-2 transition-all duration-300 hover:translate-x-1 hover:bg-accent/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:hover:translate-x-0 ${className}`;
 
   if (isExternal && post.externalUrl) {
     return (
