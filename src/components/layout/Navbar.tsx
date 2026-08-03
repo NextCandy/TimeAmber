@@ -35,10 +35,16 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
   const navItems = settings.askPublicEnabled ? [...NAV, ASK_NAV] : NAV;
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 12);
+      document.documentElement.dataset.scrolled = window.scrollY > 200 ? "true" : "false";
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      delete document.documentElement.dataset.scrolled;
+    };
   }, []);
 
   // 从手机横转桌面时关闭抽屉，避免 portal 遮罩残留在桌面布局上。
