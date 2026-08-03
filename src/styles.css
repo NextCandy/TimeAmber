@@ -752,6 +752,41 @@
   animation: timeamber-toast-exit var(--duration-toast) var(--ease-out) both;
 }
 
+@keyframes rare-state-spring {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  72% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes like-heart-pop {
+  from {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.2);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.empty-state-art {
+  animation: rare-state-spring 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.like-heart.is-pulsing {
+  animation: like-heart-pop 200ms var(--ease-out) both;
+}
+
 .search-dialog-content {
   transform-origin: top center;
 }

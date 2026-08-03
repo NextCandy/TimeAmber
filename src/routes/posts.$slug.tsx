@@ -172,6 +172,7 @@ function SharePost({
   const [reaction, setReaction] = useState(initialReaction);
   const [visitorKey, setVisitorKey] = useState<string | null>(null);
   const [liking, setLiking] = useState(false);
+  const [heartPulse, setHeartPulse] = useState(false);
   const links = [
     {
       label: "Twitter / X",
@@ -203,6 +204,10 @@ function SharePost({
     if (!visitorKey || liking) return;
     const previous = reaction;
     const nextLiked = !previous.liked;
+    if (nextLiked) {
+      setHeartPulse(true);
+      window.setTimeout(() => setHeartPulse(false), 220);
+    }
     setReaction({
       liked: nextLiked,
       count: Math.max(0, previous.count + (nextLiked ? 1 : -1)),
@@ -231,7 +236,9 @@ function SharePost({
             : "border-border text-muted-foreground hover:border-accent-amber/50 hover:text-accent-amber"
         }`}
       >
-        <Heart className={`h-3 w-3 ${reaction.liked ? "fill-current" : ""}`} />
+        <Heart
+          className={`like-heart h-3 w-3 ${reaction.liked ? "fill-current" : ""} ${heartPulse ? "is-pulsing" : ""}`}
+        />
         喜欢 {reaction.count}
       </button>
       <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
