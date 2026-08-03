@@ -78,7 +78,7 @@ export function ReadingControls({
       <button
         type="button"
         onClick={() => setPrefs(DEFAULTS)}
-        className="mt-3 w-full rounded-md border border-border/70 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        className="press-feedback mt-3 w-full rounded-md border border-border/70 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
         恢复默认
       </button>
@@ -91,7 +91,7 @@ function Btn(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
     <button
       type="button"
       {...props}
-      className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      className="press-feedback inline-flex h-6 w-6 items-center justify-center rounded-md border border-border/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
     />
   );
 }

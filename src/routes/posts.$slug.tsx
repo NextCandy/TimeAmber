@@ -214,7 +214,7 @@ function SharePost({
         onClick={toggleLike}
         disabled={!visitorKey || liking}
         aria-pressed={reaction.liked}
-        className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+        className={`press-feedback inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
           reaction.liked
             ? "border-accent-amber/50 bg-accent-amber-soft text-accent-amber"
             : "border-border text-muted-foreground hover:border-accent-amber/50 hover:text-accent-amber"
@@ -229,7 +229,7 @@ function SharePost({
       <button
         type="button"
         onClick={copy}
-        className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+        className="press-feedback inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
       >
         <Copy className="h-3 w-3" /> 复制链接
       </button>
@@ -239,7 +239,7 @@ function SharePost({
           href={l.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+          className="press-feedback rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
         >
           {l.label}
         </a>

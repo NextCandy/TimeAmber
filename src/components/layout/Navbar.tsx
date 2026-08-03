@@ -64,7 +64,7 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
   }, []);
 
   const iconButton =
-    "inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+    "press-feedback inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent-amber focus-visible:ring-offset-2 focus-visible:outline-none";
 
   return (
     <header className="sticky top-0 z-40 w-full px-3 pt-3 sm:px-4 sm:pt-4">

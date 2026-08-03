@@ -619,6 +619,19 @@
   border-radius: 0;
 }
 
+/* 交互控件与可点击卡片共享轻微的按压反馈；只改变 transform，不推动布局。 */
+.press-feedback {
+  transition:
+    transform var(--duration-press) var(--ease-out),
+    color var(--duration-press) var(--ease-out),
+    background-color var(--duration-press) var(--ease-out),
+    border-color var(--duration-press) var(--ease-out),
+    box-shadow var(--duration-press) var(--ease-out);
+}
+.press-feedback:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
 /* 尊重系统「减少动态效果」：关掉非必要动画/过渡，滚动改为瞬时。 */
 @media (prefers-reduced-motion: reduce) {
   *,

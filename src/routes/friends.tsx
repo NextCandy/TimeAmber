@@ -39,7 +39,7 @@ function FriendCard({ f }: { f: Friend }) {
       target="_blank"
       rel="noopener noreferrer"
       title={f.desc || f.name}
-      className="group flex h-full items-start gap-4 rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-accent-amber hover:bg-accent-amber-soft/30 hover:shadow-glow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className="press-feedback group flex h-full items-start gap-4 rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-accent-amber hover:bg-accent-amber-soft/30 hover:shadow-glow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
       <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/70 bg-background/70 p-2">
         {icon && !imgFailed ? (
@@ -91,14 +91,14 @@ function EmptyState({ email }: { email?: string }) {
         {email ? (
           <a
             href={`mailto:${email}?subject=${encodeURIComponent("友链申请 · TimeAmber")}`}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-glow"
+            className="press-feedback inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-glow"
           >
             <Mail className="h-4 w-4" /> 想被收录？
           </a>
         ) : (
           <Link
             to="/about"
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:border-primary/40 hover:text-primary"
+            className="press-feedback inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:border-primary/40 hover:text-primary"
           >
             了解更多
           </Link>

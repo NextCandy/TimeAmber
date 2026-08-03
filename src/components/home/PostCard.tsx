@@ -34,7 +34,7 @@ export function PostCard({ post }: { post: PostCardItem }) {
   );
 
   const className =
-    "group flex min-w-0 w-full border-t border-border px-2 transition-colors duration-300 hover:bg-accent/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+    "press-feedback group flex min-w-0 w-full border-t border-border px-2 transition-colors duration-300 hover:bg-accent/35 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
   if (isHtml && post.externalUrl) {
     return (
