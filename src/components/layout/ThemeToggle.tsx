@@ -54,7 +54,11 @@ export function ThemeToggle({ initialPreference }: { initialPreference: ThemePre
       title={label}
       className="press-feedback inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent-amber focus-visible:ring-offset-2 focus-visible:outline-none"
     >
-      {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+      {isDark ? (
+        <Moon key={preference} className="theme-toggle-icon h-4 w-4" />
+      ) : (
+        <Sun key={preference} className="theme-toggle-icon h-4 w-4" />
+      )}
     </button>
   );
 }
