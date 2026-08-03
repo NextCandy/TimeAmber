@@ -61,6 +61,7 @@ import {
   notionFetchPage,
 } from "@/lib/backup.functions";
 import type { Post } from "@/lib/sample-posts";
+import { loadAdminPostsPage } from "@/lib/state.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/backup")({
   component: BackupPage,
@@ -89,6 +90,7 @@ type NotionProgress = {
 
 function BackupPage() {
   const store = useAdminStore();
+  const { replaceState, suppressNextPersist } = store;
   const fileRef = useRef<HTMLInputElement>(null);
   const fetchSyncStatus = useServerFn(getSyncStatus);
   const executeSyncTask = useServerFn(runSyncTask);
@@ -178,6 +180,7 @@ function BackupPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [progress, setProgress] = useState<NotionProgress | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<Snapshot | null>(null);
+  const [fullPostsReady, setFullPostsReady] = useState(false);
 
   const runWebdavPush = useServerFn(webdavUpload);
   const runWebdavPull = useServerFn(webdavDownload);
@@ -191,6 +194,40 @@ function BackupPage() {
   const runGdrivePull = useServerFn(gdriveDownload);
   const runNotionList = useServerFn(notionList);
   const runNotionPage = useServerFn(notionFetchPage);
+  const runLoadAdminPostsPage = useServerFn(loadAdminPostsPage);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadFullPosts = async () => {
+      const allPosts: Post[] = [];
+      try {
+        for (let offset = 0; ; offset += 100) {
+          const page = await runLoadAdminPostsPage({ data: { offset, limit: 100 } });
+          allPosts.push(...page.posts);
+          if (!page.hasMore) break;
+        }
+        if (!cancelled) {
+          suppressNextPersist();
+          replaceState({ posts: allPosts });
+          setFullPostsReady(true);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          toast.error(error instanceof Error ? error.message : "完整文章数据加载失败");
+        }
+      }
+    };
+    void loadFullPosts();
+    return () => {
+      cancelled = true;
+    };
+  }, [replaceState, runLoadAdminPostsPage, suppressNextPersist]);
+
+  function ensureFullPosts() {
+    if (fullPostsReady) return true;
+    toast.info("完整文章数据仍在加载，请稍候");
+    return false;
+  }
 
   function snapshotJSON() {
     return JSON.stringify(
@@ -209,6 +246,7 @@ function BackupPage() {
   }
 
   function applyBackup(text: string, source: string) {
+    if (!ensureFullPosts()) return;
     try {
       const parsed = JSON.parse(text);
       store.createSnapshot(`恢复前自动快照（来自 ${source}）`, {
@@ -229,6 +267,7 @@ function BackupPage() {
   }
 
   function downloadLocal() {
+    if (!ensureFullPosts()) return;
     const blob = new Blob([snapshotJSON()], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -239,6 +278,7 @@ function BackupPage() {
   }
 
   function handleFile(file: File) {
+    if (!ensureFullPosts()) return;
     const reader = new FileReader();
     reader.onload = () => applyBackup(String(reader.result ?? ""), "本地文件");
     reader.readAsText(file);
@@ -261,6 +301,7 @@ function BackupPage() {
     withBusy(`webdav-${dir}`, async () => {
       store.updateCloud({ webdav });
       if (dir === "push") {
+        if (!ensureFullPosts()) return;
         await runWebdavPush({ data: { ...webdav, body: snapshotJSON() } });
         toast.success("已上传到 WebDAV");
       } else {
@@ -273,6 +314,7 @@ function BackupPage() {
     withBusy(`s3-${dir}`, async () => {
       store.updateCloud({ s3 });
       if (dir === "push") {
+        if (!ensureFullPosts()) return;
         await runS3Push({ data: { ...s3, body: snapshotJSON() } });
         toast.success("已上传到 S3");
       } else {
@@ -285,6 +327,7 @@ function BackupPage() {
     withBusy(`dropbox-${dir}`, async () => {
       store.updateCloud({ dropbox });
       if (dir === "push") {
+        if (!ensureFullPosts()) return;
         await runDropboxPush({ data: { ...dropbox, body: snapshotJSON() } });
         toast.success("已上传到 Dropbox");
       } else {
@@ -297,6 +340,7 @@ function BackupPage() {
     withBusy(`onedrive-${dir}`, async () => {
       store.updateCloud({ onedrive });
       if (dir === "push") {
+        if (!ensureFullPosts()) return;
         await runOnedrivePush({ data: { ...onedrive, body: snapshotJSON() } });
         toast.success("已上传到 OneDrive");
       } else {
@@ -309,6 +353,7 @@ function BackupPage() {
     withBusy(`gdrive-${dir}`, async () => {
       store.updateCloud({ gdrive });
       if (dir === "push") {
+        if (!ensureFullPosts()) return;
         await runGdrivePush({ data: { ...gdrive, body: snapshotJSON() } });
         toast.success("已上传到 Google Drive");
       } else {
@@ -318,6 +363,7 @@ function BackupPage() {
     });
 
   async function doNotion() {
+    if (!ensureFullPosts()) return;
     await withBusy("notion", async () => {
       store.updateCloud({ notion });
       store.createSnapshot("Notion 同步前自动快照", { actor, auto: true });
@@ -464,6 +510,11 @@ function BackupPage() {
           导出 / 导入 JSON 备份，推送到 WebDAV / S3 / Dropbox / OneDrive / Google Drive；从 Notion
           增量同步草稿；历史快照与回滚审计。
         </p>
+        {!fullPostsReady && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            正在加载完整文章数据，备份操作即将可用…
+          </p>
+        )}
       </header>
 
       <section className="border-y border-border/70 py-5">
@@ -518,7 +569,7 @@ function BackupPage() {
           <h2 className="font-display text-base font-semibold">本地备份</h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={downloadLocal}>
+          <Button size="sm" disabled={!fullPostsReady} onClick={downloadLocal}>
             <Download className="mr-1.5 h-4 w-4" /> 导出 JSON
           </Button>
           <input
@@ -532,7 +583,12 @@ function BackupPage() {
               e.target.value = "";
             }}
           />
-          <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!fullPostsReady}
+            onClick={() => fileRef.current?.click()}
+          >
             <Upload className="mr-1.5 h-4 w-4" /> 导入 JSON
           </Button>
         </div>

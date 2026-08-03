@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useState } from "react";
 import { PostEditor } from "@/components/admin/PostEditor";
-import { useAdminStore } from "@/lib/admin-store";
+import { loadAdminPost } from "@/lib/state.functions";
+import type { Post } from "@/lib/sample-posts";
 
 export const Route = createFileRoute("/_authenticated/admin/posts/$slug/edit")({
   component: EditPostPage,
@@ -8,8 +11,31 @@ export const Route = createFileRoute("/_authenticated/admin/posts/$slug/edit")({
 
 function EditPostPage() {
   const { slug } = Route.useParams();
-  const { posts } = useAdminStore();
-  const post = posts.find((p) => p.slug === slug);
+  const loadPost = useServerFn(loadAdminPost);
+  const [post, setPost] = useState<Post | null | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPost(undefined);
+    void loadPost({ data: { slug } })
+      .then((next) => {
+        if (!cancelled) setPost(next);
+      })
+      .catch(() => {
+        if (!cancelled) setPost(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadPost, slug]);
+
+  if (post === undefined) {
+    return (
+      <div className="mx-auto max-w-xl py-16 text-center text-sm text-muted-foreground">
+        正在加载文章…
+      </div>
+    );
+  }
 
   if (!post) {
     return (

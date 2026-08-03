@@ -95,14 +95,47 @@ async function loadMediaItems(): Promise<AdminState["media"]> {
   }));
 }
 
-async function loadPosts(admin: boolean): Promise<Post[]> {
+type DatabaseRow = Record<string, unknown>;
+
+function mapPostRow(row: DatabaseRow, tagMap: Map<number, string[]>): Post {
+  const post: Post = {
+    slug: String(row.slug),
+    title: String(row.title),
+    excerpt: String(row.excerpt ?? ""),
+    category: String(row.category ?? ""),
+    tags: tagMap.get(Number(row.id)) ?? [],
+    publishAt: asDate(row.publish_at ?? row.created_at),
+    readingMinutes: Number(row.reading_minutes ?? 1),
+    status: row.published ? "published" : "draft",
+    type: row.post_type === "html" ? "html" : "markdown",
+    openIn: row.open_in === "_self" ? "_self" : "_blank",
+  };
+  if (row.source) post.source = String(row.source);
+  if (row.content != null) post.content = String(row.content);
+  if (row.cover_image) post.cover = String(row.cover_image);
+  if (row.external_url) post.externalUrl = String(row.external_url);
+  if (row.notion_id) post.notionId = String(row.notion_id);
+  if (row.notion_last_edited) post.notionLastEdited = asDate(row.notion_last_edited);
+  return post;
+}
+
+async function loadPosts(admin: boolean, includeContent = false): Promise<Post[]> {
   const sql = db();
   // 公开查询刻意不取 source / notion_id / notion_last_edited：
   // 这份结果会被 root loader 序列化进**每一个页面**的 hydration payload（1921 篇），
   // 而这三个字段前台列表一个都用不到 —— notion_* 只有后台 backup 页在用（走 admin 分支的
-  // select *），文章页的「原文」链接来自 posts.$slug 自己的 loadPublicPost。
+  // select *），后台列表默认不取正文；备份按页、编辑页按 slug 读取完整文章。
   const rows = admin
-    ? await sql`select * from public.posts order by pinned desc, created_at desc`
+    ? includeContent
+      ? await sql`select * from public.posts order by pinned desc, created_at desc`
+      : await sql`
+          select
+            id, slug, title, excerpt, category, publish_at, created_at,
+            reading_minutes, published, cover_image, post_type,
+            external_url, open_in
+          from public.posts
+          order by pinned desc, created_at desc
+        `
     : await sql`
         select
           id, slug, title, excerpt, category, publish_at, created_at,
@@ -123,29 +156,7 @@ async function loadPosts(admin: boolean): Promise<Post[]> {
     list.push(String(row.name));
     tagMap.set(Number(row.post_id), list);
   }
-  return rows.map((row) => {
-    const post: Post = {
-      slug: String(row.slug),
-      title: String(row.title),
-      excerpt: String(row.excerpt ?? ""),
-      category: String(row.category ?? ""),
-      tags: tagMap.get(Number(row.id)) ?? [],
-      publishAt: asDate(row.publish_at ?? row.created_at),
-      readingMinutes: Number(row.reading_minutes ?? 1),
-      status: row.published ? "published" : "draft",
-      type: row.post_type === "html" ? "html" : "markdown",
-      openIn: row.open_in === "_self" ? "_self" : "_blank",
-    };
-    // 只在真有值时才挂键。这份结果会被序列化进**每个页面**的 hydration payload，
-    // 写成 `key: undefined` 序列化后是 `key:void 0`，1921 篇 × 6 个键白占约 100 KB。
-    if (row.source) post.source = String(row.source);
-    if (row.content != null) post.content = String(row.content);
-    if (row.cover_image) post.cover = String(row.cover_image);
-    if (row.external_url) post.externalUrl = String(row.external_url);
-    if (row.notion_id) post.notionId = String(row.notion_id);
-    if (row.notion_last_edited) post.notionLastEdited = asDate(row.notion_last_edited);
-    return post;
-  });
+  return rows.map((row) => mapPostRow(row, tagMap));
 }
 
 async function readConfig<T>(key: string, fallback: T): Promise<T> {
@@ -433,6 +444,74 @@ export const loadAdminState = createServerFn({ method: "GET" })
       contactClicks,
       contactLastAt,
     };
+  });
+
+const adminPostsPageInput = z.object({
+  offset: z.number().int().min(0).max(5000),
+  limit: z.number().int().min(1).max(100),
+});
+
+/** 后台备份/同步按页读取正文，避免一次响应携带全库 8MB+ 内容。 */
+export const loadAdminPostsPage = createServerFn({ method: "GET" })
+  .validator((value: z.infer<typeof adminPostsPageInput>) => adminPostsPageInput.parse(value))
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context, data }): Promise<{ posts: Post[]; hasMore: boolean }> => {
+    await assertAdmin(context.userId);
+    const sql = db();
+    const rows = await sql`
+      select *
+      from public.posts
+      order by pinned desc, created_at desc
+      limit ${data.limit} offset ${data.offset}
+    `;
+    const ids = rows.map((row) => Number(row.id));
+    const tagRows = ids.length
+      ? await sql`
+          select pt.post_id, t.name
+          from public.post_tags pt
+          join public.tags t on t.id = pt.tag_id
+          where pt.post_id = any(${ids})
+        `
+      : [];
+    const tagMap = new Map<number, string[]>();
+    for (const row of tagRows) {
+      const list = tagMap.get(Number(row.post_id)) ?? [];
+      list.push(String(row.name));
+      tagMap.set(Number(row.post_id), list);
+    }
+    return {
+      posts: rows.map((row) => mapPostRow(row, tagMap)),
+      hasMore: rows.length === data.limit,
+    };
+  });
+
+const adminPostInput = z.object({ slug: z.string().trim().min(1).max(300) });
+
+/** 编辑页只读取当前文章的正文，避免依赖全库正文水合。 */
+export const loadAdminPost = createServerFn({ method: "GET" })
+  .validator((value: z.infer<typeof adminPostInput>) => adminPostInput.parse(value))
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context, data }): Promise<Post | null> => {
+    await assertAdmin(context.userId);
+    const sql = db();
+    const [row] = await sql`
+      select *
+      from public.posts
+      where slug = ${data.slug}
+      limit 1
+    `;
+    if (!row) return null;
+    const tagRows = await sql`
+      select t.name
+      from public.post_tags pt
+      join public.tags t on t.id = pt.tag_id
+      where pt.post_id = ${row.id}
+      order by t.name
+    `;
+    const tagMap = new Map<number, string[]>([
+      [Number(row.id), tagRows.map((tag) => String(tag.name))],
+    ]);
+    return mapPostRow(row, tagMap);
   });
 
 export const loadAdminAnalytics = createServerFn({ method: "GET" })
