@@ -369,7 +369,9 @@ type AdminActions = {
   resetContactClicks: () => void;
 };
 
-const AdminContext = createContext<(AdminState & AdminActions) | null>(null);
+const AdminContext = createContext<(AdminState & AdminActions & { hydrated: boolean }) | null>(
+  null,
+);
 
 function coreFrom(s: AdminState): CoreData {
   return {
@@ -959,6 +961,7 @@ export function AdminStoreProvider({
   const value = useMemo(
     () => ({
       ...state,
+      hydrated,
       upsertPost,
       deletePost,
       setPostStatus,
@@ -1001,6 +1004,7 @@ export function AdminStoreProvider({
     }),
     [
       state,
+      hydrated,
       upsertPost,
       deletePost,
       setPostStatus,

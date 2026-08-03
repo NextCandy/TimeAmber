@@ -32,7 +32,7 @@ type StatusFilter = "all" | "published" | "draft";
 type SortKey = "new" | "old" | "title" | "reading";
 
 function PostsList() {
-  const { posts, deletePost, setPostStatus } = useAdminStore();
+  const { posts, deletePost, setPostStatus, hydrated } = useAdminStore();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [cat, setCat] = useState("all");
@@ -93,7 +93,9 @@ function PostsList() {
         <div>
           <h1 className="font-display text-2xl font-semibold">文章</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            共 {posts.length} 篇 · 筛选后 {filtered.length} 篇 · 第 {safePage}/{pageCount} 页
+            {hydrated
+              ? `共 ${posts.length} 篇 · 筛选后 ${filtered.length} 篇 · 第 ${safePage}/${pageCount} 页`
+              : "正在加载文章…"}
           </p>
         </div>
         <Button asChild size="sm">
@@ -173,7 +175,9 @@ function PostsList() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border/70 bg-card/40">
-        {filtered.length === 0 ? (
+        {!hydrated ? (
+          <p className="p-8 text-center text-sm text-muted-foreground">正在加载文章…</p>
+        ) : filtered.length === 0 ? (
           <p className="p-8 text-center text-sm text-muted-foreground">没有匹配的文章</p>
         ) : (
           <ul className="divide-y divide-border/60">

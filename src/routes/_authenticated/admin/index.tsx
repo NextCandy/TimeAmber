@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 
 function Dashboard() {
   const { visitTrend } = Route.useLoaderData();
-  const { posts, categories, tags, friends } = useAdminStore();
+  const { posts, categories, tags, friends, hydrated } = useAdminStore();
 
   const hasTrend = visitTrend.length > 0;
   const total7d = visitTrend.reduce((sum, d) => sum + d.count, 0);
@@ -32,7 +32,10 @@ function Dashboard() {
     { label: "友链", value: friends.length, icon: Users, to: "/admin/friends" },
   ] as const;
 
-  const recent = [...posts].sort((a, b) => (a.publishAt < b.publishAt ? 1 : -1)).slice(0, 5);
+  const visibleStats = hydrated ? stats : stats.map((s) => ({ ...s, value: "—" }));
+  const recent = hydrated
+    ? [...posts].sort((a, b) => (a.publishAt < b.publishAt ? 1 : -1)).slice(0, 5)
+    : [];
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -52,7 +55,7 @@ function Dashboard() {
       </header>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {stats.map((s) => (
+        {visibleStats.map((s) => (
           <Link
             key={s.label}
             to={s.to}
@@ -124,7 +127,9 @@ function Dashboard() {
           </Link>
         </div>
         <div className="overflow-hidden rounded-xl border border-border/70 bg-card/40">
-          {recent.length === 0 ? (
+          {!hydrated ? (
+            <p className="px-6 py-10 text-center text-sm text-muted-foreground">正在加载文章…</p>
+          ) : recent.length === 0 ? (
             <div className="flex flex-col items-center px-6 py-10 text-center">
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-amber-soft text-accent-amber">
                 <FileText className="h-5 w-5" />
