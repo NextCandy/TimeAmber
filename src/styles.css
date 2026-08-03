@@ -725,6 +725,36 @@
   }
 }
 
+@keyframes timeamber-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes timeamber-toast-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+[data-sonner-toast].timeamber-toast[data-mounted="true"] {
+  animation: timeamber-toast-enter var(--duration-toast) var(--ease-out) both;
+}
+
+[data-sonner-toast].timeamber-toast[data-removed="true"] {
+  animation: timeamber-toast-exit var(--duration-toast) var(--ease-out) both;
+}
+
 .search-dialog-content {
   transform-origin: top center;
 }
