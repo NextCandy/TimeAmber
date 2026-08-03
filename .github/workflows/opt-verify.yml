@@ -23,9 +23,9 @@ on:
   workflow_dispatch:
     inputs:
       base_url:
-        description: "验证地址；默认使用本地 preview"
+        description: "验证地址；默认使用生产站点"
         required: false
-        default: ""
+        default: "https://timeamber.com"
       bisect_start:
         description: "可选：bisect 起点 commit"
         required: false
@@ -49,7 +49,7 @@ jobs:
     timeout-minutes: 25
     env:
       CI: true
-      OPT_BASE_URL: ${{ inputs.base_url || 'http://127.0.0.1:4173' }}
+      OPT_BASE_URL: ${{ inputs.base_url || vars.OPT_BASE_URL || 'https://timeamber.com' }}
       OPT_ARTICLE_PATH: ${{ vars.OPT_ARTICLE_PATH || '' }}
       OPT_ADMIN_STORAGE_STATE: ${{ secrets.OPT_ADMIN_STORAGE_STATE || '' }}
       OPT_CHROME_PATH: ""
@@ -69,11 +69,11 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Start local preview when no explicit URL is supplied
-        if: ${{ inputs.base_url == '' && github.event_name != 'schedule' }}
+      - name: Start local production server when no explicit URL is supplied
+        if: ${{ startsWith(env.OPT_BASE_URL, 'http://127.0.0.1') && github.event_name != 'schedule' }}
         shell: bash
         run: |
-          nohup npm run preview -- --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/timeamber-preview.log" 2>&1 &
+          nohup env PORT=4173 npm run start > "$RUNNER_TEMP/timeamber-server.log" 2>&1 &
           for attempt in $(seq 1 30); do
             if curl --fail --silent --show-error "$OPT_BASE_URL/" > /dev/null; then exit 0; fi
             sleep 2
@@ -107,7 +107,7 @@ jobs:
           name: timeamber-opt-${{ github.run_id }}
           path: |
             reports/opt/**
-            ${{ runner.temp }}/timeamber-preview.log
+            ${{ runner.temp }}/timeamber-server.log
           if-no-files-found: warn
           retention-days: 20
 
