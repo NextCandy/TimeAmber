@@ -224,7 +224,7 @@ function ArchivePage() {
       </header>
 
       {/* 筛选 */}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative sm:max-w-xs sm:flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -272,7 +272,7 @@ function ArchivePage() {
       ) : (
         <>
           {years.length > 1 && (
-            <nav className="sticky top-16 z-30 mb-8 -mx-2 flex flex-wrap gap-1.5 rounded-xl bg-background/80 px-2 py-2 backdrop-blur">
+            <nav className="sticky top-16 z-30 mb-8 -mx-2 flex flex-wrap gap-2 rounded-xl bg-background/80 px-2 py-2 backdrop-blur">
               {years.map(({ year }) => (
                 <a
                   key={year}
@@ -309,7 +309,7 @@ function ArchivePage() {
                   <ContributionCalendar counts={monthly} />
 
                   {isOpen(year) && (
-                    <div className="mt-5 flex flex-col gap-3">
+                    <div className="mt-4 flex flex-col gap-4">
                       {buckets.map((b) => {
                         const key = `${year}-${b.month}`;
                         const open = !!openMonths[key];
@@ -319,7 +319,7 @@ function ArchivePage() {
                               type="button"
                               onClick={() => toggleMonth(key)}
                               aria-expanded={open}
-                              className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-accent/60"
+                              className="group flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent/60"
                             >
                               <span className="font-medium">
                                 {MONTH_NAMES[Number(b.month) - 1]}

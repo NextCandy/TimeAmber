@@ -130,12 +130,12 @@ function FriendsPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 pt-16 pb-16">
-      <header className="mb-10">
+      <header className="mb-8">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Friends
         </p>
         <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">友链</h1>
-        <p className="mt-3 text-sm text-muted-foreground">一些值得长期关注的人和站点。</p>
+        <p className="mt-4 text-sm text-muted-foreground">一些值得长期关注的人和站点。</p>
       </header>
 
       {friends.length === 0 ? (
@@ -156,7 +156,7 @@ function FriendsPage() {
             </nav>
           )}
 
-          <div className="space-y-10">
+          <div className="space-y-8">
             {groups.map(([g, list]) => (
               <section key={g} id={`group-${encodeURIComponent(g)}`} className="scroll-mt-24">
                 {multiGroup && (

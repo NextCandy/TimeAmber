@@ -18,9 +18,9 @@ export function ArticleSection({ posts, totalPosts }: { posts: HomePost[]; total
   return (
     <section
       aria-labelledby="articles-title"
-      className="mx-auto flex w-full max-w-6xl flex-col px-6 pt-5 pb-5 sm:flex-1 sm:pt-4 sm:pb-0"
+      className="mx-auto flex w-full max-w-6xl flex-col px-6 pt-6 pb-6 sm:flex-1 sm:pt-4 sm:pb-0"
     >
-      <div className="mb-3 flex shrink-0 items-end justify-between gap-4">
+      <div className="mb-4 flex shrink-0 items-end justify-between gap-4">
         <div>
           <p className="font-latin text-xs font-medium tracking-[0.2em] text-primary uppercase">
             Articles
@@ -41,7 +41,7 @@ export function ArticleSection({ posts, totalPosts }: { posts: HomePost[]; total
       </div>
 
       {posts.length > 0 ? (
-        <div className="home-list grid grid-cols-1 border-b border-border sm:flex-1 sm:auto-rows-fr sm:grid-cols-2 sm:gap-x-10">
+        <div className="home-list grid grid-cols-1 border-b border-border sm:flex-1 sm:auto-rows-fr sm:grid-cols-2 sm:gap-x-8">
           {posts.map((post, index) => (
             <ArticleCard
               key={post.slug}
