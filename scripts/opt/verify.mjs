@@ -638,6 +638,8 @@ async function loadImageVolumeReport() {
 }
 
 function markdownReport({ label, baseUrl, git, pageRecords, lighthouseRuns, schemaResults, sitemapResult, robotsResult, budgetRowsValue, imageVolume, reportDir, failures }) {
+  const imageAbandoned = imageVolume.abandoned || [];
+  const imageOverThreshold = imageVolume.overThreshold || [];
   const statuses = [...pageRecords, ...lighthouseRuns, schemaResults, sitemapResult, robotsResult, imageVolume, ...budgetRowsValue].filter(Boolean).reduce((summary, item) => {
     const status = item.status || "SKIP";
     summary[status] = (summary[status] || 0) + 1;
@@ -705,13 +707,13 @@ function markdownReport({ label, baseUrl, git, pageRecords, lighthouseRuns, sche
     "",
     `- Generator report: **${imageVolume.status}**; ${imageVolume.report || imageVolume.reason || "-"}`,
     imageVolume.sourceBytes == null ? "- No AVIF/WebP generator report was found." : `- Mode ${imageVolume.apply ? "apply" : "dry-run"}; original ${imageVolume.sourceBytes} B; AVIF ${imageVolume.avifBytes} B; WebP ${imageVolume.webpBytes} B; effective derivatives ${imageVolume.effectiveDerivedBytes} B; saved ${imageVolume.savedBytes} B (${imageVolume.savedPct == null ? "-" : `${(imageVolume.savedPct * 100).toFixed(2)}%`}).`,
-    imageVolume.sourceBytes == null ? "" : `- Negative-optimization skips ${imageVolume.abandoned.length}; threshold warnings ${imageVolume.overThreshold.length}; generated modern-format coverage ${imageVolume.modernFormatCoverage == null ? "-" : `${(imageVolume.modernFormatCoverage * 100).toFixed(2)}%`}.`,
+    imageVolume.sourceBytes == null ? "" : `- Negative-optimization skips ${imageAbandoned.length}; threshold warnings ${imageOverThreshold.length}; generated modern-format coverage ${imageVolume.modernFormatCoverage == null ? "-" : `${(imageVolume.modernFormatCoverage * 100).toFixed(2)}%`}.`,
     "",
     "| Page | Viewport | Scenario | Images | Image KB | AVIF KB | WebP KB | Modern coverage |",
     "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |",
     ...(imagePageRows.length ? imagePageRows : ["| - | - | - | - | - | - | - | - |"]),
-    ...(imageVolume.overThreshold.length ? ["", "### Threshold warnings", "", ...imageVolume.overThreshold.map((item) => `- ${item.id} / ${item.format} / ${item.width}w: ${item.bytes} B; ${item.warning}`)] : []),
-    ...(imageVolume.abandoned.length ? ["", "### Abandoned derivatives", "", ...imageVolume.abandoned.map((item) => `- ${item.id} / ${item.format} / ${item.width}w: ${item.reason}`)] : []),
+    ...(imageOverThreshold.length ? ["", "### Threshold warnings", "", ...imageOverThreshold.map((item) => `- ${item.id} / ${item.format} / ${item.width}w: ${item.bytes} B; ${item.warning}`)] : []),
+    ...(imageAbandoned.length ? ["", "### Abandoned derivatives", "", ...imageAbandoned.map((item) => `- ${item.id} / ${item.format} / ${item.width}w: ${item.reason}`)] : []),
     "",
     "## 失败项与归因线索",
     "",

@@ -207,8 +207,8 @@ export function resolveUrl(baseUrl, path) {
 export function normalizeUrl(input) {
   const url = new URL(input);
   url.hash = "";
-  if (url.pathname !== "/") url.pathname = url.pathname.replace(/\/+$/, "");
-  return url.toString();
+  const pathname = url.pathname === "/" ? "" : url.pathname.replace(/\/+$/, "");
+  return `${url.origin}${pathname}${url.search}`;
 }
 
 export function isSameOrigin(a, b) {
