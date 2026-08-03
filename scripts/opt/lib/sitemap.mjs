@@ -54,7 +54,7 @@ async function inspectCanonical(url) {
       ...text.matchAll(/<link\b[^>]*\brel=["']canonical["'][^>]*\bhref=["']([^"']+)["'][^>]*>/gi),
       ...text.matchAll(/<link\b[^>]*\bhref=["']([^"']+)["'][^>]*\brel=["']canonical["'][^>]*>/gi),
     ].map((match) => new URL(match[1], url).toString());
-    return { status: response.status, canonical: [...new Set(matches)] };
+    return { status: response.status, responseUrl: response.url, canonical: [...new Set(matches)] };
   } catch (error) {
     return { status: 0, canonical: [], error: String(error) };
   }
@@ -184,14 +184,17 @@ export async function validateSitemap({ baseUrl, sitemapPath = "/sitemap.xml", s
     const blocked = robots?.isBlocked(url.pathname) || false;
     const canonical = await inspectCanonical(entry.loc);
     const canonicalMatch = canonical.canonical.some((value) => normalizeUrl(value) === normalizeUrl(entry.loc));
-    return { entry, request, blocked, canonical, canonicalMatch, sample: {
+    const redirectedSameOrigin = canonical.responseUrl && normalizeUrl(canonical.responseUrl) !== normalizeUrl(entry.loc) && isSameOrigin(canonical.responseUrl, baseUrl);
+    const canonicalSatisfied = canonicalMatch || (!canonical.canonical.length && redirectedSameOrigin);
+    return { entry, request, blocked, canonical, canonicalMatch: canonicalSatisfied, sample: {
       url: redactUrl(entry.loc),
       shard: redactUrl(entry.shard),
       status: request.status,
       httpOk: request.ok,
       robotsBlocked: blocked,
       canonical: canonical.canonical.map(redactUrl),
-      canonicalMatch,
+      canonicalMatch: canonicalSatisfied,
+      redirectedUrl: canonical.responseUrl && normalizeUrl(canonical.responseUrl) !== normalizeUrl(entry.loc) ? redactUrl(canonical.responseUrl) : "",
     } };
   });
   const samples = inspectedSamples.map((item) => item.sample);
