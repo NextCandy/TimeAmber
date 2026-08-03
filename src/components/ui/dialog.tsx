@@ -34,10 +34,11 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     /** 命令面板那种自带输入框的弹层，右上角的 X 会压在输入框上。 */
     hideClose?: boolean;
+    overlayClassName?: string;
   }
->(({ className, children, hideClose, ...props }, ref) => (
+>(({ className, children, hideClose, overlayClassName, ...props }, ref) => (
   <DialogPortal>
-    <DialogOverlay />
+    <DialogOverlay className={overlayClassName} />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(

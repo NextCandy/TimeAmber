@@ -56,7 +56,8 @@ const CommandDialog = ({
     <Dialog {...props}>
       <DialogContent
         hideClose
-        className="top-[10vh] max-w-2xl translate-y-0 gap-0 overflow-hidden rounded-none border-border bg-popover p-0 shadow-2xl sm:rounded-none"
+        overlayClassName="search-dialog-overlay"
+        className="search-dialog-content top-[10vh] max-w-2xl translate-y-0 gap-0 overflow-hidden rounded-none border-border bg-popover p-0 shadow-2xl sm:rounded-none"
       >
         <DialogTitle className="sr-only">{title}</DialogTitle>
         <DialogDescription className="sr-only">{description}</DialogDescription>

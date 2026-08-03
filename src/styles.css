@@ -685,6 +685,66 @@
   }
 }
 
+@keyframes search-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes search-dialog-exit {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -4px) scale(0.96);
+  }
+}
+
+@keyframes search-dialog-overlay-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes search-dialog-overlay-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.search-dialog-content {
+  transform-origin: top center;
+}
+
+.search-dialog-content[data-state="open"] {
+  animation: search-dialog-enter 180ms var(--ease-out) both;
+}
+
+.search-dialog-content[data-state="closed"] {
+  animation: search-dialog-exit 180ms var(--ease-out) both;
+}
+
+.search-dialog-overlay[data-state="open"] {
+  animation: search-dialog-overlay-enter 150ms var(--ease-out) both;
+}
+
+.search-dialog-overlay[data-state="closed"] {
+  animation: search-dialog-overlay-exit 150ms var(--ease-out) both;
+}
+
 .theme-toggle-icon {
   transform-origin: center;
   animation: theme-icon-morph 150ms var(--ease-out) both;
