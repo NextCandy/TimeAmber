@@ -1,6 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, ExternalLink, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  ExternalLink,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useAdminStore } from "@/lib/admin-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -166,9 +174,7 @@ function PostsList() {
 
       <div className="overflow-hidden rounded-xl border border-border/70 bg-card/40">
         {filtered.length === 0 ? (
-          <p className="p-8 text-center text-sm text-muted-foreground">
-            没有匹配的文章
-          </p>
+          <p className="p-8 text-center text-sm text-muted-foreground">没有匹配的文章</p>
         ) : (
           <ul className="divide-y divide-border/60">
             {pageItems.map((p) => {
@@ -206,37 +212,24 @@ function PostsList() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() =>
-                        setPostStatus(p.slug, isPub ? "draft" : "published")
-                      }
+                      onClick={() => setPostStatus(p.slug, isPub ? "draft" : "published")}
                       title={isPub ? "改为草稿" : "立即发布"}
                     >
                       {isPub ? "下架" : "发布"}
                     </Button>
                     <Button asChild size="icon" variant="ghost">
                       {p.type === "html" && p.externalUrl ? (
-                        <a
-                          href={p.externalUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
+                        <a href={p.externalUrl} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="h-4 w-4" />
                         </a>
                       ) : (
-                        <Link
-                          to="/posts/$slug"
-                          params={{ slug: p.slug }}
-                          target="_blank"
-                        >
+                        <Link to="/posts/$slug" params={{ slug: p.slug }} target="_blank">
                           <ExternalLink className="h-4 w-4" />
                         </Link>
                       )}
                     </Button>
                     <Button asChild size="icon" variant="ghost">
-                      <Link
-                        to="/admin/posts/$slug/edit"
-                        params={{ slug: p.slug }}
-                      >
+                      <Link to="/admin/posts/$slug/edit" params={{ slug: p.slug }}>
                         <Pencil className="h-4 w-4" />
                       </Link>
                     </Button>
@@ -280,10 +273,7 @@ function PostsList() {
         </div>
       )}
 
-      <AlertDialog
-        open={!!pendingDelete}
-        onOpenChange={(o) => !o && setPendingDelete(null)}
-      >
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除？</AlertDialogTitle>

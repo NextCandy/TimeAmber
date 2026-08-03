@@ -7,21 +7,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  changeInitialPassword,
-  getAuthState,
-  login,
-} from "@/lib/auth.functions";
+import { changeInitialPassword, getAuthState, login } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => ({
     redirect: typeof search.redirect === "string" ? search.redirect : "/admin",
   }),
   head: () => ({
-    meta: [
-      { title: "登录 · TimeAmber 后台" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
+    meta: [{ title: "登录 · TimeAmber 后台" }, { name: "robots", content: "noindex, nofollow" }],
   }),
   component: AuthPage,
 });

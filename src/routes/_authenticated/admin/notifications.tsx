@@ -111,7 +111,11 @@ function NotificationsPage() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : "发送失败";
       store.addNotifyReceipt({ channel, ok: false, title, message: msg });
-      store.addAlert({ level: "warning", source: `notify/${channel}`, message: `测试失败：${msg}` });
+      store.addAlert({
+        level: "warning",
+        source: `notify/${channel}`,
+        message: `测试失败：${msg}`,
+      });
       toast.error(msg);
     } finally {
       setBusy(null);
@@ -143,9 +147,21 @@ function NotificationsPage() {
         const title = `TimeAmber 告警 · ${pending.length} 条`;
         try {
           const res = await runNotify({
-            data: { channel: ch, title, body, bark: cfg.bark, telegram: cfg.telegram, smtp: cfg.smtp },
+            data: {
+              channel: ch,
+              title,
+              body,
+              bark: cfg.bark,
+              telegram: cfg.telegram,
+              smtp: cfg.smtp,
+            },
           });
-          store.addNotifyReceipt({ channel: ch, ok: true, title, message: `推送 ${pending.length} 条 · ${res.via}` });
+          store.addNotifyReceipt({
+            channel: ch,
+            ok: true,
+            title,
+            message: `推送 ${pending.length} 条 · ${res.via}`,
+          });
         } catch (e) {
           const msg = e instanceof Error ? e.message : "发送失败";
           store.addNotifyReceipt({ channel: ch, ok: false, title, message: msg });
@@ -196,11 +212,11 @@ function NotificationsPage() {
               <Label>触发级别</Label>
               <Select
                 value={cfg.autoPushLevel ?? "error"}
-                onValueChange={(v) =>
-                  setCfg({ ...cfg, autoPushLevel: v as "error" | "warning" })
-                }
+                onValueChange={(v) => setCfg({ ...cfg, autoPushLevel: v as "error" | "warning" })}
               >
-                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="error">仅 error</SelectItem>
                   <SelectItem value="warning">warning 及以上</SelectItem>
@@ -222,9 +238,7 @@ function NotificationsPage() {
           </div>
           <Switch
             checked={cfg.dedup?.enabled ?? false}
-            onCheckedChange={(v) =>
-              setCfg({ ...cfg, dedup: { ...(cfg.dedup ?? {}), enabled: v } })
-            }
+            onCheckedChange={(v) => setCfg({ ...cfg, dedup: { ...(cfg.dedup ?? {}), enabled: v } })}
           />
         </div>
         {cfg.dedup?.enabled && (
@@ -299,7 +313,10 @@ function NotificationsPage() {
               type="password"
               value={cfg.bark?.key ?? ""}
               onChange={(e) =>
-                setCfg({ ...cfg, bark: { ...(cfg.bark ?? { enabled: false }), key: e.target.value } })
+                setCfg({
+                  ...cfg,
+                  bark: { ...(cfg.bark ?? { enabled: false }), key: e.target.value },
+                })
               }
               className="mt-1.5"
               maxLength={200}
@@ -445,8 +462,8 @@ function NotificationsPage() {
           />
         </header>
         <p className="mb-3 rounded-md border border-warning/30 bg-warning/5 p-2.5 text-xs text-warning-foreground">
-          因边缘运行时限制，SMTP 通过 Webhook 中转执行。请填写一个可访问的 webhook URL
-          （例如自建的 smtp-relay）；下方 host/port/账号会作为 JSON 负载 POST 给该 URL。
+          因边缘运行时限制，SMTP 通过 Webhook 中转执行。请填写一个可访问的 webhook URL （例如自建的
+          smtp-relay）；下方 host/port/账号会作为 JSON 负载 POST 给该 URL。
         </p>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div className="md:col-span-2">
@@ -668,8 +685,13 @@ function NotificationsPage() {
             </p>
           </div>
           {stats.byChannel.map((s) => (
-            <div key={s.channel} className="rounded-md border border-border/60 bg-background/40 p-2">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{s.channel}</p>
+            <div
+              key={s.channel}
+              className="rounded-md border border-border/60 bg-background/40 p-2"
+            >
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {s.channel}
+              </p>
               <p className="font-display text-lg font-semibold">{s.total}</p>
               <p className="text-[10px] text-muted-foreground">
                 <span className="text-primary">{s.ok}</span> /{" "}
@@ -682,7 +704,9 @@ function NotificationsPage() {
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Filter className="h-3.5 w-3.5 text-muted-foreground" />
           <Select value={filterCh} onValueChange={(v) => setFilterCh(v as typeof filterCh)}>
-            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-32 text-xs">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部通道</SelectItem>
               <SelectItem value="bark">Bark</SelectItem>
@@ -690,8 +714,13 @@ function NotificationsPage() {
               <SelectItem value="smtp">SMTP</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as typeof filterStatus)}>
-            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+          <Select
+            value={filterStatus}
+            onValueChange={(v) => setFilterStatus(v as typeof filterStatus)}
+          >
+            <SelectTrigger className="h-8 w-32 text-xs">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部状态</SelectItem>
               <SelectItem value="ok">成功</SelectItem>

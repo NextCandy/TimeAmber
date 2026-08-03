@@ -39,8 +39,7 @@ export function ReadingControls({
   prefs: ReadingPrefs;
   setPrefs: (p: ReadingPrefs) => void;
 }) {
-  const setFont = (n: number) =>
-    setPrefs({ ...prefs, fontSize: Math.min(22, Math.max(14, n)) });
+  const setFont = (n: number) => setPrefs({ ...prefs, fontSize: Math.min(22, Math.max(14, n)) });
   const setLine = (n: number) =>
     setPrefs({ ...prefs, lineHeight: Math.min(2.2, Math.max(1.4, Number(n.toFixed(2)))) });
 

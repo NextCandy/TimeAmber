@@ -74,4 +74,3 @@ export const changeInitialPassword = createServerFn({ method: "POST" })
       .eq("user_id", session.userId);
     return { ok: true };
   });
-

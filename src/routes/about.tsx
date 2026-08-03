@@ -36,9 +36,7 @@ function AboutPage() {
         ))}
 
         {settings.aboutQuote && (
-          <p className="border-l-2 border-primary/50 pl-4 text-primary">
-            {settings.aboutQuote}
-          </p>
+          <p className="border-l-2 border-primary/50 pl-4 text-primary">{settings.aboutQuote}</p>
         )}
 
         {stack.length > 0 && (

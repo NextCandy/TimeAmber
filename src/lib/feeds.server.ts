@@ -134,8 +134,7 @@ export function buildRss(origin: string): Promise<string> {
       const img = feedImage(post.cover, origin);
       // content:encoded 走 CDATA；防止正文里出现 ]]> 提前闭合。
       const encoded = (
-        `<p>${xmlEscape(summary)}</p>` +
-        `<p><a href="${xmlEscape(link)}">阅读全文 →</a></p>`
+        `<p>${xmlEscape(summary)}</p>` + `<p><a href="${xmlEscape(link)}">阅读全文 →</a></p>`
       ).replace(/]]>/g, "]]&gt;");
       return (
         `    <item>\n      <title>${xmlEscape(post.title)}</title>\n` +

@@ -4,7 +4,15 @@ import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { toast } from "sonner";
 import {
-  Save, ArrowLeft, Eye, Upload, X, ImageIcon, Sparkles, Loader2, ImagePlus,
+  Save,
+  ArrowLeft,
+  Eye,
+  Upload,
+  X,
+  ImageIcon,
+  Sparkles,
+  Loader2,
+  ImagePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +50,9 @@ function DiffView({ parts }: { parts: DiffPart[] }) {
         p.type === "same" ? (
           <span key={i}>{p.text}</span>
         ) : p.type === "add" ? (
-          <span key={i} className="bg-primary/20 text-primary px-0.5 rounded">{p.text}</span>
+          <span key={i} className="bg-primary/20 text-primary px-0.5 rounded">
+            {p.text}
+          </span>
         ) : (
           <span key={i} className="bg-destructive/15 text-destructive line-through px-0.5 rounded">
             {p.text}
@@ -69,7 +79,13 @@ const postSchema = z.object({
   source: z.string().trim().max(500).optional().or(z.literal("")),
   content: z.string().max(50000).optional().or(z.literal("")),
   cover: z.string().max(2_000_000).optional().or(z.literal("")),
-  externalUrl: z.string().trim().url("HTML 文章必须填合法 URL").max(800).optional().or(z.literal("")),
+  externalUrl: z
+    .string()
+    .trim()
+    .url("HTML 文章必须填合法 URL")
+    .max(800)
+    .optional()
+    .or(z.literal("")),
 });
 
 function slugify(title: string) {
@@ -180,7 +196,13 @@ ${content.slice(0, 4000)}`;
     }
   }
 
-  function applyAi(parts: { title: boolean; excerpt: boolean; tags: boolean; category: boolean; cover: boolean }) {
+  function applyAi(parts: {
+    title: boolean;
+    excerpt: boolean;
+    tags: boolean;
+    category: boolean;
+    cover: boolean;
+  }) {
     if (!aiResult) return;
     if (parts.title && aiResult.title) setTitle(aiResult.title);
     if (parts.excerpt && aiResult.excerpt) setExcerpt(aiResult.excerpt);
@@ -321,8 +343,12 @@ ${content.slice(0, 4000)}`;
     setStatus(nextStatus);
     toast.success(
       nextStatus === "published"
-        ? isEdit ? "已保存并发布" : "文章已发布"
-        : isEdit ? "草稿已保存" : "已存为草稿",
+        ? isEdit
+          ? "已保存并发布"
+          : "文章已发布"
+        : isEdit
+          ? "草稿已保存"
+          : "已存为草稿",
     );
     navigate({ to: "/admin/posts" });
   }
@@ -369,7 +395,12 @@ ${content.slice(0, 4000)}`;
               上传内嵌图片
             </Button>
           )}
-          <Button type="button" variant="outline" size="sm" onClick={() => setShowPreview((s) => !s)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPreview((s) => !s)}
+          >
             <Eye className="mr-1.5 h-4 w-4" />
             {showPreview ? "隐藏预览" : "预览"}
           </Button>
@@ -655,17 +686,23 @@ ${content.slice(0, 4000)}`;
             {imgProgress.map((p, idx) => (
               <li key={idx} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="truncate font-mono" title={p.name}>{p.name}</span>
+                  <span className="truncate font-mono" title={p.name}>
+                    {p.name}
+                  </span>
                   <span
                     className={
                       p.status === "error"
                         ? "text-destructive"
                         : p.status === "done"
-                        ? "text-primary"
-                        : "text-muted-foreground"
+                          ? "text-primary"
+                          : "text-muted-foreground"
                     }
                   >
-                    {p.status === "uploading" ? `${p.pct}%` : p.status === "done" ? "完成" : p.msg ?? "失败"}
+                    {p.status === "uploading"
+                      ? `${p.pct}%`
+                      : p.status === "done"
+                        ? "完成"
+                        : (p.msg ?? "失败")}
                   </span>
                 </div>
                 <Progress value={p.pct} className="h-1.5" />
@@ -687,9 +724,15 @@ ${content.slice(0, 4000)}`;
             <span className="text-muted-foreground">Diff 粒度</span>
             <Tabs value={diffMode} onValueChange={(v) => setDiffMode(v as DiffMode)}>
               <TabsList className="h-7">
-                <TabsTrigger value="word" className="h-6 px-2 text-xs">按字/词</TabsTrigger>
-                <TabsTrigger value="sentence" className="h-6 px-2 text-xs">按句</TabsTrigger>
-                <TabsTrigger value="paragraph" className="h-6 px-2 text-xs">按段落</TabsTrigger>
+                <TabsTrigger value="word" className="h-6 px-2 text-xs">
+                  按字/词
+                </TabsTrigger>
+                <TabsTrigger value="sentence" className="h-6 px-2 text-xs">
+                  按句
+                </TabsTrigger>
+                <TabsTrigger value="paragraph" className="h-6 px-2 text-xs">
+                  按段落
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -706,12 +749,12 @@ ${content.slice(0, 4000)}`;
                 field === "title"
                   ? title
                   : field === "excerpt"
-                  ? excerpt
-                  : field === "tags"
-                  ? tagsInput
-                  : field === "category"
-                  ? category
-                  : cover;
+                    ? excerpt
+                    : field === "tags"
+                      ? tagsInput
+                      : field === "category"
+                        ? category
+                        : cover;
               const suggested = aiResult?.[field] ?? "";
               const changed = !!suggested && suggested !== current;
               const parts = changed ? diffParts(current, suggested, diffMode) : [];
@@ -728,13 +771,17 @@ ${content.slice(0, 4000)}`;
                   </p>
                   <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
                     <div className="rounded bg-muted/40 p-2">
-                      <p className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">当前</p>
+                      <p className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        当前
+                      </p>
                       <p className="whitespace-pre-wrap break-words text-foreground/80">
                         {current || <span className="text-muted-foreground">（空）</span>}
                       </p>
                     </div>
                     <div className="rounded bg-primary/5 p-2 ring-1 ring-primary/20">
-                      <p className="mb-1 text-[10px] uppercase tracking-wider text-primary/80">AI 建议</p>
+                      <p className="mb-1 text-[10px] uppercase tracking-wider text-primary/80">
+                        AI 建议
+                      </p>
                       <p className="whitespace-pre-wrap break-words text-foreground">
                         {suggested || <span className="text-muted-foreground">（未生成）</span>}
                       </p>
@@ -743,7 +790,8 @@ ${content.slice(0, 4000)}`;
                   {changed && (
                     <div className="mt-2 rounded border border-dashed border-border/60 bg-background/50 p-2">
                       <p className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Diff（{diffMode === "word" ? "字/词" : diffMode === "sentence" ? "句" : "段落"}）
+                        Diff（
+                        {diffMode === "word" ? "字/词" : diffMode === "sentence" ? "句" : "段落"}）
                       </p>
                       <DiffView parts={parts} />
                     </div>

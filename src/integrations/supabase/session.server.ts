@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { clearSession, useSession } from "@tanstack/react-start/server";
+import { clearSession, useSession as getServerSession } from "@tanstack/react-start/server";
 
 export type AuthSessionData = {
   accessToken: string;
@@ -43,7 +43,7 @@ function authClient() {
 }
 
 export async function getAuthSession(): Promise<AuthSessionData | null> {
-  const session = await useSession<AuthSessionData>(sessionConfig());
+  const session = await getServerSession<AuthSessionData>(sessionConfig());
   const current = session.data;
   if (
     !current?.accessToken ||
@@ -93,7 +93,7 @@ export async function createAuthSession(email: string, password: string) {
     userId: data.user.id,
     email: data.user.email ?? email,
   };
-  const session = await useSession<AuthSessionData>(sessionConfig());
+  const session = await getServerSession<AuthSessionData>(sessionConfig());
   await session.update(value);
   return value;
 }

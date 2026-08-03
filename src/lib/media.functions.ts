@@ -29,12 +29,10 @@ export const seeUpload = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const safeName = data.filename.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-120);
       const objectPath = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${safeName}`;
-      const { error } = await supabaseAdmin.storage
-        .from("media")
-        .upload(objectPath, bin, {
-          contentType: data.contentType,
-          upsert: false,
-        });
+      const { error } = await supabaseAdmin.storage.from("media").upload(objectPath, bin, {
+        contentType: data.contentType,
+        upsert: false,
+      });
       if (error) throw error;
       const url = publicMediaUrl(objectPath);
       const id = crypto.randomUUID();

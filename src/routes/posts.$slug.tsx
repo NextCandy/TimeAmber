@@ -39,14 +39,18 @@ export const Route = createFileRoute("/posts/$slug")({
     const [dbPost, related, adjacent, reaction] = await Promise.all([
       loadPublicPost({ data: { slug: params.slug } }).catch(() => null),
       loadRelatedPosts({ data: { slug: params.slug, limit: 6 } }).catch(() => []),
-      loadAdjacentPosts({ data: { slug: params.slug } }).catch((): AdjacentPosts => ({
-        prev: null,
-        next: null,
-      })),
-      loadPostReactionSummary({ data: { slug: params.slug } }).catch((): PostReactionSummary => ({
-        count: 0,
-        liked: false,
-      })),
+      loadAdjacentPosts({ data: { slug: params.slug } }).catch(
+        (): AdjacentPosts => ({
+          prev: null,
+          next: null,
+        }),
+      ),
+      loadPostReactionSummary({ data: { slug: params.slug } }).catch(
+        (): PostReactionSummary => ({
+          count: 0,
+          liked: false,
+        }),
+      ),
     ]);
     const post = dbPost ?? POSTS.find((p) => p.slug === params.slug) ?? null;
 

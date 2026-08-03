@@ -18,10 +18,7 @@ export const Route = createFileRoute("/_authenticated/admin/ai")({
   component: AIPage,
 });
 
-const PROVIDER_PRESETS: Record<
-  AIConfig["provider"],
-  { endpoint: string; model: string }
-> = {
+const PROVIDER_PRESETS: Record<AIConfig["provider"], { endpoint: string; model: string }> = {
   deepseek: {
     endpoint: "https://api.deepseek.com/v1/chat/completions",
     model: "deepseek-chat",
@@ -64,8 +61,8 @@ function AIPage() {
       <header>
         <h1 className="font-display text-2xl font-semibold">AI 配置</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          用于文章 SEO 优化、标题/摘要润色等。默认 DeepSeek，可切换 OpenAI
-          或自定义 OpenAI 兼容端点。
+          用于文章 SEO 优化、标题/摘要润色等。默认 DeepSeek，可切换 OpenAI 或自定义 OpenAI
+          兼容端点。
         </p>
       </header>
 
@@ -77,10 +74,7 @@ function AIPage() {
 
         <div>
           <Label>提供商</Label>
-          <Select
-            value={ai.provider}
-            onValueChange={(v) => onProvider(v as AIConfig["provider"])}
-          >
+          <Select value={ai.provider} onValueChange={(v) => onProvider(v as AIConfig["provider"])}>
             <SelectTrigger className="mt-1.5">
               <SelectValue />
             </SelectTrigger>
@@ -140,8 +134,7 @@ function AIPage() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          凭据经服务端加密后存储。所有 AI
-          请求由服务端代理转发，不会在浏览器中直接调用第三方 API。
+          凭据经服务端加密后存储。所有 AI 请求由服务端代理转发，不会在浏览器中直接调用第三方 API。
         </p>
       </section>
     </div>

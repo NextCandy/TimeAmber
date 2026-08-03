@@ -19,7 +19,7 @@ function tokenizeWords(s: string): string[] {
 function tokenizeSentences(s: string): string[] {
   // 在中英文句末标点后保留分隔；保留分隔符在前一句末尾
   const out: string[] = [];
-  const re = /[^。！？!?\.\n]+[。！？!?\.]?\n?|\n/g;
+  const re = /[^。！？!?.\n]+[。！？!?.]?\n?|\n/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(s))) {
     if (m[0]) out.push(m[0]);
@@ -52,14 +52,16 @@ export function diffParts(a: string, b: string, mode: DiffMode = "word"): DiffPa
   const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
   for (let i = 1; i <= n; i++)
     for (let j = 1; j <= m; j++)
-      dp[i][j] = A[i - 1] === B[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+      dp[i][j] =
+        A[i - 1] === B[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
   const parts: DiffPart[] = [];
   let i = n;
   let j = m;
   while (i > 0 && j > 0) {
     if (A[i - 1] === B[j - 1]) {
       parts.unshift({ type: "same", text: A[i - 1] });
-      i--; j--;
+      i--;
+      j--;
     } else if (dp[i - 1][j] >= dp[i][j - 1]) {
       parts.unshift({ type: "del", text: A[i - 1] });
       i--;
@@ -83,7 +85,9 @@ export function diffParts(a: string, b: string, mode: DiffMode = "word"): DiffPa
 export const diffWords = (a: string, b: string) => diffParts(a, b, "word");
 
 export function summarize(parts: DiffPart[]): DiffSummary {
-  let added = 0, removed = 0, same = 0;
+  let added = 0,
+    removed = 0,
+    same = 0;
   for (const p of parts) {
     const len = p.text.length;
     if (p.type === "add") added += len;

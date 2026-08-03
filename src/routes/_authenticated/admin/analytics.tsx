@@ -1,14 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Activity,
-  Eye,
-  History,
-  TrendingUp,
-  FileDown,
-  Filter,
-  RefreshCw,
-} from "lucide-react";
+import { Activity, Eye, History, TrendingUp, FileDown, Filter, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,8 +41,7 @@ function buildDaily(events: { at: string; path: string }[]) {
 
 function AnalyticsPage() {
   const { analytics: initialAnalytics } = useAdminStore();
-  const [analytics, setAnalytics] =
-    useState<AnalyticsEvent[]>(initialAnalytics);
+  const [analytics, setAnalytics] = useState<AnalyticsEvent[]>(initialAnalytics);
   const [pathFilter, setPathFilter] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -70,8 +61,7 @@ function AnalyticsPage() {
       const events = await loadAdminAnalytics();
       setAnalytics(events);
       setLastUpdatedAt(new Date());
-      if (showToast)
-        toast.success(`已刷新，共 ${events.length} 条真实访问事件`);
+      if (showToast) toast.success(`已刷新，共 ${events.length} 条真实访问事件`);
     } catch {
       if (showToast) toast.error("刷新访问数据失败");
     } finally {
@@ -116,8 +106,7 @@ function AnalyticsPage() {
 
   const topPaths = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const e of filteredEvents)
-      counts.set(e.path, (counts.get(e.path) ?? 0) + 1);
+    for (const e of filteredEvents) counts.set(e.path, (counts.get(e.path) ?? 0) + 1);
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
   }, [filteredEvents]);
 
@@ -146,11 +135,7 @@ function AnalyticsPage() {
     }
     const csv =
       "\uFEFF" +
-      rows
-        .map((r) =>
-          r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","),
-        )
-        .join("\n");
+      rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -166,8 +151,8 @@ function AnalyticsPage() {
         <div>
           <h1 className="font-display text-2xl font-semibold">访客分析</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            数据来自前台写入数据库的真实页面访问事件，每 30
-            秒自动刷新。当前仅统计可准确记录的 PV，不估算 UV。
+            数据来自前台写入数据库的真实页面访问事件，每 30 秒自动刷新。当前仅统计可准确记录的
+            PV，不估算 UV。
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             最后更新：
@@ -183,26 +168,16 @@ function AnalyticsPage() {
             disabled={refreshing}
             onClick={() => void refreshAnalytics(true)}
           >
-            <RefreshCw
-              className={`mr-1.5 h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-            />
+            <RefreshCw className={`mr-1.5 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             刷新
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => exportCsv("daily")}
-          >
+          <Button variant="outline" size="sm" onClick={() => exportCsv("daily")}>
             <FileDown className="mr-1.5 h-4 w-4" /> 导出每日
           </Button>
           <Button variant="outline" size="sm" onClick={() => exportCsv("top")}>
             <FileDown className="mr-1.5 h-4 w-4" /> 导出热门页面
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => exportCsv("events")}
-          >
+          <Button variant="outline" size="sm" onClick={() => exportCsv("events")}>
             <FileDown className="mr-1.5 h-4 w-4" /> 导出原始事件
           </Button>
         </div>
@@ -210,8 +185,7 @@ function AnalyticsPage() {
 
       <section className="rounded-xl border border-border/70 bg-card/40 p-4">
         <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-          <Filter className="h-3.5 w-3.5" /> 筛选（同时作用于图表 / 热门页面 /
-          原始事件导出）
+          <Filter className="h-3.5 w-3.5" /> 筛选（同时作用于图表 / 热门页面 / 原始事件导出）
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="md:col-span-2">
@@ -272,25 +246,20 @@ function AnalyticsPage() {
               </span>
               <c.icon className="h-4 w-4 text-muted-foreground" />
             </div>
-            <p className="mt-3 font-display text-2xl font-semibold tabular-nums">
-              {c.value}
-            </p>
+            <p className="mt-3 font-display text-2xl font-semibold tabular-nums">{c.value}</p>
           </div>
         ))}
       </div>
 
       <section className="rounded-xl border border-border/70 bg-card/40 p-5">
-        <h2 className="mb-4 font-display text-base font-semibold">
-          近 14 天访问趋势
-        </h2>
+        <h2 className="mb-4 font-display text-base font-semibold">近 14 天访问趋势</h2>
         <div className="flex h-44 items-end gap-2">
           {daily.map((d) => (
             <div key={d.date} className="group relative flex-1">
               <div
                 className="w-full rounded-t bg-linear-to-t from-primary/80 to-primary/30 transition-all hover:from-primary hover:to-primary/50"
                 style={{
-                  height:
-                    d.pv > 0 ? `${Math.max((d.pv / maxPv) * 100, 3)}%` : 0,
+                  height: d.pv > 0 ? `${Math.max((d.pv / maxPv) * 100, 3)}%` : 0,
                 }}
               />
               <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-foreground px-2 py-1 text-[10px] text-background opacity-0 group-hover:opacity-100">
@@ -310,21 +279,14 @@ function AnalyticsPage() {
         {topPaths.length > 0 ? (
           <ul className="divide-y divide-border/60">
             {topPaths.map(([path, count]) => (
-              <li
-                key={path}
-                className="flex items-center justify-between gap-3 py-2 text-sm"
-              >
-                <span className="truncate font-mono text-xs text-muted-foreground">
-                  {path}
-                </span>
+              <li key={path} className="flex items-center justify-between gap-3 py-2 text-sm">
+                <span className="truncate font-mono text-xs text-muted-foreground">{path}</span>
                 <span className="tabular-nums">{count}</span>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="py-4 text-sm text-muted-foreground">
-            当前筛选范围内暂无访问记录。
-          </p>
+          <p className="py-4 text-sm text-muted-foreground">当前筛选范围内暂无访问记录。</p>
         )}
       </section>
     </div>

@@ -70,12 +70,15 @@ function DiagnosticsPage() {
 
   // 定期自动归档：每 30 分钟一次（仅当有数据时）
   useEffect(() => {
-    const t = setInterval(() => {
-      if (perfs.length + logs.length === 0) return;
-      const last = store.diagnosticsArchives[0];
-      if (last && Date.now() - new Date(last.at).getTime() < 30 * 60 * 1000) return;
-      store.archiveDiagnostics(buildArchivePayload());
-    }, 10 * 60 * 1000);
+    const t = setInterval(
+      () => {
+        if (perfs.length + logs.length === 0) return;
+        const last = store.diagnosticsArchives[0];
+        if (last && Date.now() - new Date(last.at).getTime() < 30 * 60 * 1000) return;
+        store.archiveDiagnostics(buildArchivePayload());
+      },
+      10 * 60 * 1000,
+    );
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [perfs, logs, counts.error, counts.warn]);
@@ -158,17 +161,12 @@ function DiagnosticsPage() {
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    const tag = [
-      ccChannel === "all" ? "all" : ccChannel,
-      ccFrom || "any",
-      ccTo || "any",
-    ].join("_");
+    const tag = [ccChannel === "all" ? "all" : ccChannel, ccFrom || "any", ccTo || "any"].join("_");
     a.download = `timeamber-contact-clicks-${tag}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
     toast.success(`已导出 ${filteredRanking.length} 条`);
   }
-
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -297,8 +295,6 @@ function DiagnosticsPage() {
         )}
       </section>
 
-
-
       <section className="rounded-xl border border-border/70 bg-card/40 p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -328,7 +324,9 @@ function DiagnosticsPage() {
               <tbody>
                 {perfs.map((p, i) => (
                   <tr key={i} className="border-b border-border/40">
-                    <td className="py-1.5 font-mono">{new Date(p.at).toLocaleTimeString("zh-CN")}</td>
+                    <td className="py-1.5 font-mono">
+                      {new Date(p.at).toLocaleTimeString("zh-CN")}
+                    </td>
                     <td className="font-mono">{p.path}</td>
                     <td>{p.fcpMs ?? "-"}</td>
                     <td>{p.lcpMs ?? "-"}</td>
@@ -348,7 +346,9 @@ function DiagnosticsPage() {
           <div className="flex items-center gap-2">
             <Bug className="h-4 w-4 text-primary" />
             <h2 className="font-display text-base font-semibold">运行时日志（{logs.length}）</h2>
-            <Badge variant="destructive" className="text-[10px]">error {counts.error}</Badge>
+            <Badge variant="destructive" className="text-[10px]">
+              error {counts.error}
+            </Badge>
             <Badge className="bg-warning/20 text-warning-foreground hover:bg-warning/20 text-[10px]">
               warn {counts.warn}
             </Badge>
@@ -384,8 +384,8 @@ function DiagnosticsPage() {
                   l.level === "error"
                     ? "border-destructive/40 bg-destructive/5"
                     : l.level === "warn"
-                    ? "border-warning/40 bg-warning/5"
-                    : "border-border/60 bg-background/40"
+                      ? "border-warning/40 bg-warning/5"
+                      : "border-border/60 bg-background/40"
                 }`}
               >
                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground">

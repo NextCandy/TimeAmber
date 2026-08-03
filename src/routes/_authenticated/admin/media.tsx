@@ -2,7 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Upload, Image as ImageIcon, Trash2, Copy, Loader2, Cloud, RotateCw, Download, AlertCircle } from "lucide-react";
+import {
+  Upload,
+  Image as ImageIcon,
+  Trash2,
+  Copy,
+  Loader2,
+  Cloud,
+  RotateCw,
+  Download,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -118,9 +128,7 @@ function MediaPage() {
         source: host.provider === "supabase" ? "supabase" : "see",
       });
       setProgress((p) =>
-        p.map((x, i) =>
-          i === idx ? { ...x, pct: 100, status: "done", attempts: attempt } : x,
-        ),
+        p.map((x, i) => (i === idx ? { ...x, pct: 100, status: "done", attempts: attempt } : x)),
       );
       return true;
     } catch (e) {
@@ -128,7 +136,15 @@ function MediaPage() {
       if (attempt < MAX && !/不是图片|超过 10MB/.test(msg)) {
         setProgress((p) =>
           p.map((x, i) =>
-            i === idx ? { ...x, pct: 10, status: "uploading", msg: `第 ${attempt} 次失败，重试中…`, attempts: attempt } : x,
+            i === idx
+              ? {
+                  ...x,
+                  pct: 10,
+                  status: "uploading",
+                  msg: `第 ${attempt} 次失败，重试中…`,
+                  attempts: attempt,
+                }
+              : x,
           ),
         );
         await new Promise((r) => setTimeout(r, 600 * attempt));
@@ -137,7 +153,13 @@ function MediaPage() {
       setProgress((p) =>
         p.map((x, i) =>
           i === idx
-            ? { ...x, pct: 100, status: "error", msg: `${msg}（已重试 ${attempt - 1} 次）`, attempts: attempt }
+            ? {
+                ...x,
+                pct: 100,
+                status: "error",
+                msg: `${msg}（已重试 ${attempt - 1} 次）`,
+                attempts: attempt,
+              }
             : x,
         ),
       );
@@ -236,11 +258,18 @@ function MediaPage() {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div>
             <Label>服务商</Label>
-            <Select value={host.provider} onValueChange={(v) => onProvider(v as ImageHostConfig["provider"])}>
-              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+            <Select
+              value={host.provider}
+              onValueChange={(v) => onProvider(v as ImageHostConfig["provider"])}
+            >
+              <SelectTrigger className="mt-1.5">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {Object.entries(PRESETS).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  <SelectItem key={k} value={k}>
+                    {v.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -268,7 +297,9 @@ function MediaPage() {
             />
           </div>
           <div className="flex items-end justify-end">
-            <Button variant="outline" size="sm" onClick={saveConfig}>保存</Button>
+            <Button variant="outline" size="sm" onClick={saveConfig}>
+              保存
+            </Button>
           </div>
         </div>
       </section>
@@ -313,7 +344,8 @@ function MediaPage() {
           <div className="mb-4 rounded-lg border border-border/60 bg-background/40 p-3">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-[11px] text-muted-foreground">
-                上传任务 · {progress.filter((p) => p.status === "done").length}/{progress.length} 完成
+                上传任务 · {progress.filter((p) => p.status === "done").length}/{progress.length}{" "}
+                完成
                 {progress.some((p) => p.status === "error") &&
                   ` · ${progress.filter((p) => p.status === "error").length} 失败`}
               </p>
@@ -344,15 +376,15 @@ function MediaPage() {
                         p.status === "error"
                           ? "text-destructive"
                           : p.status === "done"
-                          ? "text-primary"
-                          : "text-muted-foreground"
+                            ? "text-primary"
+                            : "text-muted-foreground"
                       }
                     >
                       {p.status === "uploading"
-                        ? p.msg ?? `${p.pct}%`
+                        ? (p.msg ?? `${p.pct}%`)
                         : p.status === "done"
-                        ? "完成"
-                        : p.msg ?? "失败"}
+                          ? "完成"
+                          : (p.msg ?? "失败")}
                     </span>
                     {p.status === "error" && p.file && (
                       <Button
@@ -396,7 +428,9 @@ function MediaPage() {
                   />
                 </div>
                 <div className="p-2">
-                  <p className="truncate text-[11px] font-medium" title={m.name}>{m.name}</p>
+                  <p className="truncate text-[11px] font-medium" title={m.name}>
+                    {m.name}
+                  </p>
                   <p className="mt-0.5 text-[10px] text-muted-foreground">
                     {m.source === "see" ? "图床" : m.source === "imported" ? "导入" : "手动"}
                   </p>

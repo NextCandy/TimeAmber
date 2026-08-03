@@ -73,7 +73,8 @@ function GithubPanel() {
           GitHub 同步状态
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Lovable 与 GitHub 双向自动同步，每次编辑会以 <code>lovable-dev[bot]</code> 身份提交。下方实时拉取所配置仓库的最新提交与推送时间。
+          Lovable 与 GitHub 双向自动同步，每次编辑会以 <code>lovable-dev[bot]</code>{" "}
+          身份提交。下方实时拉取所配置仓库的最新提交与推送时间。
         </p>
       </header>
 

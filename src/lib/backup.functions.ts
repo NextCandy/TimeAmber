@@ -9,7 +9,11 @@ const webdavInput = z.object({
   url: z.string().url().max(1000),
   username: z.string().min(1).max(200),
   password: z.string().min(1).max(500),
-  filename: z.string().min(1).max(200).regex(/^[a-zA-Z0-9._-]+$/),
+  filename: z
+    .string()
+    .min(1)
+    .max(200)
+    .regex(/^[a-zA-Z0-9._-]+$/),
   body: z.string().max(10_000_000).optional(),
 });
 
@@ -35,9 +39,7 @@ export const webdavUpload = createServerFn({ method: "POST" })
 
 export const webdavDownload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof webdavInput>) =>
-    webdavInput.omit({ body: true }).parse(d),
-  )
+  .inputValidator((d: z.infer<typeof webdavInput>) => webdavInput.omit({ body: true }).parse(d))
   .handler(async ({ data }) => {
     const auth = "Basic " + btoa(`${data.username}:${data.password}`);
     const res = await fetch(webdavTarget(data.url, data.filename), {
@@ -53,7 +55,11 @@ export const webdavDownload = createServerFn({ method: "POST" })
 const s3Input = z.object({
   endpoint: z.string().url().max(1000),
   region: z.string().min(1).max(50),
-  bucket: z.string().min(1).max(63).regex(/^[a-z0-9.-]+$/),
+  bucket: z
+    .string()
+    .min(1)
+    .max(63)
+    .regex(/^[a-z0-9.-]+$/),
   accessKeyId: z.string().min(1).max(200),
   secretAccessKey: z.string().min(1).max(500),
   key: z.string().min(1).max(300),
@@ -106,7 +112,11 @@ export const s3Download = createServerFn({ method: "POST" })
 
 const dropboxInput = z.object({
   token: z.string().min(10).max(2000),
-  path: z.string().min(1).max(400).regex(/^\/[\w\-./]+$/, "路径需以 / 开头"),
+  path: z
+    .string()
+    .min(1)
+    .max(400)
+    .regex(/^\/[\w\-./]+$/, "路径需以 / 开头"),
   body: z.string().max(10_000_000).optional(),
 });
 
@@ -135,9 +145,7 @@ export const dropboxUpload = createServerFn({ method: "POST" })
 
 export const dropboxDownload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof dropboxInput>) =>
-    dropboxInput.omit({ body: true }).parse(d),
-  )
+  .inputValidator((d: z.infer<typeof dropboxInput>) => dropboxInput.omit({ body: true }).parse(d))
   .handler(async ({ data }) => {
     const res = await fetch("https://content.dropboxapi.com/2/files/download", {
       method: "POST",
@@ -154,7 +162,11 @@ export const dropboxDownload = createServerFn({ method: "POST" })
 
 const onedriveInput = z.object({
   token: z.string().min(10).max(4000),
-  path: z.string().min(1).max(400).regex(/^[\w\-./]+$/, "路径不能以 / 开头，使用相对路径"),
+  path: z
+    .string()
+    .min(1)
+    .max(400)
+    .regex(/^[\w\-./]+$/, "路径不能以 / 开头，使用相对路径"),
   body: z.string().max(10_000_000).optional(),
 });
 
@@ -181,9 +193,7 @@ export const onedriveUpload = createServerFn({ method: "POST" })
 
 export const onedriveDownload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof onedriveInput>) =>
-    onedriveInput.omit({ body: true }).parse(d),
-  )
+  .inputValidator((d: z.infer<typeof onedriveInput>) => onedriveInput.omit({ body: true }).parse(d))
   .handler(async ({ data }) => {
     const res = await fetch(onedriveUrl(data.path), {
       method: "GET",
@@ -197,7 +207,11 @@ export const onedriveDownload = createServerFn({ method: "POST" })
 
 const gdriveInput = z.object({
   token: z.string().min(10).max(4000),
-  filename: z.string().min(1).max(200).regex(/^[a-zA-Z0-9._-]+$/),
+  filename: z
+    .string()
+    .min(1)
+    .max(200)
+    .regex(/^[a-zA-Z0-9._-]+$/),
   body: z.string().max(10_000_000).optional(),
 });
 
@@ -243,16 +257,13 @@ export const gdriveUpload = createServerFn({ method: "POST" })
 
 export const gdriveDownload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof gdriveInput>) =>
-    gdriveInput.omit({ body: true }).parse(d),
-  )
+  .inputValidator((d: z.infer<typeof gdriveInput>) => gdriveInput.omit({ body: true }).parse(d))
   .handler(async ({ data }) => {
     const id = await gdriveFindId(data.token, data.filename);
     if (!id) throw new Error(`GoogleDrive 上找不到文件: ${data.filename}`);
-    const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
-      { headers: { Authorization: `Bearer ${data.token}` } },
-    );
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
+      headers: { Authorization: `Bearer ${data.token}` },
+    });
     if (!res.ok) throw new Error(`GoogleDrive 下载失败 [${res.status}]`);
     return { body: await res.text() };
   });
@@ -278,15 +289,22 @@ function blockToMarkdown(block: Record<string, unknown>): string {
   const data = (block as Record<string, { rich_text?: Array<{ plain_text?: string }> }>)[type];
   const text = richText(data?.rich_text);
   switch (type) {
-    case "heading_1": return `# ${text}`;
-    case "heading_2": return `## ${text}`;
-    case "heading_3": return `### ${text}`;
+    case "heading_1":
+      return `# ${text}`;
+    case "heading_2":
+      return `## ${text}`;
+    case "heading_3":
+      return `### ${text}`;
     case "bulleted_list_item":
-    case "numbered_list_item": return `- ${text}`;
-    case "quote": return `> ${text}`;
-    case "code": return "```\n" + text + "\n```";
+    case "numbered_list_item":
+      return `- ${text}`;
+    case "quote":
+      return `> ${text}`;
+    case "code":
+      return "```\n" + text + "\n```";
     case "paragraph":
-    default: return text;
+    default:
+      return text;
   }
 }
 
