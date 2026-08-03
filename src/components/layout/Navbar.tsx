@@ -140,7 +140,7 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
 
             <SheetContent
               side="right"
-              className="flex w-[min(88vw,22rem)] flex-col border-l border-border bg-background p-0 transition-transform duration-300 ease-out data-[state=closed]:duration-300 data-[state=open]:duration-300"
+              className="flex w-[min(88vw,22rem)] flex-col border-l border-border bg-background p-0"
             >
               <SheetHeader className="border-b border-border px-6 py-5 text-left">
                 <SheetTitle className="font-brand text-2xl font-normal">TimeAmber</SheetTitle>

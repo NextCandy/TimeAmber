@@ -769,6 +769,17 @@
   transform: scaleY(3);
 }
 
+.sheet-overlay[data-state="open"],
+.sheet-overlay[data-state="closed"] {
+  animation-duration: var(--duration-hover);
+  animation-timing-function: var(--ease-out);
+}
+
+.sheet-content {
+  transition-duration: var(--duration-drawer);
+  transition-timing-function: var(--ease-drawer);
+}
+
 @keyframes skeleton-shimmer {
   from {
     transform: translateX(-100%);
