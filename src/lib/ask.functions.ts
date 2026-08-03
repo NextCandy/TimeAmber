@@ -163,7 +163,7 @@ export const getAskTimeAmberStatus = createServerFn({ method: "GET" })
 
 export const askTimeAmber = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((value: z.infer<typeof askInput>) => askInput.parse(value))
+  .validator((value: z.infer<typeof askInput>) => askInput.parse(value))
   .handler(async ({ data, context }): Promise<AskTimeAmberResult> => {
     await assertAdmin(context.supabase);
     assertRateLimit(context.userId);
@@ -225,7 +225,7 @@ export const getPublicAskStatus = createServerFn({ method: "GET" }).handler(
 );
 
 export const askPublicQuestion = createServerFn({ method: "POST" })
-  .inputValidator((value: z.infer<typeof askInput>) => askInput.parse(value))
+  .validator((value: z.infer<typeof askInput>) => askInput.parse(value))
   .handler(async ({ data }): Promise<AskTimeAmberResult> => {
     if (!(await readPublicAskEnabled())) throw new Error("站内问答当前未开放");
     assertPublicRateLimit();

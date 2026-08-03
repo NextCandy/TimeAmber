@@ -16,7 +16,7 @@ const loginInput = z.object({
 });
 
 export const login = createServerFn({ method: "POST" })
-  .inputValidator((value: z.infer<typeof loginInput>) => loginInput.parse(value))
+  .validator((value: z.infer<typeof loginInput>) => loginInput.parse(value))
   .handler(async ({ data }) => {
     const session = await createAuthSession(data.email, data.password);
     const { data: profile } = await supabaseAdmin
@@ -61,7 +61,7 @@ const passwordInput = z.object({
 });
 
 export const changeInitialPassword = createServerFn({ method: "POST" })
-  .inputValidator((value: z.infer<typeof passwordInput>) => passwordInput.parse(value))
+  .validator((value: z.infer<typeof passwordInput>) => passwordInput.parse(value))
   .handler(async ({ data }) => {
     const session = await getAuthSession();
     if (!session) throw new Error("Unauthorized");

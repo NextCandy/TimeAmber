@@ -16,7 +16,7 @@ const input = z.object({
 
 export const aiComplete = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof input>) => input.parse(d))
+  .validator((d: z.infer<typeof input>) => input.parse(d))
   .handler(async ({ data }) => {
     const messages: Array<{ role: string; content: string }> = [];
     if (data.system) messages.push({ role: "system", content: data.system });

@@ -37,7 +37,7 @@ const channelInput = z.object({
 
 export const sendNotify = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((value: z.infer<typeof channelInput>) => channelInput.parse(value))
+  .validator((value: z.infer<typeof channelInput>) => channelInput.parse(value))
   .handler(async ({ data }) => {
     if (data.channel === "bark") {
       if (!data.bark?.key) throw new Error("Bark key is not configured");

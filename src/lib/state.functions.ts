@@ -286,7 +286,7 @@ export const loadPublicVisitTrend = createServerFn({ method: "GET" }).handler(
 const publicPostInput = z.object({ slug: z.string().min(1).max(300) });
 
 export const loadPublicPost = createServerFn({ method: "GET" })
-  .inputValidator((value: z.infer<typeof publicPostInput>) => publicPostInput.parse(value))
+  .validator((value: z.infer<typeof publicPostInput>) => publicPostInput.parse(value))
   .handler(async ({ data }): Promise<Post | null> => {
     const sql = db();
     const [row] = await sql`
@@ -475,7 +475,7 @@ const deletePostInput = z.object({ slug: z.string().trim().min(1).max(300) });
  */
 export const deletePostRow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((value: z.infer<typeof deletePostInput>) => deletePostInput.parse(value))
+  .validator((value: z.infer<typeof deletePostInput>) => deletePostInput.parse(value))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const [row] = await db()`
@@ -500,7 +500,7 @@ const taxonomyRenameInput = z.object({
 
 export const addCategoryRow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((v: z.infer<typeof taxonomyNameInput>) => taxonomyNameInput.parse(v))
+  .validator((v: z.infer<typeof taxonomyNameInput>) => taxonomyNameInput.parse(v))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     await db()`
@@ -512,7 +512,7 @@ export const addCategoryRow = createServerFn({ method: "POST" })
 
 export const renameCategoryRow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((v: z.infer<typeof taxonomyRenameInput>) => taxonomyRenameInput.parse(v))
+  .validator((v: z.infer<typeof taxonomyRenameInput>) => taxonomyRenameInput.parse(v))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     if (data.from === data.to) return { ok: true as const };
@@ -534,7 +534,7 @@ export const renameCategoryRow = createServerFn({ method: "POST" })
 
 export const deleteCategoryRow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((v: z.infer<typeof taxonomyNameInput>) => taxonomyNameInput.parse(v))
+  .validator((v: z.infer<typeof taxonomyNameInput>) => taxonomyNameInput.parse(v))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     await db()`delete from public.categories where name = ${data.name}`;
@@ -543,7 +543,7 @@ export const deleteCategoryRow = createServerFn({ method: "POST" })
 
 export const addTagRow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((v: z.infer<typeof taxonomyNameInput>) => taxonomyNameInput.parse(v))
+  .validator((v: z.infer<typeof taxonomyNameInput>) => taxonomyNameInput.parse(v))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     await db()`
@@ -554,7 +554,7 @@ export const addTagRow = createServerFn({ method: "POST" })
 
 export const deleteTagRow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((v: z.infer<typeof taxonomyNameInput>) => taxonomyNameInput.parse(v))
+  .validator((v: z.infer<typeof taxonomyNameInput>) => taxonomyNameInput.parse(v))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     // post_tags.tag_id 是 ON DELETE CASCADE，关联关系会跟着清掉。
@@ -571,7 +571,7 @@ const friendsInput = z.object({ friends: z.any() });
  */
 export const saveFriends = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((value: z.infer<typeof friendsInput>) => friendsInput.parse(value))
+  .validator((value: z.infer<typeof friendsInput>) => friendsInput.parse(value))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const list = (data.friends ?? []) as {
@@ -613,7 +613,7 @@ const siteSettingsInput = z.object({ settings: z.any() });
  */
 export const saveSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((value: z.infer<typeof siteSettingsInput>) => siteSettingsInput.parse(value))
+  .validator((value: z.infer<typeof siteSettingsInput>) => siteSettingsInput.parse(value))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const sql = db();
@@ -630,7 +630,7 @@ const stateInput = z.object({ state: z.any() });
 
 export const persistAdminState = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((value: z.infer<typeof stateInput>) => stateInput.parse(value))
+  .validator((value: z.infer<typeof stateInput>) => stateInput.parse(value))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const state = data.state as AdminState;
@@ -828,7 +828,7 @@ const setPublishedInput = z.object({
 
 export const setPostPublished = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((value: z.infer<typeof setPublishedInput>) => setPublishedInput.parse(value))
+  .validator((value: z.infer<typeof setPublishedInput>) => setPublishedInput.parse(value))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const sql = db();
@@ -850,7 +850,7 @@ const singlePostInput = z.object({ post: z.any() });
 
 export const upsertSinglePost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((value: z.infer<typeof singlePostInput>) => singlePostInput.parse(value))
+  .validator((value: z.infer<typeof singlePostInput>) => singlePostInput.parse(value))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const post = data.post as Post;
@@ -973,7 +973,7 @@ const telemetryInput = z.object({
 });
 
 export const recordTelemetry = createServerFn({ method: "POST" })
-  .inputValidator((value: z.infer<typeof telemetryInput>) => telemetryInput.parse(value))
+  .validator((value: z.infer<typeof telemetryInput>) => telemetryInput.parse(value))
   .handler(async ({ data }) => {
     if (data.type === "contact" && data.channel) {
       await db()`

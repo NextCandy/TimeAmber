@@ -22,7 +22,7 @@ function publicMediaUrl(objectPath: string) {
 
 export const seeUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof seeInput>) => seeInput.parse(d))
+  .validator((d: z.infer<typeof seeInput>) => seeInput.parse(d))
   .handler(async ({ data }) => {
     const bin = Uint8Array.from(atob(data.base64), (c) => c.charCodeAt(0));
     if (data.endpoint === "supabase://media") {
@@ -76,7 +76,7 @@ const fetchInput = z.object({ url: z.string().url().max(2000) });
 
 export const fetchImageAsBase64 = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof fetchInput>) => fetchInput.parse(d))
+  .validator((d: z.infer<typeof fetchInput>) => fetchInput.parse(d))
   .handler(async ({ data }) => {
     const res = await fetch(data.url);
     if (!res.ok) throw new Error(`抓取失败 [${res.status}]`);

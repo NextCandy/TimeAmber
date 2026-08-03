@@ -24,7 +24,7 @@ function webdavTarget(url: string, filename: string) {
 
 export const webdavUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof webdavInput>) => webdavInput.parse(d))
+  .validator((d: z.infer<typeof webdavInput>) => webdavInput.parse(d))
   .handler(async ({ data }) => {
     if (!data.body) throw new Error("缺少 body");
     const auth = "Basic " + btoa(`${data.username}:${data.password}`);
@@ -39,7 +39,7 @@ export const webdavUpload = createServerFn({ method: "POST" })
 
 export const webdavDownload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof webdavInput>) => webdavInput.omit({ body: true }).parse(d))
+  .validator((d: z.infer<typeof webdavInput>) => webdavInput.omit({ body: true }).parse(d))
   .handler(async ({ data }) => {
     const auth = "Basic " + btoa(`${data.username}:${data.password}`);
     const res = await fetch(webdavTarget(data.url, data.filename), {
@@ -73,7 +73,7 @@ function s3Url(endpoint: string, bucket: string, key: string) {
 
 export const s3Upload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof s3Input>) => s3Input.parse(d))
+  .validator((d: z.infer<typeof s3Input>) => s3Input.parse(d))
   .handler(async ({ data }) => {
     if (!data.body) throw new Error("缺少 body");
     const client = new AwsClient({
@@ -93,7 +93,7 @@ export const s3Upload = createServerFn({ method: "POST" })
 
 export const s3Download = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof s3Input>) => s3Input.omit({ body: true }).parse(d))
+  .validator((d: z.infer<typeof s3Input>) => s3Input.omit({ body: true }).parse(d))
   .handler(async ({ data }) => {
     const client = new AwsClient({
       accessKeyId: data.accessKeyId,
@@ -122,7 +122,7 @@ const dropboxInput = z.object({
 
 export const dropboxUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof dropboxInput>) => dropboxInput.parse(d))
+  .validator((d: z.infer<typeof dropboxInput>) => dropboxInput.parse(d))
   .handler(async ({ data }) => {
     if (!data.body) throw new Error("缺少 body");
     const res = await fetch("https://content.dropboxapi.com/2/files/upload", {
@@ -145,7 +145,7 @@ export const dropboxUpload = createServerFn({ method: "POST" })
 
 export const dropboxDownload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof dropboxInput>) => dropboxInput.omit({ body: true }).parse(d))
+  .validator((d: z.infer<typeof dropboxInput>) => dropboxInput.omit({ body: true }).parse(d))
   .handler(async ({ data }) => {
     const res = await fetch("https://content.dropboxapi.com/2/files/download", {
       method: "POST",
@@ -176,7 +176,7 @@ function onedriveUrl(path: string) {
 
 export const onedriveUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof onedriveInput>) => onedriveInput.parse(d))
+  .validator((d: z.infer<typeof onedriveInput>) => onedriveInput.parse(d))
   .handler(async ({ data }) => {
     if (!data.body) throw new Error("缺少 body");
     const res = await fetch(onedriveUrl(data.path), {
@@ -193,7 +193,7 @@ export const onedriveUpload = createServerFn({ method: "POST" })
 
 export const onedriveDownload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof onedriveInput>) => onedriveInput.omit({ body: true }).parse(d))
+  .validator((d: z.infer<typeof onedriveInput>) => onedriveInput.omit({ body: true }).parse(d))
   .handler(async ({ data }) => {
     const res = await fetch(onedriveUrl(data.path), {
       method: "GET",
@@ -228,7 +228,7 @@ async function gdriveFindId(token: string, filename: string): Promise<string | n
 
 export const gdriveUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof gdriveInput>) => gdriveInput.parse(d))
+  .validator((d: z.infer<typeof gdriveInput>) => gdriveInput.parse(d))
   .handler(async ({ data }) => {
     if (!data.body) throw new Error("缺少 body");
     const existingId = await gdriveFindId(data.token, data.filename);
@@ -257,7 +257,7 @@ export const gdriveUpload = createServerFn({ method: "POST" })
 
 export const gdriveDownload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof gdriveInput>) => gdriveInput.omit({ body: true }).parse(d))
+  .validator((d: z.infer<typeof gdriveInput>) => gdriveInput.omit({ body: true }).parse(d))
   .handler(async ({ data }) => {
     const id = await gdriveFindId(data.token, data.filename);
     if (!id) throw new Error(`GoogleDrive 上找不到文件: ${data.filename}`);
@@ -317,7 +317,7 @@ export type NotionListItem = {
 
 export const notionList = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof notionInput>) => notionInput.parse(d))
+  .validator((d: z.infer<typeof notionInput>) => notionInput.parse(d))
   .handler(async ({ data }): Promise<{ items: NotionListItem[] }> => {
     const headers = {
       Authorization: `Bearer ${data.token}`,
@@ -364,7 +364,7 @@ export const notionList = createServerFn({ method: "POST" })
 
 export const notionFetchPage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: z.infer<typeof notionPageInput>) => notionPageInput.parse(d))
+  .validator((d: z.infer<typeof notionPageInput>) => notionPageInput.parse(d))
   .handler(async ({ data }) => {
     const headers = {
       Authorization: `Bearer ${data.token}`,

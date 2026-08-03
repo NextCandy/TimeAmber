@@ -106,7 +106,7 @@ P3 阶段此前记录的首页 hydration 口径为 `1,042,677 → 875,846` 字�
 ## 仍然待办
 
 1. **T38 仍需管理员会话**：本轮已完成未登录跳转与登录表单浏览器验收；需要真实管理员会话才能进入后台并验证备份、设置、媒体、GitHub 等页面。
-2. **T37 版本边界**：当前锁定版本的两个旧 `.validator()` 调用已统一为
-   `createServerFn().inputValidator()`，全仓其余调用已是当前 API。
-   构建插件仍会提示未来迁移到 `.validator()`，但安装版本的类型定义不提供该方法，因此本轮保持可编译的 `inputValidator()`。
+2. **T37 已重新完成迁移**：活动应用源文件中的 45 处
+   `createServerFn().inputValidator()` 已统一迁移为官方当前写法
+   `createServerFn().validator()`；历史 `.bak-*` 快照不参与构建与 lint，保留原样以便追溯。
 3. **既有 lint warning**：ESLint 为 0 errors、11 warnings，均为 Fast Refresh 导出规则与备份页既有 hook 依赖提示；未扩大本轮范围。

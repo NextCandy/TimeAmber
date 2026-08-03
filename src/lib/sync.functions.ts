@@ -32,5 +32,5 @@ const runInput = z.object({
 
 export const runSyncTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((value: z.infer<typeof runInput>) => runInput.parse(value))
+  .validator((value: z.infer<typeof runInput>) => runInput.parse(value))
   .handler(async ({ data }) => workerFetch(`/run/${data.task}`, { method: "POST", body: "{}" }));

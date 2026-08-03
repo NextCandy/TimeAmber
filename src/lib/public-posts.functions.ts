@@ -143,7 +143,7 @@ export type TaxonomyPosts = { posts: PostIndexItem[]; total: number };
 
 /** 按分类或标签取文章，服务端分页 —— 一个分类底下可能有六百多篇。 */
 export const loadPostsByTaxonomy = createServerFn({ method: "GET" })
-  .inputValidator((value: z.infer<typeof taxonomyPostsInput>) => taxonomyPostsInput.parse(value))
+  .validator((value: z.infer<typeof taxonomyPostsInput>) => taxonomyPostsInput.parse(value))
   .handler(async ({ data }): Promise<TaxonomyPosts> => {
     const sql = db();
     const { category, tag } = data;
@@ -236,7 +236,7 @@ const monthInput = z.object({
 
 /** 某年某月的文章，展开时才取。 */
 export const loadPostsByMonth = createServerFn({ method: "GET" })
-  .inputValidator((value: z.infer<typeof monthInput>) => monthInput.parse(value))
+  .validator((value: z.infer<typeof monthInput>) => monthInput.parse(value))
   .handler(async ({ data }): Promise<PostIndexItem[]> => {
     const sql = db();
     const ym = `${data.year}-${data.month}`;
@@ -263,7 +263,7 @@ const archiveSearchInput = z.object({
  * 归档页因此不用再背那 527 KB。限量 200 条 —— 再多也不是「浏览归档」了。
  */
 export const searchPostIndex = createServerFn({ method: "GET" })
-  .inputValidator((value: z.infer<typeof archiveSearchInput>) => archiveSearchInput.parse(value))
+  .validator((value: z.infer<typeof archiveSearchInput>) => archiveSearchInput.parse(value))
   .handler(async ({ data }): Promise<PostIndexItem[]> => {
     const sql = db();
     const q = data.q.trim();
@@ -340,7 +340,7 @@ const relatedInput = z.object({
  * （共同标签 2 分、同分类 1 分）放到 SQL 里，只回 limit 条。
  */
 export const loadRelatedPosts = createServerFn({ method: "GET" })
-  .inputValidator((value: z.infer<typeof relatedInput>) => relatedInput.parse(value))
+  .validator((value: z.infer<typeof relatedInput>) => relatedInput.parse(value))
   .handler(async ({ data }): Promise<RelatedPost[]> => {
     const sql = db();
     const limit = data.limit ?? 6;
@@ -390,7 +390,7 @@ async function hashReactionVisitor(slug: string, visitorKey: string): Promise<st
 
 /** 点赞总数可 SSR；传匿名 visitorKey 时额外返回当前浏览器是否点过赞。 */
 export const loadPostReactionSummary = createServerFn({ method: "GET" })
-  .inputValidator((value: z.infer<typeof reactionInput>) => reactionInput.parse(value))
+  .validator((value: z.infer<typeof reactionInput>) => reactionInput.parse(value))
   .handler(async ({ data }): Promise<PostReactionSummary> => {
     const sql = db();
     const visitorHash = data.visitorKey
@@ -408,7 +408,7 @@ export const loadPostReactionSummary = createServerFn({ method: "GET" })
 
 /** 同一浏览器再次点击会取消；库里只保存按文章加盐后的 SHA-256。 */
 export const togglePostReaction = createServerFn({ method: "POST" })
-  .inputValidator((value: z.infer<typeof toggleReactionInput>) => toggleReactionInput.parse(value))
+  .validator((value: z.infer<typeof toggleReactionInput>) => toggleReactionInput.parse(value))
   .handler(async ({ data }): Promise<PostReactionSummary> => {
     const sql = db();
     const visitorHash = await hashReactionVisitor(data.slug, data.visitorKey);
@@ -453,7 +453,7 @@ export type AdjacentPosts = { prev: RelatedPost | null; next: RelatedPost | null
  * 或者两篇互相指向对方原地打转。
  */
 export const loadAdjacentPosts = createServerFn({ method: "GET" })
-  .inputValidator((value: z.infer<typeof adjacentInput>) => adjacentInput.parse(value))
+  .validator((value: z.infer<typeof adjacentInput>) => adjacentInput.parse(value))
   .handler(async ({ data }): Promise<AdjacentPosts> => {
     const sql = db();
     const rows = await sql<(RelatedRow & { dir: unknown })[]>`
@@ -538,7 +538,7 @@ function toSearchHit(row: SearchRow): SearchHit {
 }
 
 export const searchPosts = createServerFn({ method: "GET" })
-  .inputValidator((value: z.infer<typeof searchInput>) => searchInput.parse(value))
+  .validator((value: z.infer<typeof searchInput>) => searchInput.parse(value))
   .handler(async ({ data }): Promise<SearchResults> => {
     const sql = db();
     const q = data.q.trim();

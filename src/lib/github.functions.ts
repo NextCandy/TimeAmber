@@ -33,7 +33,7 @@ function parseRepo(input: string): string | null {
 }
 
 export const getGithubStatus = createServerFn({ method: "GET" })
-  .inputValidator((data: { repo: string; branch?: string }) => data)
+  .validator((data: { repo: string; branch?: string }) => data)
   .handler(async ({ data }): Promise<GithubStatus> => {
     const repo = parseRepo(data.repo);
     const fetchedAt = new Date().toISOString();
