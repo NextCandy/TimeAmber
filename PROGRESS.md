@@ -112,5 +112,5 @@ P3 阶段此前记录的首页 hydration 口径为 `1,042,677 → 875,846` 字�
 1. **T38 已完成**：管理员会话下的后台核心页面、备份分批加载与单篇文章编辑读取均已验收；本轮没有执行发布、删除、同步、导入或设置保存等数据写入动作。
 2. **T37 已重新完成迁移**：活动应用源文件中的 45 处
    `createServerFn().inputValidator()` 已统一迁移为官方当前写法
-   `createServerFn().validator()`；历史 `.bak-*` 快照不参与构建与 lint，保留原样以便追溯。
+   `createServerFn().validator()`；当前活动源共有 47 处 `.validator()`（含本轮新增的后台分页与单篇读取接口）；历史 `.bak-*` 快照不参与构建与 lint，保留原样以便追溯。
 3. **既有 lint warning**：ESLint 为 0 errors、11 warnings，均为 Fast Refresh 导出规则与备份页既有 hook 依赖提示；未扩大本轮范围。
