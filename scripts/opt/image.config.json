@@ -1,0 +1,12 @@
+{
+  "widths": [320, 640, 960, 1280, 1920],
+  "thumbnailWidths": [160, 320, 480],
+  "formats": {
+    "photo": { "avif": 50, "webp": 75 },
+    "illustration": { "avif": 60, "webp": 82 }
+  },
+  "maxDerivedRatio": 0.9,
+  "heroMaxBytes": 204800,
+  "thumbnailMaxBytes": 61440,
+  "defaultKind": "photo"
+}

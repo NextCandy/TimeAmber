@@ -60,7 +60,14 @@ function rehypeLazyImages() {
   return (tree: Root) => {
     eachElement(tree, (el) => {
       if (el.tagName === "img") {
-        el.properties = { loading: "lazy", decoding: "async", ...el.properties };
+        el.properties = {
+          loading: "lazy",
+          decoding: "async",
+          alt: "",
+          width: 1200,
+          height: 675,
+          ...el.properties,
+        };
       }
     });
   };

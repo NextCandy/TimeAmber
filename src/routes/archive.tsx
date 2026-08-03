@@ -11,6 +11,7 @@ import {
   type PostIndexItem,
 } from "@/lib/public-posts.functions";
 import { SITE_URL } from "@/lib/brand";
+import { JsonLd } from "@/lib/seo";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/archive")({
@@ -219,6 +220,16 @@ function ArchivePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 pt-16 pb-16">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "首页", item: SITE_URL },
+            { "@type": "ListItem", position: 2, name: "归档", item: `${SITE_URL}/archive` },
+          ],
+        }}
+      />
       <header className="mb-8">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Archive

@@ -421,45 +421,7 @@ ${content.slice(0, 4000)}`;
 
       <Tabs value={type} onValueChange={(v) => setType(v as "markdown" | "html")}>
         <TabsList>
-          <TabsTrigger value="markdown">Markdown 文章</TabsTrigger>
-          <TabsTrigger value="html">HTML 跳转文章</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
-        <div className="space-y-5">
-          <div>
-            <Label htmlFor="title">标题</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="mt-1.5"
-              placeholder="一个让人忍不住点进来的标题"
-              required
-              maxLength={200}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="excerpt">摘要</Label>
-            <Textarea
-              id="excerpt"
-              value={excerpt}
-              onChange={(e) => setExcerpt(e.target.value)}
-              rows={3}
-              className="mt-1.5"
-              placeholder="出现在首页卡片和文章列表里的简介"
-              required
-              maxLength={500}
-            />
-          </div>
-
-          {type === "markdown" ? (
-            <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <Label htmlFor="content">正文 (Markdown)</Label>
-                <span className="text-xs text-muted-foreground">{content.length} / 50000</span>
+          <TabsTrigger value="markdown">Markdown 文章</TabsTrigg�-�G����ƭy�h} / 50000</span>
               </div>
               <Textarea
                 id="content"
@@ -543,6 +505,8 @@ ${content.slice(0, 4000)}`;
                     <img
                       src={cover}
                       alt=""
+                      width={640}
+                      height={360}
                       className={`h-full w-full ${
                         cover === DEFAULT_POST_COVER ? "object-contain p-4" : "object-cover"
                       }`}

@@ -1,0 +1,47 @@
+{
+  "items": [
+    {
+      "id": "ok-1",
+      "bucket": "media",
+      "object_path": "2026/ok.png",
+      "name": "ok.png",
+      "public_url": "https://cdn.example.test/ok.png",
+      "content_type": "image/png",
+      "fixture": {
+        "original": { "exists": true, "bytes": 120000 },
+        "thumbnail": { "exists": true, "bytes": 18000 }
+      }
+    },
+    {
+      "id": "missing-thumb",
+      "bucket": "media",
+      "object_path": "2026/missing.jpg",
+      "name": "missing.jpg",
+      "public_url": "https://cdn.example.test/missing.jpg",
+      "content_type": "image/jpeg",
+      "fixture": {
+        "original": { "exists": true, "bytes": 220000 },
+        "thumbnail": { "exists": false, "bytes": 0 }
+      }
+    },
+    {
+      "id": "missing-original",
+      "bucket": "media",
+      "object_path": "2026/removed.webp",
+      "name": "removed.webp",
+      "public_url": "https://cdn.example.test/removed.webp",
+      "content_type": "image/webp",
+      "fixture": {
+        "original": { "exists": false, "error": "对象不存在" }
+      }
+    },
+    {
+      "id": "unsupported-svg",
+      "bucket": "media",
+      "object_path": "2026/logo.svg",
+      "name": "logo.svg",
+      "public_url": "https://cdn.example.test/logo.svg",
+      "content_type": "image/svg+xml"
+    }
+  ]
+}

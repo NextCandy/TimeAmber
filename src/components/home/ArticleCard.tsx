@@ -5,6 +5,7 @@ import { formatDateKey } from "@/lib/date";
 import { DEFAULT_POST_COVER } from "@/lib/brand";
 import { linkRel, linkTarget } from "@/lib/post-link";
 import type { HomePost } from "@/lib/home.functions";
+import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 
 /** 首页文章条目。首篇使用真实封面做编辑型主卡，其余文章保持轻量列表。 */
 export function ArticleCard({
@@ -38,10 +39,14 @@ export function ArticleCard({
     <div className="flex min-w-0 flex-1 flex-col gap-4 p-4 sm:p-5">
       {cover && (
         <span className="relative block aspect-[16/7] overflow-hidden rounded-xl border border-border/60 bg-muted/30">
-          <img
+          <ResponsiveImage
             src={cover}
-            alt=""
+            alt={`${post.title} 封面`}
+            width={1280}
+            height={560}
+            sizes="(max-width: 640px) 100vw, 1280px"
             loading="eager"
+            fetchPriority="high"
             decoding="async"
             className="article-card-cover h-full w-full object-cover"
           />
@@ -62,9 +67,12 @@ export function ArticleCard({
     <div className="flex min-w-0 flex-1 items-center gap-4 py-3">
       {cover && (
         <span className="h-20 w-20 shrink-0 rounded-xl border border-border/70 bg-card p-[3px] shadow-[0_2px_8px_-4px_color-mix(in_oklch,var(--foreground)_20%,transparent)]">
-          <img
+          <ResponsiveImage
             src={cover}
-            alt=""
+            alt={`${post.title} 封面`}
+            width={80}
+            height={80}
+            sizes="80px"
             loading="lazy"
             decoding="async"
             className="article-card-cover h-full w-full rounded-lg object-cover"

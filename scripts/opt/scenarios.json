@@ -1,0 +1,17 @@
+{
+  "scenarios": [
+    { "name": "fast", "download": 0, "upload": 0, "latency": 0, "cpu": 1, "dpr": 1 },
+    { "name": "4g", "download": 9000, "upload": 1500, "latency": 85, "cpu": 2, "dpr": 2 },
+    { "name": "slow3g", "download": 400, "upload": 400, "latency": 400, "cpu": 4, "dpr": 2 },
+    { "name": "dpr3", "download": 9000, "upload": 1500, "latency": 85, "cpu": 2, "dpr": 3 },
+    { "name": "offline-cache", "mode": "second-visit", "cpu": 1, "dpr": 1 }
+  ],
+  "ci": {
+    "scenarios": ["fast", "4g", "slow3g"],
+    "viewports": ["mobile-375", "mobile-390", "desktop-1440"]
+  },
+  "nightly": {
+    "scenarios": ["fast", "4g", "slow3g", "dpr3", "offline-cache"],
+    "viewports": ["mobile-375", "mobile-390", "tablet-768", "laptop-1280", "desktop-1440", "wide-1920"]
+  }
+}

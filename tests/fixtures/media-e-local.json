@@ -1,0 +1,12 @@
+{
+  "items": [
+    {
+      "id": "local-cover",
+      "bucket": ".",
+      "object_path": "public/brand/timeamber-default-cover.png",
+      "name": "timeamber-default-cover.png",
+      "public_url": "https://timeamber.com/brand/timeamber-default-cover.png",
+      "content_type": "image/png"
+    }
+  ]
+}

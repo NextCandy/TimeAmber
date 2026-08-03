@@ -82,6 +82,7 @@ const STATIC_PATHS: Array<{ path: string; priority: string; changefreq: string }
   { path: "/", priority: "1.0", changefreq: "daily" },
   { path: "/archive", priority: "0.6", changefreq: "weekly" },
   { path: "/categories", priority: "0.6", changefreq: "weekly" },
+  { path: "/ask", priority: "0.4", changefreq: "monthly" },
   { path: "/about", priority: "0.4", changefreq: "monthly" },
   { path: "/friends", priority: "0.3", changefreq: "monthly" },
 ];

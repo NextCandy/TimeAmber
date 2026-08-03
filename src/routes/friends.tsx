@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Link2, Mail } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAdminStore, type Friend } from "@/lib/admin-store";
+import { SITE_URL } from "@/lib/brand";
 
 export const Route = createFileRoute("/friends")({
   head: () => ({
@@ -10,7 +11,9 @@ export const Route = createFileRoute("/friends")({
       { name: "description", content: "TimeAmber 的友情链接。" },
       { property: "og:title", content: "友链 · TimeAmber" },
       { property: "og:description", content: "一些值得长期关注的站点。" },
+      { property: "og:url", content: `${SITE_URL}/friends` },
     ],
+    links: [{ rel: "canonical", href: `${SITE_URL}/friends` }],
   }),
   component: FriendsPage,
 });
@@ -46,6 +49,8 @@ function FriendCard({ f }: { f: Friend }) {
           <img
             src={icon}
             alt=""
+            width={64}
+            height={64}
             loading="lazy"
             decoding="async"
             className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"

@@ -18,6 +18,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -68,6 +78,13 @@ function MediaPage() {
   };
   const [host, setHost] = useState<ImageHostConfig>(initial);
   const [filter, setFilter] = useState("");
+  const [kind, setKind] = useState("all");
+  const [after, setAfter] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [pendingBatchDelete, setPendingBatchDelete] = useState(false);
+  const [thumbnailFallbacks, setThumbnailFallbacks] = useState<Set<string>>(() => new Set());
+  const [missingImages, setMissingImages] = useState<Set<string>>(() => new Set());
+  const [retryVersion, setRetryVersion] = useState(0);
   const [progress, setProgress] = useState<Progress[]>([]);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -98,9 +115,55 @@ function MediaPage() {
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    if (!q) return store.media;
-    return store.media.filter((m) => m.name.toLowerCase().includes(q));
-  }, [store.media, filter]);
+    const afterAt = after ? new Date(`${after}T00:00:00+08:00`).getTime() : 0;
+    return store.media.filter((m) => {
+      if (kind !== "all" && m.source !== kind) return false;
+      if (afterAt && new Date(m.uploadedAt).getTime() < afterAt) return false;
+      return !q || m.name.toLowerCase().includes(q);
+    });
+  }, [store.media, filter, kind, after]);
+
+  const pageAllSelected = filtered.length > 0 && filtered.every((item) => selected.has(item.id));
+
+  function toggleSelected(id: string) {
+    setSelected((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllSelected() {
+    setSelected((previous) => {
+      const next = new Set(previous);
+      if (pageAllSelected) filtered.forEach((item) => next.delete(item.id));
+      else filtered.forEach((item) => next.add(item.id));
+      return next;
+    });
+  }
+
+  function retryThumbnail(id: string) {
+    setThumbnailFallbacks((previous) => {
+      const next = new Set(previous);
+      next.delete(id);
+      return next;
+    });
+    setMissingImages((previous) => {
+      const next = new Set(previous);
+      next.delete(id);
+      return next;
+    });
+    setRetryVersion((version) => version + 1);
+    toast.info("已重新请求缩略图；若仍缺失，请运行 opt:fix-thumbs 队列");
+  }
+
+  function confirmBatchDelete() {
+    for (const id of selected) store.removeMedia(id);
+    setSelected(new Set());
+    setPendingBatchDelete(false);
+    toast.success("已从媒体索引移除所选记录；原图未被脚本删除");
+  }
 
   async function uploadOne(idx: number, f: File, attempt = 1): Promise<boolean> {
     const MAX = 3;
@@ -214,8 +277,12 @@ function MediaPage() {
     );
   }
 
+  function copyText(value: string, message: string) {
+    navigator.clipboard.writeText(value).then(() => toast.success(message));
+  }
+
   function copy(url: string) {
-    navigator.clipboard.writeText(url).then(() => toast.success("已复制链接"));
+    copyText(url, "已复制链接");
   }
 
   function exportFailuresCsv() {
@@ -305,6 +372,22 @@ function MediaPage() {
       </section>
 
       <section className="rounded-xl border border-border/70 bg-card/40 p-5">
+        <div className="mb-2 flex items-center gap-2">
+          <RotateCw className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-base font-semibold">缩略图修复队列</h2>
+          <span className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[10px] text-primary">只写派生文件</span>
+        </div>
+        <p className="text-xs leading-5 text-muted-foreground">
+          先运行只读扫描再 apply；队列落盘到 <code>reports/opt/thumbs/queue.json</code>，支持 resume / only-failed / SIGINT。原图路径、哈希与每批抽检结果会进入 fix-report，不会删除或覆盖原图。
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => copyText("npm run opt:scan-thumbs -- --label media-scan", "已复制扫描命令")}>复制诊断命令</Button>
+          <Button variant="outline" size="sm" onClick={() => copyText("npm run opt:fix-thumbs -- --apply --resume --concurrency 3 --rps 5", "已复制修复命令")}>复制恢复命令</Button>
+          <span className="self-center text-[11px] text-muted-foreground">最近结果请查看 reports/opt/thumbs/ 下的 scan-report 与 fix-report</span>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border/70 bg-card/40 p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ImageIcon className="h-4 w-4 text-primary" />
@@ -318,6 +401,18 @@ function MediaPage() {
               placeholder="按文件名搜索…"
               className="h-8 w-48"
             />
+            <select value={kind} onChange={(e) => setKind(e.target.value)} className="h-8 rounded-md border border-border bg-card px-2 text-xs">
+              <option value="all">全部类型</option>
+              <option value="supabase">Supabase</option>
+              <option value="see">图床</option>
+              <option value="imported">导入</option>
+              <option value="manual">手动</option>
+            </select>
+            <Input type="date" value={after} onChange={(e) => setAfter(e.target.value)} className="h-8 w-32 text-xs" aria-label="上传时间起点" />
+            <Button variant="outline" size="sm" onClick={toggleAllSelected} disabled={!filtered.length}>
+              {pageAllSelected ? "取消全选" : "全选"}
+            </Button>
+            {selected.size > 0 && <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" onClick={() => setPendingBatchDelete(true)}><Trash2 className="mr-1 h-3.5 w-3.5" />删除 {selected.size}</Button>}
             <input
               ref={fileRef}
               type="file"
@@ -418,14 +513,32 @@ function MediaPage() {
                 className="group relative overflow-hidden rounded-lg border border-border/60 bg-background/50"
                 style={{ contentVisibility: "auto", containIntrinsicSize: "260px" }}
               >
+                <label className="absolute left-2 top-2 z-10 rounded bg-background/90 p-1 shadow-sm">
+                  <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggleSelected(m.id)} aria-label={`选择 ${m.name}`} className="h-4 w-4 accent-primary" />
+                </label>
                 <div className="aspect-square w-full overflow-hidden bg-muted/30">
-                  <img
-                    src={m.url}
-                    alt={m.name}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover"
-                  />
+                  {missingImages.has(m.id) ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-xs text-muted-foreground">
+                      <ImageIcon className="h-8 w-8 opacity-40" />
+                      <span className="break-all">{m.name}</span>
+                      <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => retryThumbnail(m.id)}>重试生成</Button>
+                    </div>
+                  ) : (
+                    <img
+                      key={`${m.id}-${retryVersion}-${thumbnailFallbacks.has(m.id) ? "original" : "thumb"}`}
+                      src={thumbnailFallbacks.has(m.id) ? m.url : (m.thumbnailUrl ?? m.url)}
+                      alt={m.name}
+                      width={260}
+                      height={260}
+                      loading="lazy"
+                      decoding="async"
+                      onError={() => {
+                        if (m.thumbnailUrl && !thumbnailFallbacks.has(m.id)) setThumbnailFallbacks((previous) => new Set(previous).add(m.id));
+                        else setMissingImages((previous) => new Set(previous).add(m.id));
+                      }}
+                      className="h-full w-full object-cover"
+                    />
+                  )}
                 </div>
                 <div className="p-2">
                   <p className="truncate text-[11px] font-medium" title={m.name}>
@@ -528,6 +641,21 @@ function MediaPage() {
           </div>
         )}
       </section>
+
+      <AlertDialog open={pendingBatchDelete} onOpenChange={setPendingBatchDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认移除 {selected.size} 条媒体索引？</AlertDialogTitle>
+            <AlertDialogDescription>
+              本操作只移除媒体库索引，不会由缩略图队列删除原图；请确认已有备份，且不会误删仍被文章引用的记录。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBatchDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">确认移除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

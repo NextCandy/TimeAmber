@@ -22,6 +22,7 @@ import { Toaster } from "../components/ui/sonner";
 import { installDiagnostics, recordRouteChange } from "../lib/diagnostics";
 import { DEFAULT_THEME_PREFERENCE, THEME_BOOTSTRAP_SCRIPT, resolveTheme } from "../lib/theme";
 import { loadThemePreference } from "../lib/theme.functions";
+import { JsonLd, SITE_JSON_LD } from "../lib/seo";
 
 function AnalyticsRecorder() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -185,6 +186,7 @@ function RootComponent() {
       <AdminStoreProvider initialState={publicState} enableAdminSync={!isChrome}>
         <AnalyticsRecorder />
         <div className="flex min-h-screen flex-col">
+          <JsonLd data={SITE_JSON_LD} />
           {isChrome && <Navbar initialThemePreference={themePreference} />}
           {/* 保留 main 节点，避免每次路由切换都强制重建整棵页面树。 */}
           <main className="relative flex flex-1 flex-col">

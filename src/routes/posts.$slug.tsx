@@ -22,6 +22,7 @@ import { renderMarkdownFn } from "@/lib/markdown.functions";
 import { TableOfContents, extractToc } from "@/components/post/TableOfContents";
 import { ReadingControls, useReadingPrefs } from "@/components/post/ReadingControls";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { ResponsiveImage } from "@/components/ui/ResponsiveImage";
 
 // og:image / JSON-LD 里的图必须是绝对地址：社交平台与搜索引擎不解析相对路径，
 // 而封面可能是站内相对路径（/supabase/...）、绝对 URL 或 data: URL（后者无法被抓取，回退默认封面）。
@@ -436,7 +437,7 @@ function PostPage() {
   // JSON-LD 结构化数据（Article）：正文末尾直出，让搜索引擎识别标题/时间/作者/分类/标签。
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "BlogPosting",
     headline: post.title,
     description: toMetaDescription(post.excerpt),
     image: [absolutePostImage(post.cover)],
@@ -543,9 +544,15 @@ function PostPage() {
             />
           </header>
 
-          <img
+          <ResponsiveImage
             src={post.cover || DEFAULT_POST_COVER}
-            alt=""
+            alt={`${post.title} 封面`}
+            width={1200}
+            height={630}
+            sizes="(max-width: 1024px) 100vw, 960px"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             className={`article-cover mb-10 h-64 w-full rounded-2xl border border-border/60 bg-background/70 shadow-[0_24px_50px_-38px_color-mix(in_oklch,var(--foreground)_55%,transparent)] dark:bg-overlay/20 ${
               !post.cover || post.cover === DEFAULT_POST_COVER
                 ? "object-contain p-8"

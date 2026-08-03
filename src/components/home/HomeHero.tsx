@@ -54,6 +54,8 @@ export function HomeHero({ totalPosts, totalTags, totalCategories }: HomeHeroPro
             <img
               src={BRAND_ICON}
               alt=""
+              width={44}
+              height={44}
               className="h-11 w-11 object-contain drop-shadow-brand-sm"
             />
           </div>

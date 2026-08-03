@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { FolderTree, Loader2, Tag, X, Search } from "lucide-react";
 import { PostCard } from "@/components/home/PostCard";
@@ -10,6 +10,8 @@ import {
   type TaxonomyCounts,
   type TaxonomyPosts,
 } from "@/lib/public-posts.functions";
+import { SITE_URL } from "@/lib/brand";
+import { JsonLd, categoryRedirectTarget } from "@/lib/seo";
 
 type CategorySearch = { c?: string; tag?: string };
 
@@ -27,6 +29,10 @@ const CATEGORY_BORDERS = [
 ] as const;
 
 export const Route = createFileRoute("/categories")({
+  beforeLoad: ({ search }) => {
+    const target = categoryRedirectTarget(search.c);
+    if (target) throw redirect({ href: `/categories?c=${encodeURIComponent(target)}`, statusCode: 301 });
+  },
   validateSearch: (search: Record<string, unknown>): CategorySearch => ({
     c: typeof search.c === "string" && search.c ? search.c : undefined,
     tag: typeof search.tag === "string" && search.tag ? search.tag : undefined,
@@ -51,7 +57,9 @@ export const Route = createFileRoute("/categories")({
       { name: "description", content: "按分类与标签浏览 TimeAmber 的全部文章。" },
       { property: "og:title", content: "分类 · TimeAmber" },
       { property: "og:description", content: "按分类与标签浏览全部文章。" },
+      { property: "og:url", content: `${SITE_URL}/categories` },
     ],
+    links: [{ rel: "canonical", href: `${SITE_URL}/categories` }],
   }),
   component: CategoriesPage,
 });
@@ -90,6 +98,16 @@ function CategoriesPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 pt-16 pb-16">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "首页", item: SITE_URL },
+            { "@type": "ListItem", position: 2, name: "分类", item: `${SITE_URL}/categories` },
+          ],
+        }}
+      />
       <header className="mb-10">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Categories

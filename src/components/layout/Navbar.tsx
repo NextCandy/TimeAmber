@@ -86,7 +86,7 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
         }`}
       >
         <Link to="/" className="group col-start-1 flex items-center gap-2.5 justify-self-start">
-          <img src={BRAND_ICON} alt="" className="h-8 w-8 object-contain drop-shadow-brand-sm" />
+          <img src={BRAND_ICON} alt="" width={32} height={32} className="h-8 w-8 object-contain drop-shadow-brand-sm" />
           <span className="font-brand text-2xl leading-none font-normal tracking-tight">
             TimeAmber
           </span>

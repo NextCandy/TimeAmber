@@ -1,0 +1,42 @@
+{
+  "首页": {
+    "mobile": {
+      "firstScreenKB": 900,
+      "totalKB": 1200,
+      "LCP": 2500,
+      "CLS": 0.1,
+      "TBT": 300,
+      "imageShare": 0.55,
+      "requests": 60
+    },
+    "desktop": {
+      "firstScreenKB": 1100,
+      "totalKB": 1500,
+      "LCP": 2000,
+      "CLS": 0.1,
+      "TBT": 200,
+      "imageShare": 0.55,
+      "requests": 70
+    }
+  },
+  "文章页": {
+    "mobile": {
+      "firstScreenKB": 700,
+      "totalKB": 1000,
+      "LCP": 2500,
+      "CLS": 0.1,
+      "TBT": 300,
+      "imageShare": 0.5,
+      "requests": 50
+    },
+    "desktop": {
+      "firstScreenKB": 900,
+      "totalKB": 1200,
+      "LCP": 2000,
+      "CLS": 0.1,
+      "TBT": 200,
+      "imageShare": 0.5,
+      "requests": 60
+    }
+  }
+}

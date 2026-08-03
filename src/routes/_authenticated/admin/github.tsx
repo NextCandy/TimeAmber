@@ -259,6 +259,8 @@ function CommitRow({
         <img
           src={commit.authorAvatar}
           alt={commit.author}
+          width={32}
+          height={32}
           className="h-8 w-8 shrink-0 rounded-full border border-border/60"
         />
       )}

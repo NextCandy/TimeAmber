@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Mail, Github, Twitter } from "lucide-react";
 import { useAdminStore } from "@/lib/admin-store";
+import { SITE_URL } from "@/lib/brand";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -9,7 +10,9 @@ export const Route = createFileRoute("/about")({
       { name: "description", content: "关于 TimeAmber：一个克制的中文剪藏与笔记博客。" },
       { property: "og:title", content: "关于 · TimeAmber" },
       { property: "og:description", content: "一个克制的中文剪藏与笔记博客。" },
+      { property: "og:url", content: `${SITE_URL}/about` },
     ],
+    links: [{ rel: "canonical", href: `${SITE_URL}/about` }],
   }),
   component: AboutPage,
 });
