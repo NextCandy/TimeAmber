@@ -19,10 +19,30 @@ TanStack Start 构建前后台，数据、认证和媒体由自托管 Supabase �
 
 生产站点：[timeamber.com](https://timeamber.com)
 
+> 当前 `master` 分支同时包含公开站点、管理员后台和同步 worker 的生产代码。
+> 公开端重点保持阅读路径短、首屏信息清晰；后台重点保持数据加载可见、搜索与切换不阻塞；
+> 生产部署使用同一套 Docker Compose 项目运行，避免应用、worker 和自托管 Supabase 产生多套状态。
+
+## 项目定位
+
+TimeAmber 不是只展示文章的静态主题，而是一套围绕「写作、剪藏、归档、检索和维护」组织起来的
+个人内容系统：
+
+| 使用场景 | 入口 | 说明 |
+| --- | --- | --- |
+| 公开阅读 | `/`、`/posts/:slug` | 服务端渲染文章、分类、标签、归档和友链，支持亮暗主题与阅读辅助 |
+| 内容管理 | `/admin` | 管理文章、分类、标签、媒体、设置、同步、备份、审计和诊断 |
+| 内容导入 | `timeamber-worker` | Notion 增量同步、VS.DO/web-archive 导入、历史索引补全和备份 |
+| 站内问答 | `/admin/ask`、可选 `/ask` | PostgreSQL 检索私有内容，再调用服务端配置的 OpenAI-compatible Provider |
+| 自托管运行 | Docker Compose + Supabase | 数据、认证、Storage、数据库和应用均可部署在 NAS 或单机服务器 |
+
+项目的核心边界是：浏览器只拿到公开内容或当前会话允许的数据；服务端密钥、管理员会话、
+同步令牌和 AI Provider Key 不进入前端构建产物。
+
 ## 功能
 
-- **首页**：品牌 Hero（实时文章 / 标签 / 分类统计）→ 80×80 可选缩略图的最新文章双列列表
-  → 页脚；服务端直出，桌面端按视口高度调节可见条数并收进一屏
+- **首页**：品牌 Hero（实时文章 / 标签 / 分类统计）→ 首篇文章编辑型主卡（16:7 封面）
+  → 其余文章的 80×80 可选缩略图双列列表 → 页脚；服务端直出，保留紧凑阅读路径
 - **响应式导航**：桌面端居中导航与搜索 / RSS / 后台 / 主题图标，移动端使用 300ms
   侧滑抽屉，包含完整导航、搜索、后台与主题切换
 - 文章、归档、分类、标签、友链页
@@ -83,11 +103,66 @@ timeamber-app :49287
 NAS 项目目录：
 
 ```text
-/volume1/docker/timeamber
+/opt/docker/timeamber
 ```
 
 应用容器与 Supabase 使用同一个 Compose 项目和网络。生产应用映射
 `49287:3000`，Supabase API 只绑定本机地址，不应直接暴露到公网。
+
+生产服务边界：
+
+| 服务 | 容器端口 | 作用 | 公网策略 |
+| --- | --- | --- | --- |
+| `timeamber-app` | `3000` | TanStack Start SSR、静态资源、后台和媒体代理 | 只通过反向代理/隧道对外，主机映射为 `49287:3000` |
+| `timeamber-worker` | `3001` | Notion、web-archive、知识索引和备份任务 | 不直接发布到公网，仅由 app 在 Compose 网络内调用 |
+| `supabase-kong` | `8000/8443` | Auth、REST、Storage、Realtime 等 Supabase API 网关 | 绑定内部地址；公网访问应经过受控代理 |
+| `supabase-db` | `5432` | PostgreSQL 数据库 | 仅 Compose 网络内访问 |
+| `timeamber-migrate` | — | `tools` profile 下执行迁移或恢复 | 一次性工具，不作为常驻服务 |
+| `timeamber-cloudflared` | host network | 可选 Cloudflare Tunnel 出口 | 只读取 tunnel 配置，不承载应用数据 |
+
+### 请求与数据流
+
+```mermaid
+flowchart LR
+  Browser["浏览器"] --> App["timeamber-app<br/>TanStack Start SSR"]
+  App --> DB[(PostgreSQL)]
+  App --> Auth["Supabase Auth"]
+  App --> Kong["Supabase Kong"]
+  Kong --> Storage[(Supabase Storage)]
+  Worker["timeamber-worker"] --> DB
+  Worker --> Storage
+  Worker --> Notion["Notion / VS.DO"]
+  App -->|服务端检索| Knowledge["knowledge_documents"]
+  Knowledge --> Provider["可选 AI Provider"]
+```
+
+- 公开文章、归档、分类和标签主要由 `timeamber-app` 直接从 PostgreSQL 读取并服务端渲染。
+- 管理员登录通过 Supabase Auth 完成，TimeAmber 服务端再建立 HttpOnly 会话；管理操作不会把
+  service role key 下发给浏览器。
+- 媒体统一走 `/supabase/storage/...` 的同源代理路径。应用只需要访问内部 Kong，浏览器不需要
+  连接 NAS 上的旧媒体目录。
+- worker 通过数据库和 Storage 写入导入结果，`sync_runs`、审计和诊断表为后台提供可追踪状态。
+- Ask TimeAmber 先在 PostgreSQL 的 `knowledge_documents` 上检索，再由服务端调用 AI Provider；
+  AI Key 不参与浏览器构建，也不写入静态 HTML。
+
+## 性能与交互策略
+
+最近的前后台整理围绕两个实际问题展开：打开文章时尽量提前准备路由资源，进入后台时避免把
+所有数据和搜索计算集中在一次同步渲染中。相关代码仍保持在页面组件和共享数据层内，方便继续
+定位与回归：
+
+| 区域 | 当前策略 | 维护提示 |
+| --- | --- | --- |
+| 首页 | 第一篇文章使用编辑型主卡，其余文章保持紧凑列表；缩略图按需加载 | 修改行高、封面比例或首屏间距时，要同步检查不同视口高度 |
+| 文章跳转 | 文章卡、归档和相关文章使用 TanStack Router 的 intent preload | 新增文章入口时优先复用同一 preload 行为 |
+| 首页动效 | 只给主卡和首屏少量文章添加渐入延迟；非首屏条目不参与大规模动画 | 新增动画应遵守 `prefers-reduced-motion` |
+| 全站搜索 | 管理端搜索使用延迟查询值和预计算的文章检索索引 | 不要在每次按键时重新拼接全部文章标题、分类和标签 |
+| 后台状态 | 文章、分类、标签等状态分块加载，首屏先展示可用骨架与局部状态，较重数据在后台补齐 | 新增管理页应使用共享 admin store，避免重复拉取同一份全量数据 |
+| Markdown | 服务端完成 GFM、Shiki 高亮和 sanitize，客户端只接管复制、图片放大等交互 | 不要把私有文章正文预打包到客户端静态资源 |
+| 静态资源 | `server/node.mjs` 对构建资源提供 immutable 缓存，并对可压缩响应支持 gzip | 发布后若页面未变化，先确认浏览器和反向代理缓存，再判断是否构建失败 |
+
+这部分优化的目标是降低点击文章和进入后台时的主线程压力，同时不牺牲服务端直出、键盘操作、
+移动端可用性和无障碍的降运动偏好。
 
 ## 目录
 
@@ -202,6 +277,7 @@ TimeAmber 使用 Tailwind CSS v4 的语义 token 统一控制前后台视觉。�
 npm ci
 npm test
 npx tsc --noEmit
+npm run lint
 npm run build
 ```
 
@@ -210,6 +286,25 @@ npm run build
 ```bash
 npm run dev
 ```
+
+常用脚本：
+
+| 命令 | 用途 |
+| --- | --- |
+| `npm run dev` | 启动 Vite 开发服务器 |
+| `npm run build` | 生成生产端 `dist/client` 与 `dist/server` |
+| `npm run start` | 使用 `server/node.mjs` 启动生产 Node 入口 |
+| `npm run worker` | 直接运行 `worker/index.ts`，用于本地调试 worker |
+| `npm test` | 运行 `tests/*.test.ts` |
+| `npm run lint` | 执行 ESLint |
+| `npx tsc --noEmit` | 只做 TypeScript 类型检查 |
+| `npm run format` | 使用 Prettier 格式化项目文件；执行前先确认工作区变更 |
+
+本地开发需要可访问的 Supabase 实例。浏览器侧使用 `VITE_SUPABASE_URL` 与
+`VITE_SUPABASE_PUBLISHABLE_KEY`，服务端和生产容器使用对应的
+`SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`、`SUPABASE_SERVICE_ROLE_KEY` 与
+`DATABASE_URL`。其中 `VITE_` 变量会进入浏览器构建，只能放公开地址和 publishable/anon key，
+不能放 service role key、数据库密码、会话密钥或第三方令牌。
 
 ## 环境配置
 
@@ -245,6 +340,25 @@ cp .env.example .env
 `AI_API_KEY` 只注入 `timeamber-app` 的运行时环境，不是 Docker build arg，也不能使用
 `VITE_` 前缀。未配置 AI Provider 时，Ask TimeAmber 会显示未配置状态，站点其他功能继续正常运行。
 
+### 运行时配置边界
+
+生产 Compose 会把同一组 `.env` 变量转换为不同容器需要的运行时变量：
+
+| 运行面 | 主要变量 | 说明 |
+| --- | --- | --- |
+| 浏览器构建 | `VITE_SUPABASE_URL`、`VITE_SUPABASE_PUBLISHABLE_KEY` | 只包含公开 Supabase 地址和 publishable/anon key |
+| `timeamber-app` | `PORT`、`DATABASE_URL`、`SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`、`SUPABASE_SERVICE_ROLE_KEY` | SSR、数据库读取、Auth 会话、Storage 代理和管理员操作 |
+| `timeamber-app` | `SESSION_SECRET`、`TIMEAMBER_SECRET_KEY`、`WORKER_URL`、`WORKER_SECRET` | 会话加密、第三方配置加密和 app-worker 内部鉴权 |
+| `timeamber-worker` | `DATABASE_URL`、`MEDIA_ROOT`、`BACKUP_ROOT`、`BACKUP_ENABLED`、`BACKUP_RETENTION` | 数据同步、媒体文件和备份保留策略 |
+| `timeamber-worker` | `SYNC_ENABLED`、`NOTION_*`、`VS_DO_*`、`KNOWLEDGE_INDEX_BATCH_SIZE` | 导入任务和知识索引补全；未配置来源时相应任务不应启用 |
+| Supabase 服务 | `POSTGRES_*`、`JWT_*`、`ANON_KEY`、`SERVICE_ROLE_KEY` | 数据库、Auth、API Gateway 和 Storage 的底层配置 |
+
+根目录生产 Compose 使用 `ANON_KEY` 给应用映射成
+`SUPABASE_PUBLISHABLE_KEY`；模块化模板也遵循同一约定。修改环境变量名时，必须同时检查
+`docker-compose.yml`、`deploy/supabase/docker-compose.timeamber.yml`、Dockerfile 的 build args
+以及 `src/integrations/supabase/client.ts`，否则可能出现“服务端正常、浏览器端缺少 Supabase 配置”的
+分裂状态。
+
 ## Ask TimeAmber
 
 Ask TimeAmber 位于管理员后台 `/admin/ask`，复用现有 Supabase Auth 与 HttpOnly 管理员会话。
@@ -278,9 +392,43 @@ Ask TimeAmber 位于管理员后台 `/admin/ask`，复用现有 Supabase Auth �
 
 管理员密码通过 Supabase Auth 管理，不写入仓库或 Compose 文件。
 
+## 代码提交与发布
+
+建议把代码变更、部署配置和运行时数据分开处理。提交前至少执行：
+
+```bash
+git status --short
+git diff --check
+npm test
+npx tsc --noEmit
+npm run lint
+npm run build
+```
+
+提交时只加入本次明确验证过的文件：
+
+```bash
+git add README.md src/ worker/ server/ Dockerfile Dockerfile.worker
+git diff --cached --stat
+git diff --cached --check
+git commit -m "describe the change"
+git push origin <reviewed-branch>
+```
+
+不要因为发布应用而顺手提交以下内容：
+
+- `.env`、`deploy/supabase/.env`、Cloudflare tunnel 凭据、Notion/VS.DO/AI/GitHub token；
+- PostgreSQL dump、媒体库、`deploy/supabase/volumes/*` 中的数据库和运行时数据；
+- 带有本机绝对路径、临时迁移目录或 NAS 专用端口的 Compose 覆盖文件；
+- 与本次代码无关的备份、构建日志和生产机工作区改动。
+
+如果应用是由生产机上的 Git 工作区管理，先在本地完成检查并推送，再在生产机执行
+`git pull --ff-only`。生产机存在未提交变更时应先保存差异和当前提交号，不要用强制覆盖的方式
+同步仓库。
+
 ## NAS 部署
 
-生产目录为 `/volume1/docker/timeamber`。发布前先确认工作区没有会被覆盖的本地改动，
+生产目录为 `/opt/docker/timeamber`。发布前先确认工作区没有会被覆盖的本地改动，
 保存当前提交号，并备份源码与数据库。生产机如果通过 Git 管理源码，应使用
 `git pull --ff-only` 更新已审核的发布分支；如果使用发布包，则只替换受版本控制的源码，
 保留 `.env`、`deploy/supabase/.env`、媒体、备份和数据库卷。
@@ -288,7 +436,7 @@ Ask TimeAmber 位于管理员后台 `/admin/ask`，复用现有 Supabase Auth �
 发布前检查：
 
 ```bash
-cd /volume1/docker/timeamber
+cd /opt/docker/timeamber
 git status --short
 git rev-parse HEAD
 ```
@@ -296,7 +444,7 @@ git rev-parse HEAD
 纯 CSS、前端或服务端 Web 改动只需要重建 `timeamber-app`，不要重启 worker 或 Supabase：
 
 ```bash
-cd /volume1/docker/timeamber
+cd /opt/docker/timeamber
 
 docker compose \
   --env-file .env \
@@ -310,7 +458,7 @@ docker compose \
 ```
 
 当前生产容器的 Compose working directory 和 config file 分别是
-`/volume1/docker/timeamber` 与根目录 `docker-compose.yml`；增量发布必须沿用这一项目，
+`/opt/docker/timeamber` 与根目录 `docker-compose.yml`；增量发布必须沿用这一项目，
 避免创建第二套同名容器。`deploy/supabase/docker-compose*.yml` 是模块化的新环境部署模板，
 不用于替换已运行的根 Compose 项目。
 
@@ -337,7 +485,7 @@ console，以及静态资源是否来自新构建。容器状态必须为 `healt
 首次部署时运行迁移：
 
 ```bash
-cd /volume1/docker/timeamber
+cd /opt/docker/timeamber
 
 docker compose \
   --env-file .env \
