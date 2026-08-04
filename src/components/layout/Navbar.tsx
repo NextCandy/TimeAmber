@@ -1,4 +1,4 @@
-import { CircleUserRound, MoreVertical, Rss, Search } from "lucide-react";
+import { CircleUserRound, MoreVertical, Search } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
@@ -34,7 +34,7 @@ function NavItem({
   const activeClassName = mobile ? "public-mobile-nav-item is-active" : "public-nav-item is-active";
   const href = safePublicHref(item.href);
   if (!href) return null;
-  if (/^https?:\/\//i.test(href) || item.openInNewTab || href === "/rss.xml") {
+  if (/^https?:\/\//i.test(href) || item.openInNewTab) {
     return (
       <a
         href={href}
@@ -119,21 +119,13 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
             <Search className="h-4 w-4" />
           </button>
           <a
-            href="/rss.xml"
-            aria-label="RSS 订阅"
-            title="RSS 订阅"
-            className="public-navbar__icon-button"
-          >
-            <Rss className="h-4 w-4" />
-          </a>
-          <Link
-            to="/admin"
+            href="/auth?redirect=%2Fadmin"
             aria-label="后台登录"
             title="后台登录"
             className="public-navbar__account"
           >
             <CircleUserRound className="h-4 w-4" />
-          </Link>
+          </a>
           <ThemeToggle initialPreference={initialThemePreference} />
         </div>
 
@@ -177,13 +169,13 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
                 >
                   <Search className="h-4 w-4" /> 搜索
                 </button>
-                <Link
-                  to="/admin"
+                <a
+                  href="/auth?redirect=%2Fadmin"
                   onClick={() => setMobileMenuOpen(false)}
                   className="public-mobile-nav-item"
                 >
                   <CircleUserRound className="h-4 w-4" /> 后台
-                </Link>
+                </a>
                 <div className="public-mobile-theme-row">
                   <span>主题</span>
                   <ThemeToggle initialPreference={initialThemePreference} />

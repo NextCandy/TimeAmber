@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Clock3, Rss } from "lucide-react";
+import { Clock3 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { BRAND_ICON } from "@/lib/brand";
@@ -66,14 +66,6 @@ export function Footer() {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          <a
-            href="/rss.xml"
-            aria-label="RSS 订阅"
-            className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-accent-amber"
-          >
-            <Rss className="h-3.5 w-3.5" />
-            RSS
-          </a>
           {config.footer.icpName &&
             (config.footer.icpUrl ? (
               <a

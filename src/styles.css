@@ -2208,12 +2208,16 @@ main:has(> .home-hero) + footer {
 /* ── 首页轻量落叶装饰 ──────────────────────────────────────────────
    参考站的氛围动效用纯 CSS 实现，固定数量、无随机数和 RAF，不参与交互。 */
 .public-background__leaves {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 1;
+  z-index: 35;
   overflow: hidden;
   contain: strict;
   pointer-events: none;
+}
+
+#latest-posts {
+  scroll-margin-top: 5.5rem;
 }
 
 .public-background__leaf {
@@ -2239,7 +2243,7 @@ main:has(> .home-hero) + footer {
 
   12%,
   86% {
-    opacity: 0.34;
+    opacity: 0.56;
   }
 
   100% {

@@ -87,29 +87,31 @@ export function PublicBackground({ config }: { config: PublicSiteConfig }) {
   );
 
   return (
-    <div className="public-background" aria-hidden="true" style={style}>
-      <div
-        className="public-background__base public-background__base--light"
-        style={{
-          backgroundImage:
-            hasImages && lightImage
-              ? cssUrl(lightImage)
-              : gradient(config.appearance.lightGradientColors),
-        }}
-      />
-      <div
-        className="public-background__base public-background__base--dark"
-        style={{
-          backgroundImage:
-            hasImages && darkImage
-              ? cssUrl(darkImage)
-              : gradient(config.appearance.darkGradientColors),
-        }}
-      />
-      <div className="public-background__overlay" />
+    <>
+      <div className="public-background" aria-hidden="true" style={style}>
+        <div
+          className="public-background__base public-background__base--light"
+          style={{
+            backgroundImage:
+              hasImages && lightImage
+                ? cssUrl(lightImage)
+                : gradient(config.appearance.lightGradientColors),
+          }}
+        />
+        <div
+          className="public-background__base public-background__base--dark"
+          style={{
+            backgroundImage:
+              hasImages && darkImage
+                ? cssUrl(darkImage)
+                : gradient(config.appearance.darkGradientColors),
+          }}
+        />
+        <div className="public-background__overlay" />
+        <div className="public-background__grain" />
+        <BackgroundStatus config={config} />
+      </div>
       <PublicLeafDecor />
-      <div className="public-background__grain" />
-      <BackgroundStatus config={config} />
-    </div>
+    </>
   );
 }

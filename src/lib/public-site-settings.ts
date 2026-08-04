@@ -298,15 +298,6 @@ export const DEFAULT_PUBLIC_SITE_CONFIG: PublicSiteConfig = {
         order: 4,
         openInNewTab: false,
       },
-      {
-        id: "rss",
-        label: "RSS",
-        href: "/rss.xml",
-        icon: "Rss",
-        enabled: true,
-        order: 5,
-        openInNewTab: false,
-      },
     ],
   },
   socialLinks: [
@@ -422,7 +413,9 @@ export function sortedModules(config: PublicSiteConfig): PublicSiteConfig["modul
 }
 
 export function sortedNavigation(config: PublicSiteConfig) {
-  return config.navigation.items.filter((item) => item.enabled).sort((a, b) => a.order - b.order);
+  return config.navigation.items
+    .filter((item) => item.enabled && item.href !== "/rss.xml")
+    .sort((a, b) => a.order - b.order);
 }
 
 export function sortedSocialLinks(config: PublicSiteConfig) {

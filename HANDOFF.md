@@ -103,6 +103,17 @@
 
 本轮备份：`/opt/docker/timeamber-deploy-backups/20260804-pagination-weather-pre`。本轮回滚标签：`timeamber-timeamber-app:rollback-before-20260804-pagination-weather`，指向已保留的稳定回滚镜像 `rollback-before-03021bf`；运行容器原内容层已被 Docker 回收，原容器引用已写入备份。
 
+## 2026-08-04 增量：前台体验修正
+
+在后续修正中：
+
+- 移除顶部导航、导航卡和页脚的 RSS 入口；旧的 `publicSite.navigation` 配置即使仍含 `/rss.xml` 也不会再渲染。XML 端点保留以避免旧书签或外部订阅突然失效。
+- 落叶层移出背景堆叠上下文，放到前台内容层上方（仍为 `pointer-events: none`）；桌面端可见，移动端和 reduced-motion 继续降级。
+- 首页分页状态变化后滚动到 `#latest-posts`，不再回到 Hero 顶部。
+- 顶部后台图标直接打开 `/auth?redirect=%2Fadmin`，登录页先立即渲染邮箱/密码表单，再后台检查已有会话；未登录用户可直接输入，已登录用户自动进入后台，不把账号密码写入前端。
+
+验证：线上首页 RSS 文本计数为 0；落叶节点 8 个，实际 `display:block`、动画 `public-leaf-fall`、可见透明度约 0.56；点击下一页后 URL 为 `?page=2`、文章区距视口顶部约 88px；后台图标直达登录页且邮箱/密码输入框各 1 个。生产只重启 `timeamber-app`，本轮备份为 `/opt/docker/timeamber-deploy-backups/20260804-rss-scroll-auth-leaves-pre`，回滚标签为 `timeamber-timeamber-app:rollback-before-20260804-rss-scroll-auth-leaves`。
+
 仍未完成的项目级检查：全量 lint 继续受仓库原有部署/Edge 文件的 Prettier/CRLF 报错影响；GitHub
 HTTPS remote 没有非交互凭据，因此未推送分支或创建 Pull Request。
 

@@ -1,14 +1,17 @@
-import { Archive, Compass, FolderTree, Info, LayoutGrid, Rss, Users } from "lucide-react";
+import {
+  Archive,
+  Compass,
+  FolderTree,
+  Info,
+  LayoutGrid,
+  Users,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 import { GlassPanel } from "@/components/public/GlassPanel";
-import {
-  safePublicHref,
-  sortedNavigation,
-  type PublicSiteConfig,
-} from "@/lib/public-site-settings";
+import { safePublicHref, sortedNavigation, type PublicSiteConfig } from "@/lib/public-site-settings";
 
-const ICONS = { Archive, Compass, FolderTree, Info, LayoutGrid, Rss, Users };
+const ICONS = { Archive, Compass, FolderTree, Info, LayoutGrid, Users };
 
 export function PublicNavigationGrid({ config }: { config: PublicSiteConfig }) {
   const items = sortedNavigation(config).filter((item) => item.href !== "/");
@@ -28,7 +31,7 @@ export function PublicNavigationGrid({ config }: { config: PublicSiteConfig }) {
               <span>{item.label}</span>
             </>
           );
-          if (item.openInNewTab || href === "/rss.xml" || /^https?:\/\//i.test(href)) {
+          if (item.openInNewTab || /^https?:\/\//i.test(href)) {
             return (
               <a
                 key={item.id}

@@ -1,6 +1,7 @@
 import { ArrowUpRight, ExternalLink } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef } from "react";
 
 import { FriendsEntry } from "@/components/public/FriendsEntry";
 import { GlassPanel } from "@/components/public/GlassPanel";
@@ -82,6 +83,20 @@ function LatestPosts({ config, home }: { config: PublicSiteConfig; home: HomeDat
   const posts = home.latest;
   const start = (home.page - 1) * home.pageSize + 1;
   const end = Math.min(start + posts.length - 1, home.totalPosts);
+  const previousPage = useRef(home.page);
+
+  useEffect(() => {
+    if (previousPage.current === home.page) return;
+    previousPage.current = home.page;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("latest-posts")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [home.page]);
+
   return (
     <>
       <div className="aibrium-feed-heading">
@@ -202,7 +217,11 @@ export function HomeDashboard({ home }: { home: HomeData }) {
           )}
         </aside>
 
-        <section className="aibrium-column aibrium-column--center" aria-label="最新文章">
+        <section
+          id="latest-posts"
+          className="aibrium-column aibrium-column--center"
+          aria-label="最新文章"
+        >
           {hasModule("latestPosts") && <LatestPosts config={config} home={home} />}
         </section>
 
