@@ -127,6 +127,19 @@
 仍未完成的项目级检查：全量 lint 继续受仓库原有部署/Edge 文件的 Prettier/CRLF 报错影响；GitHub
 HTTPS remote 没有非交互凭据，因此未推送分支或创建 Pull Request。
 
+## 2026-08-05 增量：右栏音乐与页脚布局
+
+在密度校准后继续补齐示例站右栏与页脚的结构：
+
+- 右栏新增 `Cloud Music` 风格音乐卡片，配置位于 `/admin/settings` 的“右栏音乐”区域。
+- 后台可新增、排序、启用/删除曲目，编辑曲名、歌手、副标题、音频地址和封面，并选择默认曲目；音频地址支持媒体库路径或安全的 http(s) 地址。
+- 前台播放器支持播放/暂停、上一首/下一首、进度条和曲目计数；空歌单显示明确的配置提示，不向浏览器注入账号或第三方播放凭据。
+- 页脚中间保留时间、版权和备案信息；TanStack Start / Supabase 技术标签移到页脚右侧，移除原右侧信息栏的布局占位。
+
+最终验证：右栏音乐卡片高度约 210px；加入音乐卡片后右栏底部与文章中心列底部差约 11px，页面总高度保持约 1976px；首页 5 篇文章卡片高度为 146/203/146/146/146px；分页点击后 `?page=2` 仍定位到文章区顶部约 88px（`scrollY` 约 620）。后台设置区已实际加载并显示曲目编辑、媒体库入口和默认曲目选择。
+
+本轮 `npm test` 37/37、`npm run build`、Docker 构建均通过；生产 `timeamber-app` healthy，本机与公网均 HTTP 200。部署前备份：`/opt/docker/timeamber-deploy-backups/20260805-music-footer-pre`，回滚标签：`timeamber-timeamber-app:rollback-before-20260805-music-footer`。
+
 ## 部署与回滚
 
 本次已完成生产部署。部署前保存了旧容器/镜像检查信息、Compose 快照，并保留镜像标签

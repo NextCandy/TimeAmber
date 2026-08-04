@@ -1951,6 +1951,186 @@ main:has(> .home-hero) + footer {
   margin-top: 1rem;
 }
 
+/* ── 右栏音乐播放器 ─────────────────────────────────────────────── */
+.aibrium-music-card {
+  padding: 1.15rem 1.05rem 0.95rem;
+}
+
+.aibrium-music-card .aibrium-card-heading {
+  margin-bottom: 0.9rem;
+}
+
+.aibrium-music-card__heading-icon {
+  width: 1rem;
+  height: 1rem;
+  margin-left: auto;
+  color: var(--accent-amber-strong);
+}
+
+.aibrium-music-card__track {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.aibrium-music-card__cover {
+  width: 4.45rem;
+  height: 4.45rem;
+  flex: 0 0 auto;
+  border-radius: 1rem;
+  object-fit: cover;
+  box-shadow: 0 10px 22px rgba(90, 61, 41, 0.16);
+}
+
+.aibrium-music-card__track-copy {
+  min-width: 0;
+}
+
+.aibrium-music-card__track-copy h3,
+.aibrium-music-card__track-copy p,
+.aibrium-music-card__track-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aibrium-music-card__track-copy h3 {
+  color: var(--aibrium-ink);
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.aibrium-music-card__track-copy p {
+  margin-top: 0.25rem;
+  color: var(--aibrium-muted);
+  font-size: 0.75rem;
+}
+
+.aibrium-music-card__track-copy small {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--aibrium-muted);
+  font-size: 0.62rem;
+  opacity: 0.82;
+}
+
+.aibrium-music-card__progress {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1rem;
+  color: var(--aibrium-muted);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.aibrium-music-card__progress input {
+  width: 100%;
+  height: 0.25rem;
+  accent-color: var(--accent-amber-strong);
+  cursor: pointer;
+}
+
+.aibrium-music-card__progress input:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.aibrium-music-card__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.7rem;
+}
+
+.aibrium-music-card__controls button {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--aibrium-muted);
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.aibrium-music-card__controls button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: rgba(211, 157, 71, 0.1);
+  color: var(--accent-amber-strong);
+}
+
+.aibrium-music-card__controls button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.aibrium-music-card__controls button svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.aibrium-music-card__controls .aibrium-music-card__play {
+  width: 2.45rem;
+  height: 2.45rem;
+  background: var(--accent-amber-strong);
+  color: #fffaf2;
+  box-shadow: 0 8px 18px rgba(169, 110, 29, 0.22);
+}
+
+.aibrium-music-card__controls .aibrium-music-card__play:hover:not(:disabled) {
+  background: #b97b29;
+  color: #fffaf2;
+}
+
+.aibrium-music-card__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+  color: var(--aibrium-muted);
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.aibrium-music-card__count svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.aibrium-music-card__empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  min-height: 8.5rem;
+  align-content: center;
+  color: var(--aibrium-muted);
+  text-align: center;
+}
+
+.aibrium-music-card__empty svg {
+  width: 1.65rem;
+  height: 1.65rem;
+  color: var(--accent-amber-strong);
+}
+
+.aibrium-music-card__empty p {
+  font-size: 0.75rem;
+}
+
+.aibrium-music-card__empty small {
+  max-width: 14rem;
+  font-size: 0.62rem;
+  line-height: 1.5;
+}
+
 .public-site-shell .public-footer {
   border-top-color: var(--aibrium-line);
   background: color-mix(in srgb, var(--aibrium-page) 82%, transparent);
@@ -2236,8 +2416,7 @@ main:has(> .home-hero) + footer {
 
   100% {
     opacity: 0;
-    transform: translate3d(var(--leaf-drift), 110vh, 0)
-      rotate(calc(var(--leaf-rotation) + 360deg));
+    transform: translate3d(var(--leaf-drift), 110vh, 0) rotate(calc(var(--leaf-rotation) + 360deg));
   }
 }
 
@@ -2516,8 +2695,7 @@ main:has(> .home-hero) + footer {
   --admin-line: rgba(255, 237, 216, 0.14);
   background:
     radial-gradient(circle at 9% 5%, rgba(125, 85, 50, 0.17), transparent 24rem),
-    radial-gradient(circle at 92% 86%, rgba(82, 53, 32, 0.24), transparent 28rem),
-    var(--admin-page);
+    radial-gradient(circle at 92% 86%, rgba(82, 53, 32, 0.24), transparent 28rem), var(--admin-page);
 }
 
 .admin-shell [class~="bg-background"] {

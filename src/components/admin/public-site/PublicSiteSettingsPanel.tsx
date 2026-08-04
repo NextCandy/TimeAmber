@@ -3,6 +3,7 @@ import {
   ArrowUp,
   ExternalLink,
   ImagePlus,
+  Music2,
   Plus,
   RotateCcw,
   Save,
@@ -79,14 +80,16 @@ function MediaField({
   onChange,
   media,
   help,
+  idSuffix,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   media: Array<{ id: string; name: string; url: string }>;
   help?: string;
+  idSuffix?: string;
 }) {
-  const listId = `media-${label.replace(/\W/g, "-")}`;
+  const listId = `media-${label.replace(/\W/g, "-")}-${idSuffix ?? "field"}`;
   return (
     <Field label={label} help={help}>
       <div className="flex gap-2">
@@ -189,6 +192,19 @@ export function PublicSiteSettingsPanel() {
     mark((current) => ({ ...current, footer: { ...current.footer, ...patch } }));
   const setAbout = (patch: Partial<PublicSiteConfig["about"]>) =>
     mark((current) => ({ ...current, about: { ...current.about, ...patch } }));
+  const updateMusicTrack = (
+    id: string,
+    patch: Partial<PublicSiteConfig["music"]["playlist"][number]>,
+  ) =>
+    mark((current) => ({
+      ...current,
+      music: {
+        ...current.music,
+        playlist: current.music.playlist.map((track) =>
+          track.id === id ? { ...track, ...patch } : track,
+        ),
+      },
+    }));
 
   const sortedNav = useMemo(
     () => [...draft.navigation.items].sort((a, b) => a.order - b.order),
@@ -201,6 +217,10 @@ export function PublicSiteSettingsPanel() {
   const sortedModules = useMemo(
     () => [...draft.modules].sort((a, b) => a.order - b.order),
     [draft.modules],
+  );
+  const sortedMusic = useMemo(
+    () => [...draft.music.playlist].sort((a, b) => a.order - b.order),
+    [draft.music.playlist],
   );
 
   async function save() {
@@ -912,6 +932,213 @@ export function PublicSiteSettingsPanel() {
           >
             <Plus className="mr-1.5 h-4 w-4" />
             新增链接
+          </Button>
+        </div>
+      </Section>
+
+      <Section
+        title="右栏音乐"
+        description="播放器仿照示例站的紧凑卡片。浏览器会阻止未经用户操作的自动播放，请在前台点击播放；音频可使用媒体库地址或公开的 http(s) 地址。"
+      >
+        <div className="grid gap-5 md:grid-cols-3">
+          <label className="flex items-center gap-3 text-sm">
+            <Switch
+              checked={draft.music.enabled}
+              onCheckedChange={(value) =>
+                mark((current) => ({ ...current, music: { ...current.music, enabled: value } }))
+              }
+            />
+            显示音乐模块
+          </label>
+          <Field label="播放器标题">
+            <Input
+              value={draft.music.providerLabel}
+              onChange={(e) =>
+                mark((current) => ({
+                  ...current,
+                  music: { ...current.music, providerLabel: e.target.value },
+                }))
+              }
+              className={fieldClass}
+              maxLength={40}
+            />
+          </Field>
+          <Field label="默认曲目">
+            <select
+              value={draft.music.activeTrackId}
+              onChange={(e) =>
+                mark((current) => ({
+                  ...current,
+                  music: { ...current.music, activeTrackId: e.target.value },
+                }))
+              }
+              className={fieldClass}
+            >
+              <option value="">第一首已启用曲目</option>
+              {sortedMusic.map((track) => (
+                <option key={track.id} value={track.id}>
+                  {track.title}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          {sortedMusic.map((track, index) => (
+            <div key={track.id} className="rounded-xl border border-border/60 bg-background/20 p-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field label="曲目名称">
+                  <Input
+                    value={track.title}
+                    onChange={(e) => updateMusicTrack(track.id, { title: e.target.value })}
+                    className={fieldClass}
+                    maxLength={120}
+                  />
+                </Field>
+                <Field label="歌手 / 作者">
+                  <Input
+                    value={track.artist}
+                    onChange={(e) => updateMusicTrack(track.id, { artist: e.target.value })}
+                    className={fieldClass}
+                    maxLength={80}
+                  />
+                </Field>
+                <Field label="副标题 / 专辑">
+                  <Input
+                    value={track.subtitle}
+                    onChange={(e) => updateMusicTrack(track.id, { subtitle: e.target.value })}
+                    className={fieldClass}
+                    maxLength={160}
+                  />
+                </Field>
+                <MediaField
+                  label="音频 URL"
+                  value={track.url}
+                  onChange={(value) => updateMusicTrack(track.id, { url: value })}
+                  media={media}
+                  idSuffix={track.id}
+                  help="支持媒体库地址或公开 http(s) 音频地址。"
+                />
+                <MediaField
+                  label="封面"
+                  value={track.coverUrl}
+                  onChange={(value) => updateMusicTrack(track.id, { coverUrl: value })}
+                  media={media}
+                  idSuffix={track.id}
+                  help="留空使用站点默认封面。"
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Switch
+                    checked={track.enabled}
+                    onCheckedChange={(value) => updateMusicTrack(track.id, { enabled: value })}
+                  />
+                  启用曲目
+                </label>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() =>
+                      mark((current) => ({
+                        ...current,
+                        music: {
+                          ...current.music,
+                          playlist: moveItem(
+                            [...current.music.playlist].sort((a, b) => a.order - b.order),
+                            index,
+                            -1,
+                          ),
+                        },
+                      }))
+                    }
+                    disabled={index === 0}
+                    aria-label="曲目上移"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() =>
+                      mark((current) => ({
+                        ...current,
+                        music: {
+                          ...current.music,
+                          playlist: moveItem(
+                            [...current.music.playlist].sort((a, b) => a.order - b.order),
+                            index,
+                            1,
+                          ),
+                        },
+                      }))
+                    }
+                    disabled={index === sortedMusic.length - 1}
+                    aria-label="曲目下移"
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() =>
+                      mark((current) => {
+                        const playlist = current.music.playlist.filter(
+                          (entry) => entry.id !== track.id,
+                        );
+                        return {
+                          ...current,
+                          music: {
+                            ...current.music,
+                            playlist,
+                            activeTrackId:
+                              current.music.activeTrackId === track.id
+                                ? (playlist[0]?.id ?? "")
+                                : current.music.activeTrackId,
+                          },
+                        };
+                      })
+                    }
+                    aria-label="删除曲目"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() =>
+              mark((current) => ({
+                ...current,
+                music: {
+                  ...current.music,
+                  playlist: [
+                    ...current.music.playlist,
+                    {
+                      id: `music-${Date.now()}`,
+                      title: "新曲目",
+                      artist: "",
+                      subtitle: "",
+                      url: "",
+                      coverUrl: "",
+                      enabled: true,
+                      order: current.music.playlist.length,
+                    },
+                  ],
+                },
+              }))
+            }
+          >
+            <Music2 className="mr-1.5 h-4 w-4" />
+            新增曲目
           </Button>
         </div>
       </Section>

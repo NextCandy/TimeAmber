@@ -38,7 +38,7 @@ export function Footer() {
           />
           <span className="font-brand text-xl leading-none">{config.identity.siteName}</span>
         </Link>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           {config.footer.customText && <span>{config.footer.customText}</span>}
           {config.footer.showCurrentTime && now && (
             <span className="inline-flex items-center gap-1">
@@ -59,27 +59,30 @@ export function Footer() {
               天
             </span>
           )}
-          {badges.map((badge) => (
-            <span key={badge.id} className="rounded-full border border-border/60 px-2 py-0.5">
-              {badge.name}
-            </span>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-4">
+          <span>{copyright}</span>
           {config.footer.icpName &&
             (config.footer.icpUrl ? (
               <a
                 href={config.footer.icpUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-accent-amber"
+                className="hover:text-accent-amber"
               >
                 {config.footer.icpName}
               </a>
             ) : (
-              <span className="text-xs text-muted-foreground">{config.footer.icpName}</span>
+              <span>{config.footer.icpName}</span>
             ))}
-          <span className="text-xs text-muted-foreground">{copyright}</span>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {badges.map((badge) => (
+            <span
+              key={badge.id}
+              className="rounded-full border border-border/60 px-2 py-0.5 text-xs text-muted-foreground"
+            >
+              {badge.name}
+            </span>
+          ))}
         </div>
       </div>
     </footer>

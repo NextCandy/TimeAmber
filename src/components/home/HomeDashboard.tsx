@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { FriendsEntry } from "@/components/public/FriendsEntry";
 import { GlassPanel } from "@/components/public/GlassPanel";
 import { SiteClock } from "@/components/public/AibriumWidgets";
+import { MusicPlayer } from "@/components/public/MusicPlayer";
 import { ProfileOverview } from "@/components/public/ProfileOverview";
 import { PublishCalendar } from "@/components/public/PublishCalendar";
 import { PublicNavigationGrid } from "@/components/public/PublicNavigationGrid";
@@ -80,6 +81,15 @@ function LatestPosts({ config, home }: { config: PublicSiteConfig; home: HomeDat
   const end = Math.min(start + posts.length - 1, home.totalPosts);
   const previousPage = useRef(home.page);
 
+  const scrollToLatestPosts = () => {
+    window.setTimeout(() => {
+      document.getElementById("latest-posts")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  };
+
   useEffect(() => {
     if (previousPage.current === home.page) return;
     previousPage.current = home.page;
@@ -126,6 +136,8 @@ function LatestPosts({ config, home }: { config: PublicSiteConfig; home: HomeDat
             <Link
               to="/"
               search={{ page: home.page > 2 ? home.page - 1 : undefined }}
+              resetScroll={false}
+              onClick={scrollToLatestPosts}
               className="aibrium-pagination__button"
             >
               上一页
@@ -142,6 +154,8 @@ function LatestPosts({ config, home }: { config: PublicSiteConfig; home: HomeDat
             <Link
               to="/"
               search={{ page: home.page + 1 }}
+              resetScroll={false}
+              onClick={scrollToLatestPosts}
               className="aibrium-pagination__button"
             >
               下一页
@@ -221,6 +235,11 @@ export function HomeDashboard({ home }: { home: HomeData }) {
         </section>
 
         <aside className="aibrium-column aibrium-column--right">
+          {config.music.enabled && (
+            <HomeModule>
+              <MusicPlayer music={config.music} />
+            </HomeModule>
+          )}
           <HomeModule>
             <WeatherCard />
           </HomeModule>

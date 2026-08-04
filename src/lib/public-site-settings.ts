@@ -51,6 +51,30 @@ const socialLinkSchema = z.object({
   openInNewTab: z.boolean().default(true),
 });
 
+const audioSource = z
+  .string()
+  .trim()
+  .min(1, "音乐地址不能为空")
+  .max(1200)
+  .refine(
+    (value) =>
+      ![...value].some((character) => character.charCodeAt(0) < 32) &&
+      !value.includes("\\") &&
+      ((value.startsWith("/") && !value.startsWith("//")) || /^https?:\/\//i.test(value)),
+    "只允许站内路径或 http(s) 音频地址",
+  );
+
+const musicTrackSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  title: z.string().trim().min(1).max(120),
+  artist: z.string().trim().max(80),
+  subtitle: z.string().trim().max(160),
+  url: audioSource,
+  coverUrl: imageSource,
+  enabled: z.boolean().default(true),
+  order: z.number().int().min(0).max(100).default(0),
+});
+
 /**
  * Re-check user-managed URLs at render time. Settings are validated on save,
  * but older or externally restored settings can still reach the public UI.
@@ -151,6 +175,12 @@ export const publicSiteSettingsSchema = z.object({
       }),
   }),
   socialLinks: z.array(socialLinkSchema).max(12),
+  music: z.object({
+    enabled: z.boolean(),
+    providerLabel: z.string().trim().min(1).max(40),
+    activeTrackId: z.string().trim().max(80),
+    playlist: z.array(musicTrackSchema).max(30),
+  }),
   footer: z.object({
     buildDate: z
       .string()
@@ -324,6 +354,12 @@ export const DEFAULT_PUBLIC_SITE_CONFIG: PublicSiteConfig = {
       openInNewTab: false,
     },
   ],
+  music: {
+    enabled: true,
+    providerLabel: "Cloud Music",
+    activeTrackId: "",
+    playlist: [],
+  },
   footer: {
     buildDate: "",
     copyrightText: "",
