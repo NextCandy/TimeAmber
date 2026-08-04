@@ -88,6 +88,21 @@
 - 管理员 E2E：使用目标管理员账号登录成功，打开“公开站点”，保存接口 HTTP 200，提示保存成功，刷新后配置指纹一致
 - 部署前备份：`/opt/docker/timeamber-deploy-backups/20260804-03021bf-pre`
 
+## 2026-08-04 增量：IP 天气、落叶与首页分页
+
+在 `03ccaa7` 增加并部署了本轮首页体验：
+
+- 移除首页热门更新/热门分类/热门标签模块；保留真实站点基础统计，文章内容与数据不变。
+- 右栏增加 IP 估算天气卡片：Cloudflare 地理请求头优先，缺失时服务端回退 `ipwho.is`，天气由服务端请求 Open-Meteo；浏览器只访问同源 Server Function，不采集 GPS、不返回原始 IP。
+- 增加 8 个固定数量的 CSS 落叶，移动端隐藏，`prefers-reduced-motion` 下停止动画；没有随机数、RAF 或交互拦截。
+- 首页文章改为 SSR `?page=N` 分页，每页 8 篇，稳定排序、越界归一化和第 1 页 canonical；分页后首页显示对应的第 9–16 篇等真实文章。
+- 后台根容器已有 `admin-shell`，新增暖色表面、边框、输入和侧栏变量，保持后台导航密度，不把前台大卡片布局扩散到后台。
+- 日历月份请求增加请求序号保护，旧响应不会覆盖新月份；用户可管理 URL 额外拒绝反斜杠路径绕过。
+
+验证：`npx tsc --noEmit` 通过；`npm test` 37/37 通过；`npm run build` 与 `docker compose build timeamber-app` 通过。生产只重建并重启 `timeamber-app`，其端口仍为 `49287 -> 3000`，Worker 与 Cloudflare Tunnel 容器 ID 未变化；本机与公网 `/`、`/?page=2`、`/archive`、`/admin` 均返回 200，未登录后台按预期跳转登录页。Chrome/Playwright 验收确认桌面 8 篇、天气就绪、8 个落叶、分页可跳转，390px 无横向溢出，减弱动效下落叶动画为 `none`，浏览器未直连天气供应商或 `aibrium.cn`。
+
+本轮备份：`/opt/docker/timeamber-deploy-backups/20260804-pagination-weather-pre`。本轮回滚标签：`timeamber-timeamber-app:rollback-before-20260804-pagination-weather`，指向已保留的稳定回滚镜像 `rollback-before-03021bf`；运行容器原内容层已被 Docker 回收，原容器引用已写入备份。
+
 仍未完成的项目级检查：全量 lint 继续受仓库原有部署/Edge 文件的 Prettier/CRLF 报错影响；GitHub
 HTTPS remote 没有非交互凭据，因此未推送分支或创建 Pull Request。
 
