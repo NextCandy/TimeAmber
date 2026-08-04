@@ -13,6 +13,7 @@ import type {
 } from "@/lib/admin-store";
 import type { Post } from "@/lib/sample-posts";
 import { renderMarkdown } from "@/lib/markdown.server";
+import { normalizePublicSiteConfig } from "@/lib/public-site-settings";
 
 let database: ReturnType<typeof postgres> | undefined;
 
@@ -199,6 +200,7 @@ const PUBLIC_SETTING_KEYS = [
   "contactDouyin",
   "contactNote",
   "askPublicEnabled",
+  "publicSite",
 ] as const satisfies ReadonlyArray<keyof SiteSettings>;
 
 function pickPublicSettings(value: unknown): PublicSiteSettings {
@@ -206,6 +208,10 @@ function pickPublicSettings(value: unknown): PublicSiteSettings {
   const result: PublicSiteSettings = {};
   for (const key of PUBLIC_SETTING_KEYS) {
     const item = source[key];
+    if (key === "publicSite") {
+      result.publicSite = normalizePublicSiteConfig(source);
+      continue;
+    }
     if (typeof item === "string" || typeof item === "boolean") {
       result[key] = item as never;
     }
@@ -233,13 +239,14 @@ async function loadChrome(admin: boolean): Promise<Partial<AdminState>> {
     readConfig("site", {}),
   ]);
   const mappedFriends = mapFriends(friends as Array<Record<string, unknown>>);
+  const publicSite = normalizePublicSiteConfig(settings);
 
   if (!admin) {
     // Provider 会把这份白名单合并到本地默认 settings；此处只为复用 AdminState
     // 的现有 server-function 类型做边界断言，运行时不会把未列入白名单的字段带出。
     return {
       friends: mappedFriends,
-      settings: pickPublicSettings(settings) as AdminState["settings"],
+      settings: { ...pickPublicSettings(settings), publicSite } as AdminState["settings"],
     };
   }
 
@@ -252,7 +259,7 @@ async function loadChrome(admin: boolean): Promise<Partial<AdminState>> {
     categories: categories.map((row) => ({ name: String(row.name) })),
     tags: tags.map((row) => ({ name: String(row.name) })),
     friends: mappedFriends,
-    settings: settings as AdminState["settings"],
+    settings: { ...(settings as AdminState["settings"]), publicSite },
     schedule: schedule as AdminState["schedule"],
   };
 }
@@ -597,7 +604,10 @@ async function cachedAdminPostCount(
   return total;
 }
 
-async function mapAdminPostRows(sql: ReturnType<typeof postgres>, rows: Array<Record<string, unknown>>) {
+async function mapAdminPostRows(
+  sql: ReturnType<typeof postgres>,
+  rows: Array<Record<string, unknown>>,
+) {
   const ids = rows.map((row) => Number(row.id));
   const tagRows = ids.length
     ? await sql`
@@ -620,13 +630,17 @@ async function mapAdminPostRows(sql: ReturnType<typeof postgres>, rows: Array<Re
 export const loadAdminPostsPage = createServerFn({ method: "GET" })
   .validator((value: z.infer<typeof adminPostsPageInput>) => adminPostsPageInput.parse(value))
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context, data }): Promise<{ posts: Post[]; total: number; hasMore: boolean; categories: string[] }> => {
-    await assertAdmin(context.userId);
-    const sql = db();
-    const filters = normalizeAdminPostFilters(data);
-    const where = adminPostWhere(sql, filters);
-    const [rows, total, categories] = await Promise.all([
-      sql`
+  .handler(
+    async ({
+      context,
+      data,
+    }): Promise<{ posts: Post[]; total: number; hasMore: boolean; categories: string[] }> => {
+      await assertAdmin(context.userId);
+      const sql = db();
+      const filters = normalizeAdminPostFilters(data);
+      const where = adminPostWhere(sql, filters);
+      const [rows, total, categories] = await Promise.all([
+        sql`
         select
           p.id, p.slug, p.title, p.excerpt, p.category, p.publish_at, p.created_at,
           p.reading_minutes, p.published, p.cover_image, p.post_type,
@@ -636,16 +650,17 @@ export const loadAdminPostsPage = createServerFn({ method: "GET" })
         order by ${adminPostOrder(sql, filters.sort)}
         limit ${data.limit} offset ${data.offset}
       `,
-      cachedAdminPostCount(sql, filters),
-      sql`select name from public.categories order by name`,
-    ]);
-    return {
-      posts: await mapAdminPostRows(sql, rows),
-      total,
-      hasMore: data.offset + rows.length < total,
-      categories: categories.map((row) => String(row.name)),
-    };
-  });
+        cachedAdminPostCount(sql, filters),
+        sql`select name from public.categories order by name`,
+      ]);
+      return {
+        posts: await mapAdminPostRows(sql, rows),
+        total,
+        hasMore: data.offset + rows.length < total,
+        categories: categories.map((row) => String(row.name)),
+      };
+    },
+  );
 
 /** 选择「全部匹配项」时只取稳定 slug，不把正文或完整文章重新拉到浏览器。 */
 export const loadAdminPostSlugs = createServerFn({ method: "GET" })
@@ -959,7 +974,11 @@ export const saveFriends = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-const siteSettingsInput = z.object({ settings: z.any() });
+const siteSettingsInput = z.object({
+  settings: z.record(z.unknown()).refine((value) => JSON.stringify(value).length <= 200_000, {
+    message: "站点设置过大",
+  }),
+});
 
 /**
  * 只写站点设置。
@@ -973,9 +992,20 @@ export const saveSiteSettings = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const sql = db();
+    const [existing] = await sql`select value from public.app_config where key = 'site'`;
+    const current =
+      existing?.value && typeof existing.value === "object" && !Array.isArray(existing.value)
+        ? (existing.value as Record<string, unknown>)
+        : {};
+    const next = {
+      ...current,
+      ...data.settings,
+      // 旧设置页也必须保留结构化公开配置，否则一次保存会把它覆盖掉。
+      publicSite: normalizePublicSiteConfig({ ...current, ...data.settings }),
+    };
     await sql`
       insert into public.app_config (key, value, public_read, updated_at)
-      values ('site', ${sql.json(data.settings)}, true, now())
+      values ('site', ${sql.json(next)}, true, now())
       on conflict (key) do update
         set value = excluded.value, public_read = true, updated_at = now()
     `;
@@ -990,13 +1020,17 @@ export const persistAdminState = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const state = data.state as AdminState;
+    const siteSettings = {
+      ...state.settings,
+      publicSite: normalizePublicSiteConfig(state.settings),
+    };
     const sql = db();
     await sql.begin(async (tx) => {
       await tx`select pg_advisory_xact_lock(hashtext('timeamber_content_write'))`;
 
       await tx`
         insert into public.app_config (key, value, public_read, updated_at)
-        values ('site', ${tx.json(state.settings)}, true, now())
+        values ('site', ${tx.json(siteSettings)}, true, now())
         on conflict (key) do update
           set value = excluded.value, public_read = true, updated_at = now()
       `;

@@ -986,3 +986,246 @@ main:has(> .home-hero) + footer {
     display: none;
   }
 }
+
+/* ── 公开前台 Glass Dashboard ───────────────────────────────────────
+   只作用于 public-site-shell；后台仍使用高密度产品界面，避免全站卡片化。 */
+:root {
+  --glass-bg: color-mix(in oklch, var(--card) 78%, transparent);
+  --glass-bg-strong: color-mix(in oklch, var(--card) 90%, transparent);
+  --glass-border: color-mix(in oklch, var(--foreground) 15%, transparent);
+  --glass-shadow: 0 24px 70px -48px color-mix(in oklch, var(--foreground) 65%, transparent);
+  --glass-blur: 18px;
+  --glass-card-opacity: 0.78;
+  --page-overlay-opacity: 0.24;
+}
+
+.public-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.public-background__base,
+.public-background__overlay,
+.public-background__grain {
+  position: absolute;
+  inset: 0;
+}
+
+.public-background__base {
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transition:
+    opacity 700ms var(--ease-out),
+    filter 700ms var(--ease-out);
+}
+
+.public-background__base--dark {
+  display: none;
+}
+
+.dark .public-background__base--light {
+  display: none;
+}
+
+.dark .public-background__base--dark {
+  display: block;
+}
+
+.public-background__overlay {
+  background: color-mix(
+    in oklch,
+    var(--background) calc(var(--page-overlay-opacity) * 100%),
+    transparent
+  );
+  backdrop-filter: saturate(0.92);
+}
+
+.public-background__grain {
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode: overlay;
+}
+
+.public-background__status {
+  position: absolute;
+  inset: 10% 4% 12%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  justify-items: center;
+  gap: 15vh 12vw;
+  overflow: hidden;
+  opacity: 0.28;
+  transform: rotate(-6deg);
+  color: color-mix(in oklch, var(--foreground) 38%, transparent);
+  font-family: var(--font-display);
+  font-size: clamp(0.65rem, 1.1vw, 0.9rem);
+  letter-spacing: 0.08em;
+}
+
+.public-background__status span {
+  animation: public-status-drift 18s ease-in-out infinite alternate;
+  animation-delay: calc(var(--status-index) * -2.5s);
+  white-space: nowrap;
+}
+
+.public-background__status--normal span {
+  animation-duration: 12s;
+}
+
+@keyframes public-status-drift {
+  from {
+    opacity: 0.2;
+    transform: translate3d(-1.5vw, 0, 0);
+  }
+  to {
+    opacity: 0.8;
+    transform: translate3d(1.5vw, -1vh, 0);
+  }
+}
+
+.public-site-shell {
+  min-height: 100dvh;
+}
+
+.public-page {
+  border: 1px solid var(--glass-border);
+  border-radius: 2rem;
+  background: color-mix(in oklch, var(--card) 54%, transparent);
+  box-shadow: 0 28px 80px -58px color-mix(in oklch, var(--foreground) 58%, transparent);
+  backdrop-filter: blur(min(var(--glass-blur), 14px)) saturate(1.04);
+}
+
+.glass-panel {
+  border: 1px solid var(--glass-border);
+  background: color-mix(in oklch, var(--card) calc(var(--glass-card-opacity) * 100%), transparent);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.08);
+}
+
+.public-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.public-module {
+  min-width: 0;
+}
+
+.public-module--wide {
+  grid-column: 1 / -1;
+}
+
+.public-welcome {
+  min-height: min(52vh, 34rem);
+}
+
+.public-welcome__mark {
+  position: relative;
+}
+
+.public-welcome__mark::before {
+  content: "";
+  position: absolute;
+  inset: 10% -20% -10%;
+  z-index: -1;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--accent-amber) 18%, transparent);
+  filter: blur(48px);
+}
+
+.public-search {
+  border-color: color-mix(in oklch, var(--foreground) 18%, transparent);
+  background: color-mix(in oklch, var(--card) 62%, transparent);
+  box-shadow: 0 18px 45px -32px color-mix(in oklch, var(--foreground) 55%, transparent);
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.8));
+}
+
+.public-search:hover {
+  border-color: color-mix(in oklch, var(--accent-amber) 55%, transparent);
+  background: color-mix(in oklch, var(--card) 78%, transparent);
+}
+
+.public-profile dl dt {
+  font-size: 0.7rem;
+  color: var(--color-muted-foreground);
+}
+
+.public-profile dl dd {
+  margin-top: 0.2rem;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.icon-button {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.65rem;
+  color: var(--color-muted-foreground);
+  transition:
+    color var(--duration-press) var(--ease-out),
+    background-color var(--duration-press) var(--ease-out);
+}
+
+.icon-button:hover {
+  background: var(--color-accent-amber-soft);
+  color: var(--color-accent-amber);
+}
+
+@media (max-width: 767px) {
+  .public-dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .public-module--wide {
+    grid-column: auto;
+  }
+
+  .public-welcome {
+    min-height: auto;
+    padding-top: 3.25rem;
+    padding-bottom: 2.75rem;
+  }
+
+  .public-page {
+    width: calc(100% - 1rem);
+    border-radius: 1.4rem;
+  }
+
+  .public-background__status {
+    inset: 18% 4% 14%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12vh 8vw;
+    opacity: 0.16;
+    font-size: 0.66rem;
+  }
+
+  .glass-panel {
+    backdrop-filter: blur(min(var(--glass-blur), 10px)) saturate(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-background__base,
+  .public-background__status span,
+  .public-welcome__mark::before {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .public-background__status {
+    opacity: 0.1;
+  }
+}

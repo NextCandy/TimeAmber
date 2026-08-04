@@ -48,7 +48,7 @@ const NAV = [
   { to: "/admin/notifications", label: "通知设置", icon: Bell, exact: false },
   { to: "/admin/diagnostics", label: "性能与日志", icon: Activity, exact: false },
   { to: "/admin/github", label: "GitHub 同步", icon: Github, exact: false },
-  { to: "/admin/settings", label: "站点设置", icon: Settings, exact: false },
+  { to: "/admin/settings", label: "公开站点", icon: Settings, exact: false },
 ] as const;
 
 export function AdminSidebar() {
@@ -70,7 +70,13 @@ export function AdminSidebar() {
       <SidebarHeader className="border-b border-border/60 bg-linear-to-br from-primary/5 via-transparent to-transparent">
         <Link to="/admin" className="flex items-center gap-2.5 px-2 py-2">
           <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center">
-            <img src={BRAND_ICON} alt="" width={36} height={36} className="h-full w-full object-contain" />
+            <img
+              src={BRAND_ICON}
+              alt=""
+              width={36}
+              height={36}
+              className="h-full w-full object-contain"
+            />
           </span>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="font-display text-sm font-semibold">TimeAmber</span>

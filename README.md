@@ -28,13 +28,13 @@ TanStack Start 构建前后台，数据、认证和媒体由自托管 Supabase �
 TimeAmber 不是只展示文章的静态主题，而是一套围绕「写作、剪藏、归档、检索和维护」组织起来的
 个人内容系统：
 
-| 使用场景 | 入口 | 说明 |
-| --- | --- | --- |
-| 公开阅读 | `/`、`/posts/:slug` | 服务端渲染文章、分类、标签、归档和友链，支持亮暗主题与阅读辅助 |
-| 内容管理 | `/admin` | 管理文章、分类、标签、媒体、设置、同步、备份、审计和诊断 |
-| 内容导入 | `timeamber-worker` | Notion 增量同步、VS.DO/web-archive 导入、历史索引补全和备份 |
-| 站内问答 | `/admin/ask`、可选 `/ask` | PostgreSQL 检索私有内容，再调用服务端配置的 OpenAI-compatible Provider |
-| 自托管运行 | Docker Compose + Supabase | 数据、认证、Storage、数据库和应用均可部署在 NAS 或单机服务器 |
+| 使用场景   | 入口                      | 说明                                                                   |
+| ---------- | ------------------------- | ---------------------------------------------------------------------- |
+| 公开阅读   | `/`、`/posts/:slug`       | 服务端渲染文章、分类、标签、归档和友链，支持亮暗主题与阅读辅助         |
+| 内容管理   | `/admin`                  | 管理文章、分类、标签、媒体、设置、同步、备份、审计和诊断               |
+| 内容导入   | `timeamber-worker`        | Notion 增量同步、VS.DO/web-archive 导入、历史索引补全和备份            |
+| 站内问答   | `/admin/ask`、可选 `/ask` | PostgreSQL 检索私有内容，再调用服务端配置的 OpenAI-compatible Provider |
+| 自托管运行 | Docker Compose + Supabase | 数据、认证、Storage、数据库和应用均可部署在 NAS 或单机服务器           |
 
 项目的核心边界是：浏览器只拿到公开内容或当前会话允许的数据；服务端密钥、管理员会话、
 同步令牌和 AI Provider Key 不进入前端构建产物。
@@ -111,14 +111,14 @@ NAS 项目目录：
 
 生产服务边界：
 
-| 服务 | 容器端口 | 作用 | 公网策略 |
-| --- | --- | --- | --- |
-| `timeamber-app` | `3000` | TanStack Start SSR、静态资源、后台和媒体代理 | 只通过反向代理/隧道对外，主机映射为 `49287:3000` |
-| `timeamber-worker` | `3001` | Notion、web-archive、知识索引和备份任务 | 不直接发布到公网，仅由 app 在 Compose 网络内调用 |
-| `supabase-kong` | `8000/8443` | Auth、REST、Storage、Realtime 等 Supabase API 网关 | 绑定内部地址；公网访问应经过受控代理 |
-| `supabase-db` | `5432` | PostgreSQL 数据库 | 仅 Compose 网络内访问 |
-| `timeamber-migrate` | — | `tools` profile 下执行迁移或恢复 | 一次性工具，不作为常驻服务 |
-| `timeamber-cloudflared` | host network | 可选 Cloudflare Tunnel 出口 | 只读取 tunnel 配置，不承载应用数据 |
+| 服务                    | 容器端口     | 作用                                               | 公网策略                                         |
+| ----------------------- | ------------ | -------------------------------------------------- | ------------------------------------------------ |
+| `timeamber-app`         | `3000`       | TanStack Start SSR、静态资源、后台和媒体代理       | 只通过反向代理/隧道对外，主机映射为 `49287:3000` |
+| `timeamber-worker`      | `3001`       | Notion、web-archive、知识索引和备份任务            | 不直接发布到公网，仅由 app 在 Compose 网络内调用 |
+| `supabase-kong`         | `8000/8443`  | Auth、REST、Storage、Realtime 等 Supabase API 网关 | 绑定内部地址；公网访问应经过受控代理             |
+| `supabase-db`           | `5432`       | PostgreSQL 数据库                                  | 仅 Compose 网络内访问                            |
+| `timeamber-migrate`     | —            | `tools` profile 下执行迁移或恢复                   | 一次性工具，不作为常驻服务                       |
+| `timeamber-cloudflared` | host network | 可选 Cloudflare Tunnel 出口                        | 只读取 tunnel 配置，不承载应用数据               |
 
 ### 请求与数据流
 
@@ -151,15 +151,15 @@ flowchart LR
 所有数据和搜索计算集中在一次同步渲染中。相关代码仍保持在页面组件和共享数据层内，方便继续
 定位与回归：
 
-| 区域 | 当前策略 | 维护提示 |
-| --- | --- | --- |
-| 首页 | 第一篇文章使用编辑型主卡，其余文章保持紧凑列表；缩略图按需加载 | 修改行高、封面比例或首屏间距时，要同步检查不同视口高度 |
-| 文章跳转 | 文章卡、归档和相关文章使用 TanStack Router 的 intent preload | 新增文章入口时优先复用同一 preload 行为 |
-| 首页动效 | 只给主卡和首屏少量文章添加渐入延迟；非首屏条目不参与大规模动画 | 新增动画应遵守 `prefers-reduced-motion` |
-| 全站搜索 | 管理端搜索使用延迟查询值和预计算的文章检索索引 | 不要在每次按键时重新拼接全部文章标题、分类和标签 |
-| 后台状态 | 文章、分类、标签等状态分块加载，首屏先展示可用骨架与局部状态，较重数据在后台补齐 | 新增管理页应使用共享 admin store，避免重复拉取同一份全量数据 |
-| Markdown | 服务端完成 GFM、Shiki 高亮和 sanitize，客户端只接管复制、图片放大等交互 | 不要把私有文章正文预打包到客户端静态资源 |
-| 静态资源 | `server/node.mjs` 对构建资源提供 immutable 缓存，并对可压缩响应支持 gzip | 发布后若页面未变化，先确认浏览器和反向代理缓存，再判断是否构建失败 |
+| 区域     | 当前策略                                                                         | 维护提示                                                           |
+| -------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| 首页     | 第一篇文章使用编辑型主卡，其余文章保持紧凑列表；缩略图按需加载                   | 修改行高、封面比例或首屏间距时，要同步检查不同视口高度             |
+| 文章跳转 | 文章卡、归档和相关文章使用 TanStack Router 的 intent preload                     | 新增文章入口时优先复用同一 preload 行为                            |
+| 首页动效 | 只给主卡和首屏少量文章添加渐入延迟；非首屏条目不参与大规模动画                   | 新增动画应遵守 `prefers-reduced-motion`                            |
+| 全站搜索 | 管理端搜索使用延迟查询值和预计算的文章检索索引                                   | 不要在每次按键时重新拼接全部文章标题、分类和标签                   |
+| 后台状态 | 文章、分类、标签等状态分块加载，首屏先展示可用骨架与局部状态，较重数据在后台补齐 | 新增管理页应使用共享 admin store，避免重复拉取同一份全量数据       |
+| Markdown | 服务端完成 GFM、Shiki 高亮和 sanitize，客户端只接管复制、图片放大等交互          | 不要把私有文章正文预打包到客户端静态资源                           |
+| 静态资源 | `server/node.mjs` 对构建资源提供 immutable 缓存，并对可压缩响应支持 gzip         | 发布后若页面未变化，先确认浏览器和反向代理缓存，再判断是否构建失败 |
 
 这部分优化的目标是降低点击文章和进入后台时的主线程压力，同时不牺牲服务端直出、键盘操作、
 移动端可用性和无障碍的降运动偏好。
@@ -332,16 +332,16 @@ npm run dev
 
 常用脚本：
 
-| 命令 | 用途 |
-| --- | --- |
-| `npm run dev` | 启动 Vite 开发服务器 |
-| `npm run build` | 生成生产端 `dist/client` 与 `dist/server` |
-| `npm run start` | 使用 `server/node.mjs` 启动生产 Node 入口 |
-| `npm run worker` | 直接运行 `worker/index.ts`，用于本地调试 worker |
-| `npm test` | 运行 `tests/*.test.ts` |
-| `npm run lint` | 执行 ESLint |
-| `npx tsc --noEmit` | 只做 TypeScript 类型检查 |
-| `npm run format` | 使用 Prettier 格式化项目文件；执行前先确认工作区变更 |
+| 命令               | 用途                                                 |
+| ------------------ | ---------------------------------------------------- |
+| `npm run dev`      | 启动 Vite 开发服务器                                 |
+| `npm run build`    | 生成生产端 `dist/client` 与 `dist/server`            |
+| `npm run start`    | 使用 `server/node.mjs` 启动生产 Node 入口            |
+| `npm run worker`   | 直接运行 `worker/index.ts`，用于本地调试 worker      |
+| `npm test`         | 运行 `tests/*.test.ts`                               |
+| `npm run lint`     | 执行 ESLint                                          |
+| `npx tsc --noEmit` | 只做 TypeScript 类型检查                             |
+| `npm run format`   | 使用 Prettier 格式化项目文件；执行前先确认工作区变更 |
 
 本地开发需要可访问的 Supabase 实例。浏览器侧使用 `VITE_SUPABASE_URL` 与
 `VITE_SUPABASE_PUBLISHABLE_KEY`，服务端和生产容器使用对应的
@@ -387,14 +387,14 @@ cp .env.example .env
 
 生产 Compose 会把同一组 `.env` 变量转换为不同容器需要的运行时变量：
 
-| 运行面 | 主要变量 | 说明 |
-| --- | --- | --- |
-| 浏览器构建 | `VITE_SUPABASE_URL`、`VITE_SUPABASE_PUBLISHABLE_KEY` | 只包含公开 Supabase 地址和 publishable/anon key |
-| `timeamber-app` | `PORT`、`DATABASE_URL`、`SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`、`SUPABASE_SERVICE_ROLE_KEY` | SSR、数据库读取、Auth 会话、Storage 代理和管理员操作 |
-| `timeamber-app` | `SESSION_SECRET`、`TIMEAMBER_SECRET_KEY`、`WORKER_URL`、`WORKER_SECRET` | 会话加密、第三方配置加密和 app-worker 内部鉴权 |
-| `timeamber-worker` | `DATABASE_URL`、`MEDIA_ROOT`、`BACKUP_ROOT`、`BACKUP_ENABLED`、`BACKUP_RETENTION` | 数据同步、媒体文件和备份保留策略 |
-| `timeamber-worker` | `SYNC_ENABLED`、`NOTION_*`、`VS_DO_*`、`KNOWLEDGE_INDEX_BATCH_SIZE` | 导入任务和知识索引补全；未配置来源时相应任务不应启用 |
-| Supabase 服务 | `POSTGRES_*`、`JWT_*`、`ANON_KEY`、`SERVICE_ROLE_KEY` | 数据库、Auth、API Gateway 和 Storage 的底层配置 |
+| 运行面             | 主要变量                                                                                        | 说明                                                 |
+| ------------------ | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 浏览器构建         | `VITE_SUPABASE_URL`、`VITE_SUPABASE_PUBLISHABLE_KEY`                                            | 只包含公开 Supabase 地址和 publishable/anon key      |
+| `timeamber-app`    | `PORT`、`DATABASE_URL`、`SUPABASE_URL`、`SUPABASE_PUBLISHABLE_KEY`、`SUPABASE_SERVICE_ROLE_KEY` | SSR、数据库读取、Auth 会话、Storage 代理和管理员操作 |
+| `timeamber-app`    | `SESSION_SECRET`、`TIMEAMBER_SECRET_KEY`、`WORKER_URL`、`WORKER_SECRET`                         | 会话加密、第三方配置加密和 app-worker 内部鉴权       |
+| `timeamber-worker` | `DATABASE_URL`、`MEDIA_ROOT`、`BACKUP_ROOT`、`BACKUP_ENABLED`、`BACKUP_RETENTION`               | 数据同步、媒体文件和备份保留策略                     |
+| `timeamber-worker` | `SYNC_ENABLED`、`NOTION_*`、`VS_DO_*`、`KNOWLEDGE_INDEX_BATCH_SIZE`                             | 导入任务和知识索引补全；未配置来源时相应任务不应启用 |
+| Supabase 服务      | `POSTGRES_*`、`JWT_*`、`ANON_KEY`、`SERVICE_ROLE_KEY`                                           | 数据库、Auth、API Gateway 和 Storage 的底层配置      |
 
 根目录生产 Compose 使用 `ANON_KEY` 给应用映射成
 `SUPABASE_PUBLISHABLE_KEY`；模块化模板也遵循同一约定。修改环境变量名时，必须同时检查
@@ -667,3 +667,31 @@ docker exec supabase-db psql -U postgres -d postgres -c \
 - 第三方配置使用 `TIMEAMBER_SECRET_KEY` 加密
 - 公网只发布应用反向代理入口
 - 定期检查容器健康、同步失败记录和备份可恢复性
+
+## 公开前台与个性化设置
+
+公开前台使用 TimeAmber 自己的 TanStack Start 数据流实现玻璃仪表盘视觉：固定背景、
+悬浮导航、宽搜索框、资料卡、真实文章列表、站点统计、发布日历、分类/标签和友链入口。
+它借鉴了 `aibrium.cn` 的信息层次与毛玻璃氛围，但没有复制参考站的代码、内容、图片或外部资源。
+
+管理员进入 `/admin/settings` 的“公开站点”区域即可编辑：
+
+- 站点名称、中文名称、导航标题、口号、简介、头像、Logo、favicon 和默认封面
+- 首页标题、说明、搜索占位文字、文章/统计/日历/分类/标签/友链文案
+- 亮色/暗色背景图片、渐变颜色、轮播、遮罩、玻璃模糊和卡片透明度
+- 背景状态文字、密度、速度、公开导航、社交链接和首页模块开关/顺序
+- 页脚时间、运行天数、技术栈标签、版权/备案信息和关于页标题、简介、Markdown 正文
+
+设置以 `publicSite` JSONB 子对象保存在现有 `public.app_config` 的 `key = 'site'` 记录中，
+不新增第二套数据库、不改文章结构。读取流程是“数据库配置 → Zod 校验 → 默认值深度合并 →
+公开字段 SSR 输出”；保存需要管理员会话，写入现有 `audit_logs`，刷新页面即可生效，无需重新
+构建或重启容器。图片字段复用现有媒体库，上传仍由 `/admin/media` 负责。
+
+实现入口：
+
+- `src/lib/public-site-settings.ts`：版本化结构、默认值、URL/颜色/顺序校验
+- `src/lib/public-site-settings.functions.ts`：公开读取、管理员保存和审计
+- `src/components/public/`：背景、玻璃面板、资料卡、日历、统计、导航和搜索
+- `src/components/home/HomeDashboard.tsx`：首页模块编排
+- `src/components/admin/public-site/PublicSiteSettingsPanel.tsx`：结构化后台表单
+- `HANDOFF.md`：本次改版的架构、验证、部署与回滚交接记录

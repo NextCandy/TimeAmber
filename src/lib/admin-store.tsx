@@ -20,6 +20,11 @@ import {
   upsertSinglePost,
 } from "./state.functions";
 import { DEFAULT_AUTHOR_PROFILE, type AuthorProfile } from "./author-profile";
+import {
+  DEFAULT_PUBLIC_SITE_CONFIG,
+  normalizePublicSiteConfig,
+  type PublicSiteConfig,
+} from "./public-site-settings";
 
 export type Category = { name: string };
 export type Tag = { name: string };
@@ -42,6 +47,8 @@ export type SiteSettings = AuthorProfile & {
   contactXiaohongshu: string;
   contactDouyin: string;
   contactNote: string;
+  /** 公开前台的结构化配置；与旧版字段并存，便于无迁移升级。 */
+  publicSite?: PublicSiteConfig;
   /** 渠道是否以二维码弹层方式呈现（key 为渠道 key，如 wechat/qq/xiaohongshu/douyin） */
   contactQR?: Record<string, boolean>;
   /** GitHub 仓库（owner/name 或完整 URL），用于「同步状态」面板 */
@@ -76,6 +83,7 @@ export type PublicSiteSettings = Partial<
     | "contactDouyin"
     | "contactNote"
     | "askPublicEnabled"
+    | "publicSite"
   >
 >;
 
@@ -269,6 +277,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   contactXiaohongshu: "",
   contactDouyin: "",
   contactNote: "如果你想交换友链，或者只是想说句话，邮件是最稳的方式。",
+  publicSite: DEFAULT_PUBLIC_SITE_CONFIG,
   contactQR: {},
   githubRepo: "NextCandy/TimeAmber",
   githubBranch: "",
@@ -402,7 +411,11 @@ export function AdminStoreProvider({
           ...INITIAL_STATE,
           ...initialState,
           posts: (initialState.posts ?? INITIAL_STATE.posts).map(normalizePost),
-          settings: { ...INITIAL_STATE.settings, ...(initialState.settings ?? {}) },
+          settings: {
+            ...INITIAL_STATE.settings,
+            ...(initialState.settings ?? {}),
+            publicSite: normalizePublicSiteConfig(initialState.settings ?? {}),
+          },
         }
       : INITIAL_STATE,
   );
@@ -423,7 +436,13 @@ export function AdminStoreProvider({
         categories: parsed.categories ?? s.categories,
         tags: parsed.tags ?? s.tags,
         friends: parsed.friends ?? s.friends,
-        settings: { ...s.settings, ...(parsed.settings ?? {}) },
+        settings: {
+          ...s.settings,
+          ...(parsed.settings ?? {}),
+          publicSite: parsed.settings
+            ? normalizePublicSiteConfig({ ...s.settings, ...parsed.settings })
+            : s.settings.publicSite,
+        },
         cloud: { ...s.cloud, ...(parsed.cloud ?? {}) },
         snapshots: parsed.snapshots ?? s.snapshots,
         audit: parsed.audit ?? s.audit,
@@ -643,14 +662,26 @@ export function AdminStoreProvider({
   }, []);
 
   const updateSettings = useCallback((patch: Partial<SiteSettings>) => {
-    setState((s) => ({ ...s, settings: { ...s.settings, ...patch } }));
+    setState((s) => ({
+      ...s,
+      settings: {
+        ...s.settings,
+        ...patch,
+        publicSite: patch.publicSite
+          ? normalizePublicSiteConfig(patch.publicSite)
+          : s.settings.publicSite,
+      },
+    }));
   }, []);
 
   // 设置页保存时已单独写好 app_config.site，这里只同步本地状态，
   // 并跳过随后的全量 persist（那会连带重写全部文章）。
   const applySavedSettings = useCallback((next: SiteSettings) => {
     skipPersistRef.current = true;
-    setState((s) => ({ ...s, settings: next }));
+    setState((s) => ({
+      ...s,
+      settings: { ...next, publicSite: normalizePublicSiteConfig(next) },
+    }));
   }, []);
 
   // 调用方已经用专用接口写过库了，跳过随后那次全量 persist。
@@ -669,7 +700,13 @@ export function AdminStoreProvider({
       categories: next.categories ?? s.categories,
       tags: next.tags ?? s.tags,
       friends: next.friends ?? s.friends,
-      settings: { ...s.settings, ...(next.settings ?? {}) },
+      settings: {
+        ...s.settings,
+        ...(next.settings ?? {}),
+        publicSite: next.settings
+          ? normalizePublicSiteConfig({ ...s.settings, ...next.settings })
+          : s.settings.publicSite,
+      },
     }));
   }, []);
 

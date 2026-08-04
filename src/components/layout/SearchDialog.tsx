@@ -48,9 +48,11 @@ function Key({ children }: { children: React.ReactNode }) {
 export function SearchDialog({
   open,
   onOpenChange,
+  placeholder = "搜索文章、分类、标签…",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  placeholder?: string;
 }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -122,7 +124,7 @@ export function SearchDialog({
       title="站内搜索"
       description="搜索文章、分类与标签"
     >
-      <CommandInput placeholder="搜索文章、分类、标签…" value={query} onValueChange={setQuery} />
+      <CommandInput placeholder={placeholder} value={query} onValueChange={setQuery} />
 
       <CommandList>
         {!hasAny && (

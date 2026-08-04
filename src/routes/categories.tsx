@@ -31,7 +31,8 @@ const CATEGORY_BORDERS = [
 export const Route = createFileRoute("/categories")({
   beforeLoad: ({ search }) => {
     const target = categoryRedirectTarget(search.c);
-    if (target) throw redirect({ href: `/categories?c=${encodeURIComponent(target)}`, statusCode: 301 });
+    if (target)
+      throw redirect({ href: `/categories?c=${encodeURIComponent(target)}`, statusCode: 301 });
   },
   validateSearch: (search: Record<string, unknown>): CategorySearch => ({
     c: typeof search.c === "string" && search.c ? search.c : undefined,
@@ -97,7 +98,7 @@ function CategoriesPage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-6 pt-16 pb-16">
+    <div className="public-page mx-auto max-w-4xl px-6 pt-16 pb-16">
       <JsonLd
         data={{
           "@context": "https://schema.org",

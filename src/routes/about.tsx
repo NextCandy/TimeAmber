@@ -2,8 +2,20 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Mail, Github, Twitter } from "lucide-react";
 import { useAdminStore } from "@/lib/admin-store";
 import { SITE_URL } from "@/lib/brand";
+import { loadPublicSiteSettings } from "@/lib/public-site-settings.functions";
+import { DEFAULT_PUBLIC_SITE_CONFIG } from "@/lib/public-site-settings";
+import { renderMarkdownFn } from "@/lib/markdown.functions";
 
 export const Route = createFileRoute("/about")({
+  loader: async () => {
+    const publicSite = await loadPublicSiteSettings().catch(() => DEFAULT_PUBLIC_SITE_CONFIG);
+    const about = publicSite.about.enabled ? publicSite.about : DEFAULT_PUBLIC_SITE_CONFIG.about;
+    const markdown = about.content.trim();
+    const aboutHtml = markdown
+      ? await renderMarkdownFn({ data: { md: markdown } }).catch(() => "")
+      : "";
+    return { aboutHtml };
+  },
   head: () => ({
     meta: [
       { title: "关于 · TimeAmber" },
@@ -19,24 +31,46 @@ export const Route = createFileRoute("/about")({
 
 function AboutPage() {
   const { settings } = useAdminStore();
+  const { aboutHtml } = Route.useLoaderData();
+  const publicSite = settings.publicSite ?? DEFAULT_PUBLIC_SITE_CONFIG;
+  const about = publicSite.about.enabled ? publicSite.about : DEFAULT_PUBLIC_SITE_CONFIG.about;
+  const aboutContent = about.content.trim() || settings.aboutIntro;
   const stack = settings.aboutTechStack
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
 
   return (
-    <div className="mx-auto max-w-2xl px-6 pt-16 pb-16">
+    <div className="public-page mx-auto max-w-2xl px-6 pt-16 pb-16">
       <header className="mb-10">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
           About
         </p>
-        <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">关于</h1>
+        <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">
+          {about.title || "关于"}
+        </h1>
+        {about.summary && (
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">{about.summary}</p>
+        )}
       </header>
 
       <div className="space-y-6 text-base leading-relaxed text-foreground/90">
-        {settings.aboutIntro.split(/\n\n+/).map((para, i) => (
-          <p key={i}>{para}</p>
-        ))}
+        {aboutHtml ? (
+          <div className="article-prose" dangerouslySetInnerHTML={{ __html: aboutHtml }} />
+        ) : (
+          aboutContent.split(/\n\n+/).map((para, i) => <p key={i}>{para}</p>)
+        )}
+
+        {about.imageUrl && (
+          <img
+            src={about.imageUrl}
+            alt="关于页配图"
+            width={960}
+            height={480}
+            className="h-auto w-full rounded-2xl border border-border/70 object-cover"
+            loading="lazy"
+          />
+        )}
 
         {settings.aboutQuote && (
           <p className="border-l-2 border-primary/50 pl-4 text-primary">{settings.aboutQuote}</p>

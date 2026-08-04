@@ -1,40 +1,44 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 
 import { db } from "@/lib/db.server";
 
-/**
- * 首页专用取数。
- *
- * 与归档 / 分类 / 搜索一样自己按需取数（见 public-posts.functions.ts），
- * 这里只取首页要用的字段与条数，摘要在服务端就压成纯文本 ——
- * 剪藏来的 excerpt 里常带 ![](…)、``` 等 Markdown 语法，直接塞进卡片会原样显示。
- */
-
+/** 首页只取渲染所需的轻量公开索引，不把正文或全量文章下发给浏览器。 */
 export type HomePost = {
   slug: string;
   title: string;
   category: string;
+  tags: string[];
+  excerpt?: string;
   publishAt: string;
   cover?: string;
   externalUrl?: string;
   openIn?: "_blank" | "_self";
 };
 
+export type TaxonomySummary = { name: string; count: number };
+export type PublishCalendarDay = { date: string; count: number };
+
 export type HomeData = {
   latest: HomePost[];
   totalPosts: number;
   totalTags: number;
   totalCategories: number;
+  friendsCount: number;
+  latestUpdatedAt?: string;
+  popularCategories: TaxonomySummary[];
+  popularTags: TaxonomySummary[];
+  calendar: PublishCalendarDay[];
+  calendarYear: number;
+  calendarMonth: number;
 };
 
-// 桌面两列，最多九行。实际显示几篇由 styles.css 里 .home-list 的视口高度断点决定
-// （矮屏隐藏尾部），这里固定下发上限那一档 —— 多出来的几篇只占几百字节，
-// 换来的是任何屏幕都既填满一屏又不出滚动条。改之前先看 ArticleSection 上的说明。
-const LATEST_LIMIT = 18;
+const LATEST_LIMIT = 12;
 
 type PostRow = {
   slug: unknown;
   title: unknown;
+  excerpt: unknown;
   category: unknown;
   publish_at: unknown;
   created_at: unknown;
@@ -42,7 +46,31 @@ type PostRow = {
   external_url: unknown;
   open_in: unknown;
   cover_image: unknown;
+  tags: unknown;
 };
+
+function plainExcerpt(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const text = value
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/[#>*_`~-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text ? text.slice(0, 180) : undefined;
+}
+
+function rowTags(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean).slice(0, 6);
+  if (typeof value === "string")
+    return value
+      .replace(/[{}]/g, "")
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .slice(0, 6);
+  return [];
+}
 
 function toHomePost(row: PostRow): HomePost {
   const isHtml = row.post_type === "html" && !!row.external_url;
@@ -50,6 +78,8 @@ function toHomePost(row: PostRow): HomePost {
     slug: String(row.slug),
     title: String(row.title ?? ""),
     category: String(row.category ?? ""),
+    tags: rowTags(row.tags),
+    excerpt: plainExcerpt(row.excerpt),
     publishAt: new Date(String(row.publish_at ?? row.created_at)).toISOString(),
     cover: row.cover_image ? String(row.cover_image) : undefined,
     externalUrl: isHtml ? String(row.external_url) : undefined,
@@ -57,32 +87,72 @@ function toHomePost(row: PostRow): HomePost {
   };
 }
 
+function mapSummary(rows: Array<{ name: unknown; count: unknown }>): TaxonomySummary[] {
+  return rows.map((row) => ({ name: String(row.name), count: Number(row.count) }));
+}
+
+const visibleSql = (sql: ReturnType<typeof db>) => sql`p.published = true
+  and coalesce(p.listed, true) = true
+  and (p.publish_at is null or p.publish_at <= now())`;
+
 export const loadHomeData = createServerFn({ method: "GET" }).handler(
   async (): Promise<HomeData> => {
     const sql = db();
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth() + 1;
+    const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
 
-    const [latestRows, statsRows] = await Promise.all([
+    const [latestRows, statsRows, categories, tags, friends, calendar] = await Promise.all([
       sql<PostRow[]>`
         select
-          slug, title, category, publish_at, created_at, post_type, external_url, open_in,
-          cover_image
-        from public.posts
-        where published = true
-          and coalesce(listed, true) = true
-          and (publish_at is null or publish_at <= now())
-        order by coalesce(publish_at, created_at) desc
+          p.slug, p.title, p.excerpt, p.category, p.publish_at, p.created_at,
+          p.post_type, p.external_url, p.open_in, p.cover_image,
+          coalesce(array_agg(distinct t.name) filter (where t.name is not null), '{}') as tags
+        from public.posts p
+        left join public.post_tags pt on pt.post_id = p.id
+        left join public.tags t on t.id = pt.tag_id
+        where ${visibleSql(sql)}
+        group by p.id
+        order by coalesce(p.publish_at, p.created_at) desc
         limit ${LATEST_LIMIT}
       `,
-      sql<{ posts: unknown; tags: unknown; categories: unknown }[]>`
+      sql<{ posts: unknown; tags: unknown; categories: unknown; latest: unknown }[]>`
         select
           count(distinct p.id)::int as posts,
           count(distinct pt.tag_id)::int as tags,
-          count(distinct nullif(p.category, ''))::int as categories
+          count(distinct nullif(p.category, ''))::int as categories,
+          max(coalesce(p.publish_at, p.created_at)) as latest
         from public.posts p
         left join public.post_tags pt on pt.post_id = p.id
-        where p.published = true
-          and coalesce(p.listed, true) = true
-          and (p.publish_at is null or p.publish_at <= now())
+        where ${visibleSql(sql)}
+      `,
+      sql<{ name: unknown; count: unknown }[]>`
+        select p.category as name, count(*)::int as count
+        from public.posts p
+        where ${visibleSql(sql)} and nullif(p.category, '') is not null
+        group by p.category order by count(*) desc, p.category limit 6
+      `,
+      sql<{ name: unknown; count: unknown }[]>`
+        select t.name, count(*)::int as count
+        from public.post_tags pt
+        join public.tags t on t.id = pt.tag_id
+        join public.posts p on p.id = pt.post_id
+        where ${visibleSql(sql)}
+        group by t.name order by count(*) desc, t.name limit 12
+      `,
+      sql<{ count: unknown }[]>`
+        select count(*)::int as count from public.friends where published = true
+      `,
+      sql<{ date: unknown; count: unknown }[]>`
+        select
+          to_char(coalesce(p.publish_at, p.created_at) at time zone 'Asia/Shanghai', 'YYYY-MM-DD') as date,
+          count(*)::int as count
+        from public.posts p
+        where ${visibleSql(sql)}
+          and coalesce(p.publish_at, p.created_at) >= ${monthStart}::date
+          and coalesce(p.publish_at, p.created_at) < (${monthStart}::date + interval '1 month')
+        group by 1 order by 1
       `,
     ]);
 
@@ -91,6 +161,41 @@ export const loadHomeData = createServerFn({ method: "GET" }).handler(
       totalPosts: Number(statsRows[0]?.posts ?? 0),
       totalTags: Number(statsRows[0]?.tags ?? 0),
       totalCategories: Number(statsRows[0]?.categories ?? 0),
+      friendsCount: Number(friends[0]?.count ?? 0),
+      latestUpdatedAt: statsRows[0]?.latest
+        ? new Date(String(statsRows[0].latest)).toISOString()
+        : undefined,
+      popularCategories: mapSummary(categories),
+      popularTags: mapSummary(tags),
+      calendar: calendar.map((row) => ({ date: String(row.date), count: Number(row.count) })),
+      calendarYear: year,
+      calendarMonth: month,
     };
   },
 );
+
+const calendarInput = z.object({
+  year: z.number().int().min(2000).max(2200),
+  month: z.number().int().min(1).max(12),
+});
+
+/** 发布日历按月聚合，点击切换月份时只返回日期和数量。 */
+export const loadPublishCalendar = createServerFn({ method: "GET" })
+  .validator((value: z.infer<typeof calendarInput>) => calendarInput.parse(value))
+  .handler(async ({ data }): Promise<PublishCalendarDay[]> => {
+    const sql = db();
+    const monthStart = `${data.year}-${String(data.month).padStart(2, "0")}-01`;
+    const rows = await sql<{ date: unknown; count: unknown }[]>`
+      select
+        to_char(coalesce(p.publish_at, p.created_at) at time zone 'Asia/Shanghai', 'YYYY-MM-DD') as date,
+        count(*)::int as count
+      from public.posts p
+      where p.published = true
+        and coalesce(p.listed, true) = true
+        and (p.publish_at is null or p.publish_at <= now())
+        and coalesce(p.publish_at, p.created_at) >= ${monthStart}::date
+        and coalesce(p.publish_at, p.created_at) < (${monthStart}::date + interval '1 month')
+      group by 1 order by 1
+    `;
+    return rows.map((row) => ({ date: String(row.date), count: Number(row.count) }));
+  });

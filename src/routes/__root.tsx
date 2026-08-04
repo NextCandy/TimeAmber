@@ -23,6 +23,8 @@ import { installDiagnostics, recordRouteChange } from "../lib/diagnostics";
 import { DEFAULT_THEME_PREFERENCE, THEME_BOOTSTRAP_SCRIPT, resolveTheme } from "../lib/theme";
 import { loadThemePreference } from "../lib/theme.functions";
 import { JsonLd, SITE_JSON_LD } from "../lib/seo";
+import { PublicBackground } from "../components/public/PublicBackground";
+import { DEFAULT_PUBLIC_SITE_CONFIG } from "../lib/public-site-settings";
 
 function AnalyticsRecorder() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -109,36 +111,45 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       return { publicState: null };
     }
   },
-  head: () => {
-    const description = "时光成珀，字字如初。一个关于剪藏、自建服务与 AI Agent 实践的中文博客。";
+  head: ({ loaderData }) => {
+    const config = loaderData?.publicState?.settings?.publicSite ?? DEFAULT_PUBLIC_SITE_CONFIG;
+    const description = config.identity.description || "时光成珀，字字如初。";
+    const title = `${config.identity.siteName} ${config.identity.siteNameZh ? `· ${config.identity.siteNameZh}` : ""}`;
     // 社交平台不解析相对路径，og:image 用绝对地址。子路由（如文章页）会覆盖同名标签。
-    const ogImage = `${SITE_URL}/brand/timeamber-default-cover.png`;
+    const ogImage = config.identity.defaultPostCoverUrl.startsWith("http")
+      ? config.identity.defaultPostCoverUrl
+      : `${SITE_URL}${config.identity.defaultPostCoverUrl || "/brand/timeamber-default-cover.png"}`;
     return {
       meta: [
         { charSet: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
-        { title: "TimeAmber · 时光琥珀" },
+        { title },
         { name: "description", content: description },
-        { name: "author", content: "TimeAmber" },
-        { property: "og:site_name", content: "TimeAmber" },
+        { name: "author", content: config.identity.siteName },
+        { property: "og:site_name", content: config.identity.siteName },
         { property: "og:locale", content: "zh_CN" },
         { property: "og:type", content: "website" },
-        { property: "og:title", content: "TimeAmber · 时光琥珀" },
+        { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:image", content: ogImage },
         { property: "og:image:width", content: "1200" },
         { property: "og:image:height", content: "630" },
-        { property: "og:image:alt", content: "TimeAmber · 时光琥珀" },
+        { property: "og:image:alt", content: title },
         { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: "TimeAmber · 时光琥珀" },
+        { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
         { name: "twitter:image", content: ogImage },
-        { name: "twitter:image:alt", content: "TimeAmber · 时光琥珀" },
+        { name: "twitter:image:alt", content: title },
       ],
       links: [
         { rel: "stylesheet", href: appCss },
-        { rel: "icon", href: "/brand/favicon.ico", sizes: "any" },
-        { rel: "icon", type: "image/png", sizes: "32x32", href: "/brand/favicon-32x32.png" },
+        { rel: "icon", href: config.identity.faviconUrl || "/brand/favicon.ico", sizes: "any" },
+        {
+          rel: "icon",
+          type: "image/png",
+          sizes: "32x32",
+          href: config.identity.faviconUrl || "/brand/favicon-32x32.png",
+        },
         { rel: "icon", type: "image/png", sizes: "16x16", href: "/brand/favicon-16x16.png" },
         { rel: "apple-touch-icon", sizes: "180x180", href: "/brand/apple-touch-icon.png" },
         { rel: "manifest", href: "/site.webmanifest" },
@@ -179,17 +190,21 @@ function RootComponent() {
   const { publicState } = Route.useLoaderData();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isChrome = !(pathname.startsWith("/admin") || pathname.startsWith("/auth"));
+  const publicConfig = publicState?.settings?.publicSite ?? DEFAULT_PUBLIC_SITE_CONFIG;
 
   return (
     <QueryClientProvider client={queryClient}>
       {/* 认证与后台数据只在后台路由拉，前台页面不为此多发请求 */}
       <AdminStoreProvider initialState={publicState} enableAdminSync={!isChrome}>
         <AnalyticsRecorder />
-        <div className="flex min-h-screen flex-col">
+        {isChrome && <PublicBackground config={publicConfig} />}
+        <div
+          className={`relative flex min-h-screen flex-col ${isChrome ? "public-site-shell" : "admin-site-shell"}`}
+        >
           <JsonLd data={SITE_JSON_LD} />
           {isChrome && <Navbar initialThemePreference={themePreference} />}
           {/* 保留 main 节点，避免每次路由切换都强制重建整棵页面树。 */}
-          <main className="relative flex flex-1 flex-col">
+          <main className="relative z-10 flex flex-1 flex-col">
             <div
               id="timeamber-scroll-top"
               aria-hidden="true"
@@ -202,7 +217,11 @@ function RootComponent() {
             />
             <Outlet />
           </main>
-          {isChrome && <Footer />}
+          {isChrome && (
+            <div className="relative z-10">
+              <Footer />
+            </div>
+          )}
         </div>
         {/* 后台自带侧栏与工具条，右下角留给它自己用 */}
         {isChrome && <BackToTop />}

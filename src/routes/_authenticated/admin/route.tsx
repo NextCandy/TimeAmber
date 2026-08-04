@@ -212,7 +212,7 @@ function AdminLayout() {
     "/_authenticated/admin/notifications": "通知设置",
     "/_authenticated/admin/diagnostics": "性能与日志",
     "/_authenticated/admin/github": "GitHub 同步",
-    "/_authenticated/admin/settings": "站点设置",
+    "/_authenticated/admin/settings": "公开站点",
   };
   const title = titleMap[last?.routeId ?? ""] ?? "后台";
 

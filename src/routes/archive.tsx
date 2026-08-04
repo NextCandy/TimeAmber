@@ -219,7 +219,7 @@ function ArchivePage() {
   const searchMode = q.trim().length > 0;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 pt-16 pb-16">
+    <div className="public-page mx-auto max-w-3xl px-6 pt-16 pb-16">
       <JsonLd
         data={{
           "@context": "https://schema.org",

@@ -134,7 +134,7 @@ function FriendsPage() {
   const multiGroup = groups.length > 1;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 pt-16 pb-16">
+    <div className="public-page mx-auto w-full max-w-6xl px-6 pt-16 pb-16">
       <header className="mb-8">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Friends

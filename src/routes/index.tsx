@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { ArticleSection } from "@/components/home/ArticleSection";
-import { HomeHero } from "@/components/home/HomeHero";
+import { HomeDashboard } from "@/components/home/HomeDashboard";
 import { loadHomeData } from "@/lib/home.functions";
 import { SITE_URL } from "@/lib/brand";
 
@@ -23,15 +22,5 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { home } = Route.useLoaderData();
-
-  return (
-    <>
-      <HomeHero
-        totalPosts={home.totalPosts}
-        totalTags={home.totalTags}
-        totalCategories={home.totalCategories}
-      />
-      <ArticleSection posts={home.latest} totalPosts={home.totalPosts} />
-    </>
-  );
+  return <HomeDashboard home={home} />;
 }
