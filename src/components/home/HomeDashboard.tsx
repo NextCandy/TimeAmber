@@ -40,11 +40,6 @@ function PostCard({ post, index }: { post: HomePost; index: number }) {
         </div>
         <h3>{post.title}</h3>
         {post.excerpt && <p>{post.excerpt}</p>}
-        <div className="aibrium-post-card__tags">
-          {post.tags.slice(0, 3).map((tag, tagIndex) => (
-            <span key={`${tag}-${tagIndex}`}>{tag}</span>
-          ))}
-        </div>
       </div>
       <div className="aibrium-post-card__media-wrap">
         <img

@@ -114,6 +114,16 @@
 
 验证：线上首页 RSS 文本计数为 0；落叶节点 8 个，实际 `display:block`、动画 `public-leaf-fall`、可见透明度约 0.56；点击下一页后 URL 为 `?page=2`、文章区距视口顶部约 88px；后台图标直达登录页且邮箱/密码输入框各 1 个。生产只重启 `timeamber-app`，本轮备份为 `/opt/docker/timeamber-deploy-backups/20260804-rss-scroll-auth-leaves-pre`，回滚标签为 `timeamber-timeamber-app:rollback-before-20260804-rss-scroll-auth-leaves`。
 
+## 2026-08-05 增量：文章区密度校准
+
+针对与 `aibrium.cn` 的首屏对比，在 `2026-08-05` 调整了首页纵向节奏：
+
+- 首页分页从 8 篇调整为 5 篇，与示例站当前分页分组一致。
+- 文章卡片改为约 9rem 基线高度，图片列从 38% 收紧到 31%，标题最多两行，摘要最多一行，并移除文章卡片内的标签胶囊。
+- 对比测量：示例站卡片约 146–191px；TimeAmber 调整后 4/5 张卡片为 146px，最长标题卡片约 203px；中心列与左栏底部差约 94px，页面总高度从约 3113px 降至约 1976px。
+
+验证：`npx tsc --noEmit`、`npm test` 37/37、`npm run build`、`docker compose build timeamber-app` 均通过；生产 `timeamber-app` healthy，公网 HTTP 200，Worker 与 Cloudflare Tunnel 未重启。本轮备份为 `/opt/docker/timeamber-deploy-backups/20260805-density-pre`，回滚标签为 `timeamber-timeamber-app:rollback-before-20260805-density`。
+
 仍未完成的项目级检查：全量 lint 继续受仓库原有部署/Edge 文件的 Prettier/CRLF 报错影响；GitHub
 HTTPS remote 没有非交互凭据，因此未推送分支或创建 Pull Request。
 

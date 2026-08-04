@@ -23,10 +23,10 @@ test("首页分页元数据覆盖空集、边界页和超出范围页码", () =>
     hasPreviousPage: false,
     hasNextPage: false,
   });
-  assert.equal(homePageMeta(1, 8).totalPages, 1);
-  assert.equal(homePageMeta(1, 9).totalPages, 2);
-  assert.equal(homePageMeta(2, 9).page, 2);
-  assert.equal(homePageMeta(1, 17).hasNextPage, true);
-  assert.equal(homePageMeta(999, 17).page, 3);
+  assert.equal(homePageMeta(1, 5).totalPages, 1);
+  assert.equal(homePageMeta(1, 6).totalPages, 2);
+  assert.equal(homePageMeta(2, 6).page, 2);
+  assert.equal(homePageMeta(1, 11).hasNextPage, true);
+  assert.equal(homePageMeta(999, 11).page, 3);
   assert.equal(homePageMeta(2, -1).totalPages, 1);
 });

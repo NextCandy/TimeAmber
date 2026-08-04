@@ -36,7 +36,8 @@ export type HomeData = {
   calendarMonth: number;
 };
 
-export const HOME_PAGE_SIZE = 8;
+// 参考站首屏按 5 篇分组，保持文章区与左右栏的纵向节奏一致。
+export const HOME_PAGE_SIZE = 5;
 
 export function normalizeHomePage(value: unknown) {
   const page = typeof value === "number" ? value : Number(value);
