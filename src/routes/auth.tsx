@@ -177,7 +177,7 @@ function AuthPage() {
         </form>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          <Link to="/" className="hover:text-foreground">
+          <Link to="/" search={{ page: undefined }} className="hover:text-foreground">
             返回首页
           </Link>
         </p>

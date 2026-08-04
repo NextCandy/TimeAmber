@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GlassPanel } from "@/components/public/GlassPanel";
 import { loadPublishCalendar, type PublishCalendarDay } from "@/lib/home.functions";
@@ -25,19 +25,33 @@ export function PublishCalendar({
   );
   const [days, setDays] = useState(initialDays);
   const [loading, setLoading] = useState(false);
+  const requestId = useRef(0);
   const key = monthKey(current);
   useEffect(() => {
+    const currentRequest = ++requestId.current;
     if (monthKey(current) === initialKey) {
       setDays(initialDays);
+      setLoading(false);
       return;
     }
     setLoading(true);
     void loadPublishCalendar({
       data: { year: current.getFullYear(), month: current.getMonth() + 1 },
     })
-      .then(setDays)
-      .catch(() => setDays([]))
-      .finally(() => setLoading(false));
+      .then((nextDays) => {
+        if (currentRequest === requestId.current) setDays(nextDays);
+      })
+      .catch(() => {
+        if (currentRequest === requestId.current) setDays([]);
+      })
+      .finally(() => {
+        if (currentRequest === requestId.current) setLoading(false);
+      });
+    return () => {
+      // The server function cannot be cancelled at the transport layer, but
+      // stale responses must never overwrite the currently selected month.
+      if (currentRequest === requestId.current) requestId.current += 1;
+    };
   }, [current, initialDays, initialKey]);
   const counts = useMemo(() => new Map(days.map((day) => [day.date, day.count])), [days]);
   const first = new Date(current.getFullYear(), current.getMonth(), 1);

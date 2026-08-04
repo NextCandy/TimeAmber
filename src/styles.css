@@ -2204,3 +2204,389 @@ main:has(> .home-hero) + footer {
     align-self: flex-end;
   }
 }
+
+/* ── 首页轻量落叶装饰 ──────────────────────────────────────────────
+   参考站的氛围动效用纯 CSS 实现，固定数量、无随机数和 RAF，不参与交互。 */
+.public-background__leaves {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  contain: strict;
+  pointer-events: none;
+}
+
+.public-background__leaf {
+  position: absolute;
+  top: -1rem;
+  left: var(--leaf-left);
+  width: var(--leaf-size);
+  height: var(--leaf-height);
+  border-radius: 100% 0 100% 0;
+  background: linear-gradient(135deg, #f3c45e 0%, #d4772f 72%, #9f4e29 100%);
+  box-shadow: 0 0 0 1px rgba(117, 62, 26, 0.08);
+  opacity: 0;
+  transform-origin: 50% 50%;
+  animation: public-leaf-fall var(--leaf-duration) ease-in-out var(--leaf-delay) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes public-leaf-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -1.25rem, 0) rotate(var(--leaf-rotation));
+  }
+
+  12%,
+  86% {
+    opacity: 0.34;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--leaf-drift), 110vh, 0)
+      rotate(calc(var(--leaf-rotation) + 360deg));
+  }
+}
+
+@media (max-width: 1099px) and (min-width: 768px) {
+  .public-background__leaf:nth-child(n + 6) {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .public-background__leaves {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-background__leaf {
+    top: var(--leaf-static-top);
+    opacity: 0.14;
+    animation: none;
+    transform: rotate(var(--leaf-rotation));
+  }
+
+  .public-background__leaf:nth-child(n + 5) {
+    display: none;
+  }
+}
+
+/* ── IP 天气卡片 ────────────────────────────────────────────────── */
+.aibrium-weather-card {
+  min-height: 15.5rem;
+  padding: 1.25rem 1.15rem 1rem;
+}
+
+.aibrium-weather-card__location {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  color: var(--aibrium-muted);
+  font-size: 0.75rem;
+}
+
+.aibrium-weather-card__location svg {
+  color: var(--accent-amber-strong);
+}
+
+.aibrium-weather-card__location small {
+  margin-left: auto;
+  color: var(--aibrium-muted);
+  font-size: 0.62rem;
+  opacity: 0.78;
+}
+
+.aibrium-weather-card__current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.aibrium-weather-card__current strong {
+  display: block;
+  color: var(--aibrium-ink);
+  font-family: var(--font-sans);
+  font-size: 2.7rem;
+  font-weight: 700;
+  letter-spacing: -0.08em;
+  line-height: 1;
+}
+
+.aibrium-weather-card__current p {
+  margin-top: 0.45rem;
+  color: var(--aibrium-muted);
+  font-size: 0.75rem;
+}
+
+.aibrium-weather-card__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.8rem;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--aibrium-line);
+  color: var(--aibrium-muted);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+}
+
+.aibrium-weather-card__metrics span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.aibrium-weather-card__metrics svg {
+  color: var(--accent-amber-strong);
+}
+
+.aibrium-weather-card__forecast {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-top: 0.85rem;
+}
+
+.aibrium-weather-card__forecast > div {
+  min-width: 0;
+  padding: 0.5rem 0.35rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--aibrium-card-solid) 58%, transparent);
+  text-align: center;
+}
+
+.aibrium-weather-card__forecast time,
+.aibrium-weather-card__forecast span,
+.aibrium-weather-card__forecast strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aibrium-weather-card__forecast time {
+  color: var(--aibrium-muted);
+  font-size: 0.62rem;
+}
+
+.aibrium-weather-card__forecast span {
+  margin-top: 0.25rem;
+  color: var(--aibrium-muted);
+  font-size: 0.6rem;
+}
+
+.aibrium-weather-card__forecast strong {
+  margin-top: 0.28rem;
+  color: var(--aibrium-ink);
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+}
+
+.aibrium-weather-card__source {
+  margin-top: 0.75rem;
+  color: var(--aibrium-muted);
+  font-size: 0.58rem;
+  opacity: 0.74;
+}
+
+.aibrium-weather-card__loading {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.aibrium-weather-card__loading span {
+  display: block;
+  height: 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--aibrium-ink) 9%, transparent);
+  animation: public-weather-pulse 1.35s ease-in-out infinite alternate;
+}
+
+.aibrium-weather-card__loading span:nth-child(2) {
+  width: 72%;
+  animation-delay: 120ms;
+}
+
+.aibrium-weather-card__loading span:nth-child(3) {
+  width: 52%;
+  animation-delay: 240ms;
+}
+
+@keyframes public-weather-pulse {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 0.9;
+  }
+}
+
+.aibrium-weather-card__empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  padding: 1.35rem 0 0.4rem;
+  color: var(--aibrium-muted);
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.aibrium-weather-card__empty button {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--aibrium-line);
+  border-radius: 999px;
+  color: var(--aibrium-ink);
+  font-size: 0.72rem;
+}
+
+.aibrium-weather-card__empty button:hover {
+  border-color: color-mix(in srgb, var(--accent-amber-strong) 52%, var(--aibrium-line));
+  background: rgba(211, 157, 71, 0.1);
+}
+
+/* ── 首页文章分页 ────────────────────────────────────────────────── */
+.aibrium-pagination {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.35rem;
+  text-align: center;
+}
+
+.aibrium-pagination__button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--aibrium-line);
+  border-radius: 999px;
+  background: var(--aibrium-card);
+  color: var(--aibrium-ink);
+  font-size: 0.76rem;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.aibrium-pagination__button:hover {
+  border-color: rgba(191, 132, 43, 0.38);
+  background: #fff6df;
+  transform: translateY(-1px);
+}
+
+.aibrium-pagination__button.is-disabled {
+  cursor: default;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.aibrium-pagination__status {
+  color: var(--aibrium-muted);
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 后台统一暖色视觉，但保留后台的密度和导航层级 ─────────────── */
+.admin-shell {
+  --admin-page: #f2e7da;
+  --admin-card: #fffaf2;
+  --admin-ink: #332923;
+  --admin-muted: #6f625b;
+  --admin-line: rgba(110, 82, 63, 0.14);
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 9% 5%, rgba(255, 255, 255, 0.72), transparent 24rem),
+    radial-gradient(circle at 92% 86%, rgba(210, 178, 142, 0.2), transparent 28rem),
+    var(--admin-page);
+  color: var(--admin-ink);
+}
+
+.dark .admin-shell {
+  --admin-page: #1e1713;
+  --admin-card: #2b201a;
+  --admin-ink: #f7eadb;
+  --admin-muted: #c0aa98;
+  --admin-line: rgba(255, 237, 216, 0.14);
+  background:
+    radial-gradient(circle at 9% 5%, rgba(125, 85, 50, 0.17), transparent 24rem),
+    radial-gradient(circle at 92% 86%, rgba(82, 53, 32, 0.24), transparent 28rem),
+    var(--admin-page);
+}
+
+.admin-shell [class~="bg-background"] {
+  background-color: var(--admin-page);
+}
+
+.admin-shell [class~="bg-card"],
+.admin-shell [class~="bg-card/50"],
+.admin-shell [class~="bg-card/35"] {
+  border-color: var(--admin-line);
+  background-color: color-mix(in srgb, var(--admin-card) 88%, transparent);
+}
+
+.admin-shell [class~="border-border"] {
+  border-color: var(--admin-line);
+}
+
+.admin-shell [class~="text-muted-foreground"] {
+  color: var(--admin-muted);
+}
+
+.admin-shell [data-sidebar="sidebar"] {
+  border-color: var(--admin-line);
+  background: color-mix(in srgb, var(--admin-card) 92%, transparent);
+}
+
+.admin-shell input,
+.admin-shell textarea,
+.admin-shell select {
+  border-color: var(--admin-line);
+  background: color-mix(in srgb, var(--admin-card) 92%, transparent);
+  color: var(--admin-ink);
+}
+
+.admin-shell button[class*="bg-primary"] {
+  background: #c98b32;
+  color: #fffaf2;
+}
+
+@media (max-width: 767px) {
+  .aibrium-pagination {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .aibrium-pagination__status {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .aibrium-pagination__button {
+    min-height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aibrium-weather-card__loading span {
+    animation: none;
+  }
+
+  .aibrium-pagination__button {
+    transition: none;
+  }
+}

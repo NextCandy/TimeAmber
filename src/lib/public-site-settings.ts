@@ -62,6 +62,10 @@ export function safePublicHref(
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
   if (!trimmed || [...trimmed].some((character) => character.charCodeAt(0) < 32)) return undefined;
+  // Browsers normalize backslashes in URL-like strings. Reject them before
+  // accepting a path so values such as /\\evil.example cannot escape to an
+  // external origin after navigation.
+  if (trimmed.includes("\\")) return undefined;
   if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return trimmed;
 
   try {

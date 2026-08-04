@@ -71,7 +71,7 @@ function AskPage() {
         <div className="rounded-xl border border-dashed border-border/80 bg-card/40 p-10 text-center">
           <Sparkles className="mx-auto h-6 w-6 text-muted-foreground" />
           <p className="mt-3 text-sm text-muted-foreground">站内问答暂未开放。</p>
-          <Link to="/" className="mt-4 inline-block text-sm text-primary hover:underline">
+          <Link to="/" search={{ page: undefined }} className="mt-4 inline-block text-sm text-primary hover:underline">
             回到首页
           </Link>
         </div>

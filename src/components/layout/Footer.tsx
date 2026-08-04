@@ -28,7 +28,7 @@ export function Footer() {
   return (
     <footer className="public-footer mt-8 border-t border-border/60">
       <div className="mx-auto flex max-w-6xl flex-col gap-5 px-6 py-8 text-sm sm:flex-row sm:items-center sm:justify-between">
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link to="/" search={{ page: undefined }} className="flex items-center gap-2.5">
           <img
             src={config.identity.logoUrl || BRAND_ICON}
             alt=""

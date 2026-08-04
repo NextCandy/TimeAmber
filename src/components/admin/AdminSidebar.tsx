@@ -117,7 +117,7 @@ export function AdminSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="查看前台">
-                  <Link to="/">
+                  <Link to="/" search={{ page: undefined }}>
                     <Home className="h-4 w-4" />
                     <span>前台首页</span>
                   </Link>

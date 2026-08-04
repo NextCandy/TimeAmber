@@ -4,13 +4,13 @@ import type { CSSProperties, ReactNode } from "react";
 
 import { FriendsEntry } from "@/components/public/FriendsEntry";
 import { GlassPanel } from "@/components/public/GlassPanel";
-import { LatestUpdateCard, SiteClock } from "@/components/public/AibriumWidgets";
-import { PopularTaxonomies } from "@/components/public/PopularTaxonomies";
+import { SiteClock } from "@/components/public/AibriumWidgets";
 import { ProfileOverview } from "@/components/public/ProfileOverview";
 import { PublishCalendar } from "@/components/public/PublishCalendar";
 import { PublicNavigationGrid } from "@/components/public/PublicNavigationGrid";
 import { PublicSearch } from "@/components/public/PublicSearch";
 import { SiteStats } from "@/components/public/SiteStats";
+import { WeatherCard } from "@/components/public/WeatherCard";
 import { DEFAULT_POST_COVER } from "@/lib/brand";
 import { useAdminStore } from "@/lib/admin-store";
 import { safePublicHref } from "@/lib/public-site-settings";
@@ -79,7 +79,9 @@ function PostCard({ post, index }: { post: HomePost; index: number }) {
 }
 
 function LatestPosts({ config, home }: { config: PublicSiteConfig; home: HomeData }) {
-  const posts = home.latest.slice(0, 8);
+  const posts = home.latest;
+  const start = (home.page - 1) * home.pageSize + 1;
+  const end = Math.min(start + posts.length - 1, home.totalPosts);
   return (
     <>
       <div className="aibrium-feed-heading">
@@ -103,9 +105,44 @@ function LatestPosts({ config, home }: { config: PublicSiteConfig; home: HomeDat
         )}
       </div>
       <div className="aibrium-feed-footer">
-        <span>显示最近 {posts.length} 篇</span>
+        <span>
+          显示第 {start}–{end} 篇
+        </span>
         <Link to="/archive">进入完整归档</Link>
       </div>
+      {home.totalPages > 1 && (
+        <nav className="aibrium-pagination" aria-label="文章分页">
+          {home.hasPreviousPage ? (
+            <Link
+              to="/"
+              search={{ page: home.page > 2 ? home.page - 1 : undefined }}
+              className="aibrium-pagination__button"
+            >
+              上一页
+            </Link>
+          ) : (
+            <span className="aibrium-pagination__button is-disabled" aria-disabled="true">
+              上一页
+            </span>
+          )}
+          <span className="aibrium-pagination__status">
+            第 {home.page} / {home.totalPages} 页
+          </span>
+          {home.hasNextPage ? (
+            <Link
+              to="/"
+              search={{ page: home.page + 1 }}
+              className="aibrium-pagination__button"
+            >
+              下一页
+            </Link>
+          ) : (
+            <span className="aibrium-pagination__button is-disabled" aria-disabled="true">
+              下一页
+            </span>
+          )}
+        </nav>
+      )}
     </>
   );
 }
@@ -171,7 +208,7 @@ export function HomeDashboard({ home }: { home: HomeData }) {
 
         <aside className="aibrium-column aibrium-column--right">
           <HomeModule>
-            <LatestUpdateCard config={config} home={home} />
+            <WeatherCard />
           </HomeModule>
           {hasModule("publishCalendar") && (
             <HomeModule>
@@ -179,15 +216,6 @@ export function HomeDashboard({ home }: { home: HomeData }) {
                 config={config}
                 initialDays={home.calendar}
                 initialMonth={{ year: home.calendarYear, month: home.calendarMonth }}
-              />
-            </HomeModule>
-          )}
-          {(hasModule("popularCategories") || hasModule("popularTags")) && (
-            <HomeModule>
-              <PopularTaxonomies
-                config={config}
-                categories={hasModule("popularCategories") ? home.popularCategories : []}
-                tags={hasModule("popularTags") ? home.popularTags : []}
               />
             </HomeModule>
           )}

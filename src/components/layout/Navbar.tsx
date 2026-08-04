@@ -98,7 +98,7 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
   return (
     <header className="public-navbar">
       <div className={`public-navbar__inner ${scrolled ? "is-scrolled" : ""}`}>
-        <Link to="/" className="public-navbar__brand">
+        <Link to="/" search={{ page: undefined }} className="public-navbar__brand">
           <span>{config.identity.navTitle}</span>
         </Link>
 

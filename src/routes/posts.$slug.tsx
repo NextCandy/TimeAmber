@@ -412,7 +412,7 @@ function PostPage() {
     return (
       <div className="mx-auto max-w-2xl px-6 pt-24 text-center">
         <p className="font-display text-2xl">这篇文章不存在</p>
-        <Link to="/" className="mt-4 inline-block text-primary hover:underline">
+        <Link to="/" search={{ page: undefined }} className="mt-4 inline-block text-primary hover:underline">
           回到首页
         </Link>
       </div>

@@ -10,8 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as FriendsRouteImport } from './routes/friends'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CategoriesRouteImport } from './routes/categories'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AskRouteImport } from './routes/ask'
 import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as AboutRouteImport } from './routes/about'
@@ -41,14 +41,14 @@ const FriendsRoute = FriendsRouteImport.update({
   path: '/friends',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CategoriesRoute = CategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AskRoute = AskRouteImport.update({
@@ -181,9 +181,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/archive': typeof ArchiveRoute
-  '/categories': typeof CategoriesRoute
   '/ask': typeof AskRoute
   '/auth': typeof AuthRoute
+  '/categories': typeof CategoriesRoute
   '/friends': typeof FriendsRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/posts/$slug': typeof PostsSlugRoute
@@ -208,9 +208,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/archive': typeof ArchiveRoute
-  '/categories': typeof CategoriesRoute
   '/ask': typeof AskRoute
   '/auth': typeof AuthRoute
+  '/categories': typeof CategoriesRoute
   '/friends': typeof FriendsRoute
   '/posts/$slug': typeof PostsSlugRoute
   '/admin/ai': typeof AuthenticatedAdminAiRoute
@@ -236,9 +236,9 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/archive': typeof ArchiveRoute
-  '/categories': typeof CategoriesRoute
   '/ask': typeof AskRoute
   '/auth': typeof AuthRoute
+  '/categories': typeof CategoriesRoute
   '/friends': typeof FriendsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/posts/$slug': typeof PostsSlugRoute
@@ -265,9 +265,9 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/archive'
-    | '/categories'
     | '/ask'
     | '/auth'
+    | '/categories'
     | '/friends'
     | '/admin'
     | '/posts/$slug'
@@ -292,9 +292,9 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/archive'
-    | '/categories'
     | '/ask'
     | '/auth'
+    | '/categories'
     | '/friends'
     | '/posts/$slug'
     | '/admin/ai'
@@ -319,9 +319,9 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/archive'
-    | '/categories'
     | '/ask'
     | '/auth'
+    | '/categories'
     | '/friends'
     | '/_authenticated/admin'
     | '/posts/$slug'
@@ -348,9 +348,9 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   ArchiveRoute: typeof ArchiveRoute
-  CategoriesRoute: typeof CategoriesRoute
   AskRoute: typeof AskRoute
   AuthRoute: typeof AuthRoute
+  CategoriesRoute: typeof CategoriesRoute
   FriendsRoute: typeof FriendsRoute
   PostsSlugRoute: typeof PostsSlugRoute
 }
@@ -364,20 +364,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FriendsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/archive': {
-      id: '/archive'
-      path: '/archive'
-      fullPath: '/archive'
-      preLoaderRoute: typeof ArchiveRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/categories': {
       id: '/categories'
       path: '/categories'
@@ -385,11 +371,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ask': {
       id: '/ask'
       path: '/ask'
       fullPath: '/ask'
       preLoaderRoute: typeof AskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/archive': {
+      id: '/archive'
+      path: '/archive'
+      fullPath: '/archive'
+      preLoaderRoute: typeof ArchiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -602,9 +602,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   ArchiveRoute: ArchiveRoute,
-  CategoriesRoute: CategoriesRoute,
   AskRoute: AskRoute,
   AuthRoute: AuthRoute,
+  CategoriesRoute: CategoriesRoute,
   FriendsRoute: FriendsRoute,
   PostsSlugRoute: PostsSlugRoute,
 }

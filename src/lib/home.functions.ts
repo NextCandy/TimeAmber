@@ -26,14 +26,39 @@ export type HomeData = {
   totalCategories: number;
   friendsCount: number;
   latestUpdatedAt?: string;
-  popularCategories: TaxonomySummary[];
-  popularTags: TaxonomySummary[];
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
   calendar: PublishCalendarDay[];
   calendarYear: number;
   calendarMonth: number;
 };
 
-const LATEST_LIMIT = 12;
+export const HOME_PAGE_SIZE = 8;
+
+export function normalizeHomePage(value: unknown) {
+  const page = typeof value === "number" ? value : Number(value);
+  return Number.isInteger(page) && page >= 1 && page <= 10_000 ? page : 1;
+}
+
+export function homePageMeta(requestedPage: unknown, totalPosts: number) {
+  const safeTotalPosts = Number.isFinite(totalPosts) ? Math.max(0, Math.floor(totalPosts)) : 0;
+  const totalPages = Math.max(1, Math.ceil(safeTotalPosts / HOME_PAGE_SIZE));
+  const page = Math.min(normalizeHomePage(requestedPage), totalPages);
+  return {
+    page,
+    pageSize: HOME_PAGE_SIZE,
+    totalPages,
+    hasPreviousPage: page > 1,
+    hasNextPage: page < totalPages,
+  };
+}
+
+const homeInput = z.object({
+  page: z.number().int().min(1).max(10_000).catch(1),
+});
 
 type PostRow = {
   slug: unknown;
@@ -87,23 +112,37 @@ function toHomePost(row: PostRow): HomePost {
   };
 }
 
-function mapSummary(rows: Array<{ name: unknown; count: unknown }>): TaxonomySummary[] {
-  return rows.map((row) => ({ name: String(row.name), count: Number(row.count) }));
-}
-
 const visibleSql = (sql: ReturnType<typeof db>) => sql`p.published = true
   and coalesce(p.listed, true) = true
   and (p.publish_at is null or p.publish_at <= now())`;
 
-export const loadHomeData = createServerFn({ method: "GET" }).handler(
-  async (): Promise<HomeData> => {
+export const loadHomeData = createServerFn({ method: "GET" })
+  .validator((value: z.infer<typeof homeInput>) => homeInput.parse(value))
+  .handler(async ({ data }): Promise<HomeData> => {
     const sql = db();
     const now = new Date();
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth() + 1;
     const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
 
-    const [latestRows, statsRows, categories, tags, friends, calendar] = await Promise.all([
+    const statsRows = await sql<
+      { posts: unknown; tags: unknown; categories: unknown; latest: unknown }[]
+    >`
+      select
+        count(distinct p.id)::int as posts,
+        count(distinct pt.tag_id)::int as tags,
+        count(distinct nullif(p.category, ''))::int as categories,
+        max(coalesce(p.publish_at, p.created_at)) as latest
+      from public.posts p
+      left join public.post_tags pt on pt.post_id = p.id
+      where ${visibleSql(sql)}
+    `;
+
+    const totalPosts = Number(statsRows[0]?.posts ?? 0);
+    const pageMeta = homePageMeta(data.page, totalPosts);
+    const offset = (pageMeta.page - 1) * HOME_PAGE_SIZE;
+
+    const [latestRows, friends, calendar] = await Promise.all([
       sql<PostRow[]>`
         select
           p.slug, p.title, p.excerpt, p.category, p.publish_at, p.created_at,
@@ -114,32 +153,9 @@ export const loadHomeData = createServerFn({ method: "GET" }).handler(
         left join public.tags t on t.id = pt.tag_id
         where ${visibleSql(sql)}
         group by p.id
-        order by coalesce(p.publish_at, p.created_at) desc
-        limit ${LATEST_LIMIT}
-      `,
-      sql<{ posts: unknown; tags: unknown; categories: unknown; latest: unknown }[]>`
-        select
-          count(distinct p.id)::int as posts,
-          count(distinct pt.tag_id)::int as tags,
-          count(distinct nullif(p.category, ''))::int as categories,
-          max(coalesce(p.publish_at, p.created_at)) as latest
-        from public.posts p
-        left join public.post_tags pt on pt.post_id = p.id
-        where ${visibleSql(sql)}
-      `,
-      sql<{ name: unknown; count: unknown }[]>`
-        select p.category as name, count(*)::int as count
-        from public.posts p
-        where ${visibleSql(sql)} and nullif(p.category, '') is not null
-        group by p.category order by count(*) desc, p.category limit 6
-      `,
-      sql<{ name: unknown; count: unknown }[]>`
-        select t.name, count(*)::int as count
-        from public.post_tags pt
-        join public.tags t on t.id = pt.tag_id
-        join public.posts p on p.id = pt.post_id
-        where ${visibleSql(sql)}
-        group by t.name order by count(*) desc, t.name limit 12
+        order by coalesce(p.publish_at, p.created_at) desc, p.id desc
+        limit ${HOME_PAGE_SIZE}
+        offset ${offset}
       `,
       sql<{ count: unknown }[]>`
         select count(*)::int as count from public.friends where published = true
@@ -158,21 +174,19 @@ export const loadHomeData = createServerFn({ method: "GET" }).handler(
 
     return {
       latest: latestRows.map(toHomePost),
-      totalPosts: Number(statsRows[0]?.posts ?? 0),
+      totalPosts,
       totalTags: Number(statsRows[0]?.tags ?? 0),
       totalCategories: Number(statsRows[0]?.categories ?? 0),
       friendsCount: Number(friends[0]?.count ?? 0),
       latestUpdatedAt: statsRows[0]?.latest
         ? new Date(String(statsRows[0].latest)).toISOString()
         : undefined,
-      popularCategories: mapSummary(categories),
-      popularTags: mapSummary(tags),
+      ...pageMeta,
       calendar: calendar.map((row) => ({ date: String(row.date), count: Number(row.count) })),
       calendarYear: year,
       calendarMonth: month,
     };
-  },
-);
+  });
 
 const calendarInput = z.object({
   year: z.number().int().min(2000).max(2200),
