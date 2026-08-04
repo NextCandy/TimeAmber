@@ -51,6 +51,30 @@ const socialLinkSchema = z.object({
   openInNewTab: z.boolean().default(true),
 });
 
+/**
+ * Re-check user-managed URLs at render time. Settings are validated on save,
+ * but older or externally restored settings can still reach the public UI.
+ */
+export function safePublicHref(
+  value: unknown,
+  options: { allowMailtoTel?: boolean } = {},
+): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || [...trimmed].some((character) => character.charCodeAt(0) < 32)) return undefined;
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return trimmed;
+
+  try {
+    const url = new URL(trimmed);
+    const allowedProtocols = options.allowMailtoTel
+      ? ["http:", "https:", "mailto:", "tel:"]
+      : ["http:", "https:"];
+    return allowedProtocols.includes(url.protocol) ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 const moduleSchema = z.object({
   id: z.enum(PUBLIC_MODULE_IDS),
   enabled: z.boolean().default(true),

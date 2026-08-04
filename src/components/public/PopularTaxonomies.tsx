@@ -8,9 +8,9 @@ import type { PublicSiteConfig } from "@/lib/public-site-settings";
 function TaxonomyList({ items, tag }: { items: TaxonomySummary[]; tag: boolean }) {
   return items.length ? (
     <div className="mt-4 flex flex-wrap gap-2">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <Link
-          key={item.name}
+          key={`${tag ? "tag" : "category"}-${item.name}-${index}`}
           to="/categories"
           search={tag ? { tag: item.name } : { c: item.name }}
           className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/20 px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-accent-amber/60 hover:text-accent-amber"

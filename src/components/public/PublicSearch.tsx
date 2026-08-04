@@ -10,7 +10,7 @@ export function PublicSearch({ placeholder }: { placeholder: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="public-search press-feedback group flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left text-sm focus-visible:outline-none"
+        className="public-search press-feedback group flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber/60 focus-visible:ring-offset-2"
         aria-label="打开站内搜索"
       >
         <Search className="h-4 w-4 shrink-0 text-accent-amber" aria-hidden="true" />

@@ -10,7 +10,8 @@ export type ThemePreference = (typeof THEME_PREFERENCES)[number];
 /** 去掉 system 之后偏好就是最终主题，别名留着是为了不动调用方。 */
 export type ResolvedTheme = ThemePreference;
 
-export const DEFAULT_THEME_PREFERENCE: ThemePreference = "dark";
+// 参考站默认是明亮暖色；已有 Cookie/localStorage 偏好仍然优先保留。
+export const DEFAULT_THEME_PREFERENCE: ThemePreference = "light";
 
 export function parseThemePreference(value: unknown): ThemePreference | null {
   return typeof value === "string" && THEME_PREFERENCES.includes(value as ThemePreference)

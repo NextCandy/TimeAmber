@@ -97,7 +97,7 @@ export function PublishCalendar({
               key={date}
               to="/archive"
               search={{ q: undefined, category: undefined }}
-              className={`flex h-8 items-center justify-center rounded-lg text-xs transition-colors focus-visible:outline-none ${count ? "bg-accent-amber text-accent-amber-foreground hover:bg-accent-amber-strong" : "bg-background/25 text-muted-foreground hover:bg-accent-amber-soft"}`}
+              className={`flex h-8 items-center justify-center rounded-lg text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber/60 focus-visible:ring-offset-2 ${count ? "bg-accent-amber text-accent-amber-foreground hover:bg-accent-amber-strong" : "bg-background/25 text-muted-foreground hover:bg-accent-amber-soft"}`}
               title={count ? `${date} · ${count} 篇` : date}
             >
               {day}

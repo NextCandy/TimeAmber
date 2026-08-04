@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 
-import type { PublicSiteConfig } from "@/lib/public-site-settings";
+import { safePublicHref, type PublicSiteConfig } from "@/lib/public-site-settings";
 
 type BackgroundStyle = CSSProperties & {
   "--page-overlay-opacity"?: number;
@@ -10,7 +10,9 @@ type BackgroundStyle = CSSProperties & {
 };
 
 function cssUrl(value: string) {
-  return `url("${value.replace(/["\\)]/g, "")}")`;
+  const safeValue = safePublicHref(value);
+  if (!safeValue) return undefined;
+  return `url("${safeValue.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll(")", "%29").replaceAll("(", "%28")}")`;
 }
 
 function gradient(colors: string[]) {
@@ -40,8 +42,12 @@ function BackgroundStatus({ config }: { config: PublicSiteConfig }) {
 export function PublicBackground({ config }: { config: PublicSiteConfig }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const lightImages = config.appearance.lightBackgroundImages.filter(Boolean);
-  const darkImages = config.appearance.darkBackgroundImages.filter(Boolean);
+  const lightImages = config.appearance.lightBackgroundImages
+    .map((value) => safePublicHref(value))
+    .filter((value): value is string => !!value);
+  const darkImages = config.appearance.darkBackgroundImages
+    .map((value) => safePublicHref(value))
+    .filter((value): value is string => !!value);
   const hasImages =
     config.appearance.backgroundMode === "image" &&
     (lightImages.length > 0 || darkImages.length > 0);

@@ -18,12 +18,12 @@ test("只接受明暗两档，system 已不再是合法偏好", () => {
   assert.equal(parseThemePreference(undefined), null);
 });
 
-test("从 Cookie 读取主题，非法值回退到默认深色", () => {
+test("从 Cookie 读取主题，非法值回退到默认亮色", () => {
   assert.equal(readThemePreferenceFromCookie("foo=1; ta-theme=light; bar=2"), "light");
-  assert.equal(readThemePreferenceFromCookie("ta-theme=unknown"), "dark");
-  assert.equal(readThemePreferenceFromCookie(null), "dark");
+  assert.equal(readThemePreferenceFromCookie("ta-theme=unknown"), "light");
+  assert.equal(readThemePreferenceFromCookie(null), "light");
   // 服务端读不到系统偏好，旧的 system 只能落到默认值；客户端 bootstrap 会再折算一次
-  assert.equal(readThemePreferenceFromCookie("ta-theme=system"), "dark");
+  assert.equal(readThemePreferenceFromCookie("ta-theme=system"), "light");
 });
 
 test("旧的 system 偏好按当时的系统设置折算成固定一档", () => {

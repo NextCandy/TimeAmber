@@ -1,5 +1,5 @@
+import { CircleUserRound, MoreVertical, Rss, Search } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { LayoutDashboard, Menu, Rss, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -10,10 +10,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BRAND_ICON } from "@/lib/brand";
 import { useAdminStore } from "@/lib/admin-store";
 import {
   DEFAULT_PUBLIC_SITE_CONFIG,
+  safePublicHref,
   sortedNavigation,
   type PublicSiteConfig,
 } from "@/lib/public-site-settings";
@@ -30,16 +30,14 @@ function NavItem({
   mobile?: boolean;
   onClick?: () => void;
 }) {
-  const className = mobile
-    ? "border-l-2 border-transparent px-4 py-3 text-base text-muted-foreground transition-colors hover:border-accent-amber/50 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-    : "rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
-  const activeClassName = mobile
-    ? "border-l-2 border-accent-amber bg-accent-amber-soft px-4 py-3 text-base font-medium text-foreground"
-    : "rounded-md bg-accent px-3 py-1.5 text-sm text-foreground";
-  if (/^https?:\/\//i.test(item.href) || item.openInNewTab || item.href === "/rss.xml") {
+  const className = mobile ? "public-mobile-nav-item" : "public-nav-item";
+  const activeClassName = mobile ? "public-mobile-nav-item is-active" : "public-nav-item is-active";
+  const href = safePublicHref(item.href);
+  if (!href) return null;
+  if (/^https?:\/\//i.test(href) || item.openInNewTab || href === "/rss.xml") {
     return (
       <a
-        href={item.href}
+        href={href}
         target={item.openInNewTab ? "_blank" : undefined}
         rel={item.openInNewTab ? "noopener noreferrer" : undefined}
         onClick={onClick}
@@ -51,7 +49,7 @@ function NavItem({
   }
   return (
     <Link
-      to={item.href as never}
+      to={href as never}
       onClick={onClick}
       className={className}
       activeOptions={{ exact: true }}
@@ -73,16 +71,9 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
   useEffect(() => {
     const sentinel = document.getElementById("timeamber-scroll-top");
     if (!sentinel) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      const next = !entry.isIntersecting;
-      setScrolled(next);
-      document.documentElement.dataset.scrolled = next ? "true" : "false";
-    });
+    const observer = new IntersectionObserver(([entry]) => setScrolled(!entry.isIntersecting));
     observer.observe(sentinel);
-    return () => {
-      observer.disconnect();
-      delete document.documentElement.dataset.scrolled;
-    };
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -104,81 +95,68 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const iconButton =
-    "press-feedback inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent-amber focus-visible:ring-offset-2 focus-visible:outline-none";
-
   return (
-    <header className="public-navbar sticky top-0 z-40 w-full px-3 pt-3 sm:px-4 sm:pt-4">
-      <div
-        className={`mx-auto grid h-[64px] max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-2xl border px-4 transition-all duration-300 sm:px-6 ${scrolled ? "border-border/60 bg-background/75 shadow-[0_8px_30px_-12px_color-mix(in_oklch,var(--foreground)_18%,transparent)] backdrop-blur-xl" : "border-transparent bg-transparent"}`}
-      >
-        <Link
-          to="/"
-          className="group col-start-1 flex min-w-0 items-center gap-2.5 justify-self-start"
-        >
-          <img
-            src={config.identity.logoUrl || BRAND_ICON}
-            alt=""
-            width={32}
-            height={32}
-            className="h-8 w-8 shrink-0 object-contain drop-shadow-brand-sm"
-          />
-          <span className="truncate font-brand text-2xl leading-none font-normal tracking-tight">
-            {config.identity.navTitle}
-          </span>
+    <header className="public-navbar">
+      <div className={`public-navbar__inner ${scrolled ? "is-scrolled" : ""}`}>
+        <Link to="/" className="public-navbar__brand">
+          <span>{config.identity.navTitle}</span>
         </Link>
 
-        <nav
-          aria-label="主导航"
-          className="col-start-2 hidden items-center gap-1 justify-self-center md:flex"
-        >
+        <nav aria-label="主导航" className="public-navbar__nav">
           {navItems.map((item) => (
             <NavItem key={item.id} item={item} />
           ))}
         </nav>
 
-        <div className="col-start-3 hidden items-center gap-1 justify-self-end md:flex">
+        <div className="public-navbar__actions">
           <button
             type="button"
             aria-label="搜索（⌘K）"
             title="搜索（⌘K / Ctrl+K）"
             onClick={() => setSearchOpen(true)}
-            className={iconButton}
+            className="public-navbar__icon-button"
           >
             <Search className="h-4 w-4" />
           </button>
-          <a href="/rss.xml" aria-label="RSS 订阅" title="RSS 订阅" className={iconButton}>
+          <a
+            href="/rss.xml"
+            aria-label="RSS 订阅"
+            title="RSS 订阅"
+            className="public-navbar__icon-button"
+          >
             <Rss className="h-4 w-4" />
           </a>
-          <Link to="/admin" aria-label="后台" title="后台" className={iconButton}>
-            <LayoutDashboard className="h-4 w-4" />
+          <Link
+            to="/admin"
+            aria-label="后台登录"
+            title="后台登录"
+            className="public-navbar__account"
+          >
+            <CircleUserRound className="h-4 w-4" />
           </Link>
           <ThemeToggle initialPreference={initialThemePreference} />
         </div>
 
-        <div className="col-start-3 justify-self-end md:hidden">
+        <div className="public-navbar__mobile-trigger">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <button
                 type="button"
                 aria-label="打开导航菜单"
                 title="导航菜单"
-                className={iconButton}
+                className="public-mobile-menu-button"
               >
-                <Menu className="h-5 w-5" />
+                <MoreVertical className="h-6 w-6" />
               </button>
             </SheetTrigger>
-            <SheetContent
-              side="right"
-              className="flex w-[min(88vw,22rem)] flex-col border-l border-border bg-background p-0"
-            >
-              <SheetHeader className="border-b border-border px-6 py-5 text-left">
-                <SheetTitle className="font-brand text-2xl font-normal">
+            <SheetContent side="right" className="public-mobile-sheet">
+              <SheetHeader className="public-mobile-sheet__header">
+                <SheetTitle className="public-mobile-sheet__title">
                   {config.identity.navTitle}
                 </SheetTitle>
                 <SheetDescription className="sr-only">移动端站点导航</SheetDescription>
               </SheetHeader>
-              <nav aria-label="移动端主导航" className="flex flex-col px-4 py-5">
+              <nav aria-label="移动端主导航" className="public-mobile-nav">
                 {navItems.map((item) => (
                   <NavItem
                     key={item.id}
@@ -188,36 +166,26 @@ export function Navbar({ initialThemePreference }: { initialThemePreference: The
                   />
                 ))}
               </nav>
-              <div className="mt-auto border-t border-border px-4 py-4">
+              <div className="public-mobile-sheet__footer">
                 <button
                   type="button"
                   onClick={() => {
                     setMobileMenuOpen(false);
                     setSearchOpen(true);
                   }}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  className="public-mobile-nav-item"
                 >
-                  <Search className="h-4 w-4" />
-                  搜索
+                  <Search className="h-4 w-4" /> 搜索
                 </button>
                 <Link
                   to="/admin"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  className="public-mobile-nav-item"
                 >
-                  <LayoutDashboard className="h-4 w-4" />
-                  后台
+                  <CircleUserRound className="h-4 w-4" /> 后台
                 </Link>
-                <a
-                  href="/rss.xml"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                >
-                  <Rss className="h-4 w-4" />
-                  RSS 订阅
-                </a>
-                <div className="flex items-center justify-between gap-3 px-4 py-2 text-sm text-muted-foreground">
-                  <span>切换主题</span>
+                <div className="public-mobile-theme-row">
+                  <span>主题</span>
                   <ThemeToggle initialPreference={initialThemePreference} />
                 </div>
               </div>
