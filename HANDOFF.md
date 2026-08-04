@@ -79,13 +79,17 @@
 - reduced motion：状态文字动画为 `none`，移动端无横向溢出
 - 公开路由 `/`、`/archive`、`/categories`、`/friends`、`/about`、真实文章：HTTP 200，无错误页
 - 未登录 `/admin`：客户端重定向 `/auth?redirect=%2Fadmin`，未显示后台侧栏
+- 生产部署：基于 `a08c590` 重建并仅重启 `timeamber-app`，`49287` healthy，HTTP 200；Worker、Supabase、Cloudflare Tunnel 未重启
+- 管理员 E2E：使用目标管理员账号登录成功，打开“公开站点”，保存接口 HTTP 200，提示保存成功，刷新后配置指纹一致
+- 部署前备份：`/opt/docker/timeamber-deploy-backups/20260804-a08c590-pre`
 
-未能完成的线上验证：没有使用管理员密码执行真实后台保存/恢复流程，也没有更新生产
-`timeamber-app` 容器；因此不能声称已部署或完成管理员端到端持久化实测。
+仍未完成的项目级检查：全量 lint 继续受仓库原有部署/Edge 文件的 Prettier/CRLF 报错影响；GitHub
+HTTPS remote 没有非交互凭据，因此未推送分支或创建 Pull Request。
 
 ## 部署与回滚
 
-当前只完成代码、测试和临时容器验证；生产容器没有被更新。部署前应：
+本次已完成生产部署。部署前保存了旧容器/镜像检查信息、Compose 快照，并保留镜像标签
+`timeamber-timeamber-app:rollback-before-a08c590`。后续部署应：
 
 1. 备份数据库与 Compose 配置。
 2. 记录当前镜像、分支和容器状态。
@@ -98,6 +102,7 @@
 ## Git 状态
 
 - 分支：`redesign/aibrium-glass-dashboard`
-- commit：本分支最新 commit（feat: redesign public site and add editable appearance settings）
+- 功能 commit：`a08c590`（feat: redesign public site and add editable appearance settings）
+- 部署记录 commit：本分支最新 docs commit
 - 生产推送 / Pull Request：未执行
 - 远程原有未提交改动：`docker-compose.yml` 路径迁移和未跟踪 `docker-compose.nas-source.yml`，未纳入本次功能提交
