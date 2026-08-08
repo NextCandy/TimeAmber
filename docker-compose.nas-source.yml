@@ -568,12 +568,6 @@ services:
         target: /data/media
         type: bind
         volume: {}
-      # 后台本地上传的落盘目录：只有这一层可写，/data/media 仍是只读。
-      # 读取仍走 /cdn/uploads/*（由 node.mjs 从只读的 /data/media 静态伺服）。
-      - source: ${LEGACY_MEDIA_PATH}/uploads
-        target: /data/uploads
-        type: bind
-        volume: {}
   timeamber-bootstrap:
     build:
       context: /opt/docker/timeamber
@@ -723,7 +717,14 @@ services:
         source: /opt/docker/timeamber/deploy/supabase/volumes/timeamber-backups
         target: /data/backups
         type: bind
-
+  timeamber-pi-legacy-relay:
+    command:
+      - tcp-listen:23365,fork,reuseaddr
+      - tcp-connect:192.168.50.180:23365
+    container_name: timeamber-pi-legacy-relay
+    image: alpine/socat:latest
+    network_mode: host
+    restart: unless-stopped
   timeamber-cloudflared:
     command:
       - tunnel
@@ -732,6 +733,9 @@ services:
       - /etc/cloudflared/config.yml
       - run
     container_name: timeamber-cloudflared
+    depends_on:
+      timeamber-pi-legacy-relay:
+        condition: service_started
     image: cloudflare/cloudflared:latest
     network_mode: host
     restart: unless-stopped

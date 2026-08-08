@@ -3,9 +3,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
+  FileText,
+  Music,
+  HardDrive,
   Upload,
+  Video,
   Image as ImageIcon,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   Loader2,
   Cloud,
@@ -35,7 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAdminStore, type ImageHostConfig } from "@/lib/admin-store";
-import { seeUpload } from "@/lib/media.functions";
+import { seeUpload, uploadToLocal } from "@/lib/media.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/media")({
   component: MediaPage,
@@ -60,6 +66,44 @@ function fileToBase64(file: File) {
   });
 }
 
+type MediaKind = "image" | "video" | "audio" | "file";
+
+/** content_type 缺失时（老数据、手动录入）退回看扩展名。 */
+const EXT_KIND: Record<string, MediaKind> = {
+  jpg: "image", jpeg: "image", png: "image", gif: "image", webp: "image",
+  avif: "image", svg: "image", bmp: "image", ico: "image",
+  mp4: "video", webm: "video", mov: "video", mkv: "video", avi: "video", m4v: "video",
+  mp3: "audio", m4a: "audio", wav: "audio", flac: "audio", ogg: "audio", aac: "audio",
+};
+
+function mediaKind(item: { url: string; name: string; contentType?: string }): MediaKind {
+  const ct = item.contentType ?? "";
+  if (ct.startsWith("image/")) return "image";
+  if (ct.startsWith("video/")) return "video";
+  if (ct.startsWith("audio/")) return "audio";
+  const source = item.name || item.url.split("?")[0];
+  const ext = (source.split(".").pop() ?? "").toLowerCase();
+  return EXT_KIND[ext] ?? "file";
+}
+
+/** 一页三排。列数随断点变（2/3/4/5），按最宽的 lg 5 列算，3 排就是 15 个。 */
+const PAGE_SIZE = 15;
+
+/** 页面上从上到下依次铺开的三栏。音频并进「文件」，卡片本身仍是播放器。 */
+const MEDIA_SECTIONS = [
+  { key: "image", label: "图片", icon: ImageIcon },
+  { key: "video", label: "视频", icon: Video },
+  { key: "file", label: "文件", icon: FileText },
+] as const;
+
+const SOURCE_LABELS: Record<string, string> = {
+  see: "图床",
+  supabase: "Supabase",
+  imported: "导入",
+  local: "树莓派",
+  manual: "手动",
+};
+
 type Progress = {
   name: string;
   pct: number;
@@ -79,6 +123,7 @@ function MediaPage() {
   const [host, setHost] = useState<ImageHostConfig>(initial);
   const [filter, setFilter] = useState("");
   const [kind, setKind] = useState("all");
+  const [pages, setPages] = useState<Record<string, number>>({ image: 1, video: 1, file: 1 });
   const [after, setAfter] = useState("");
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [pendingBatchDelete, setPendingBatchDelete] = useState(false);
@@ -89,6 +134,8 @@ function MediaPage() {
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const upload = useServerFn(seeUpload);
+  const uploadLocal = useServerFn(uploadToLocal);
+  const localFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setHost(
@@ -122,6 +169,20 @@ function MediaPage() {
       return !q || m.name.toLowerCase().includes(q);
     });
   }, [store.media, filter, kind, after]);
+
+  useEffect(() => {
+    setPages({ image: 1, video: 1, file: 1 });
+  }, [filter, kind, after]);
+
+  /** 按栏归位。音频没有单独一栏，跟其它文件放一起。 */
+  const grouped = useMemo(() => {
+    const g: Record<string, typeof filtered> = { image: [], video: [], file: [] };
+    for (const m of filtered) {
+      const k = mediaKind(m);
+      g[k === "audio" ? "file" : k].push(m);
+    }
+    return g;
+  }, [filtered]);
 
   const pageAllSelected = filtered.length > 0 && filtered.every((item) => selected.has(item.id));
 
@@ -237,6 +298,56 @@ function MediaPage() {
     }
   }
 
+  async function uploadLocalOne(idx: number, f: File): Promise<boolean> {
+    try {
+      setProgress((p) =>
+        p.map((x, i) => (i === idx ? { ...x, pct: 30, status: "uploading", msg: undefined } : x)),
+      );
+      const fd = new FormData();
+      fd.append("file", f);
+      const res = await uploadLocal({ data: fd });
+      store.addMedia({
+        name: res.name,
+        url: res.url,
+        size: res.size,
+        contentType: res.contentType,
+        source: "local",
+      });
+      setProgress((p) =>
+        p.map((x, i) => (i === idx ? { ...x, pct: 100, status: "done", msg: res.diskPath } : x)),
+      );
+      return true;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "上传失败";
+      setProgress((p) =>
+        p.map((x, i) => (i === idx ? { ...x, pct: 100, status: "error", msg } : x)),
+      );
+      store.addMediaFailure({
+        name: f.name,
+        size: f.size,
+        contentType: f.type,
+        attempts: 1,
+        error: msg,
+      });
+      return false;
+    }
+  }
+
+  /** 本地上传不挑类型、不限 10MB，落在树莓派的 legacy-media/uploads 下。 */
+  async function handleLocalUpload(files: FileList | null) {
+    const list = Array.from(files ?? []);
+    if (!list.length) return;
+    setBusy(true);
+    setProgress(list.map((f) => ({ name: f.name, pct: 0, status: "uploading" as const, file: f })));
+    let ok = 0;
+    for (let i = 0; i < list.length; i++) {
+      if (await uploadLocalOne(i, list[i])) ok++;
+    }
+    setBusy(false);
+    if (ok === list.length) toast.success(`已上传 ${ok} 个文件到树莓派`);
+    else toast.warning(`${ok}/${list.length} 个上传成功，其余见失败列表`);
+  }
+
   async function handleUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
     if (host.provider !== "supabase" && !host.token.trim()) {
@@ -307,6 +418,146 @@ function MediaPage() {
     a.click();
     URL.revokeObjectURL(a.href);
   }
+
+  const renderCard = (m: (typeof filtered)[number]) => (
+      <div
+        key={m.id}
+        className="group relative overflow-hidden rounded-lg border border-border/60 bg-background/50"
+        style={{ contentVisibility: "auto", containIntrinsicSize: "260px" }}
+      >
+        <label className="absolute left-2 top-2 z-10 rounded bg-background/90 p-1 shadow-sm">
+          <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggleSelected(m.id)} aria-label={`选择 ${m.name}`} className="h-4 w-4 accent-primary" />
+        </label>
+        <div className="aspect-square w-full overflow-hidden bg-muted/30">
+          {mediaKind(m) === "video" ? (
+            // 只取首帧做预览，metadata 之外不预载，免得列表页拉一堆视频流
+            <video
+              src={m.url}
+              preload="metadata"
+              controls
+              playsInline
+              className="h-full w-full bg-black object-contain"
+            />
+          ) : mediaKind(m) === "audio" ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 p-3">
+              <Music className="h-8 w-8 opacity-40" />
+              <audio src={m.url} preload="none" controls className="w-full" />
+            </div>
+          ) : mediaKind(m) === "file" ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center">
+              <FileText className="h-8 w-8 opacity-40" />
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
+                {(m.name.split(".").pop() ?? "file").slice(0, 6)}
+              </span>
+            </div>
+          ) : missingImages.has(m.id) ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-xs text-muted-foreground">
+              <ImageIcon className="h-8 w-8 opacity-40" />
+              <span className="break-all">{m.name}</span>
+              <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => retryThumbnail(m.id)}>重试生成</Button>
+            </div>
+          ) : (
+            <img
+              key={`${m.id}-${retryVersion}-${thumbnailFallbacks.has(m.id) ? "original" : "thumb"}`}
+              src={thumbnailFallbacks.has(m.id) ? m.url : (m.thumbnailUrl ?? m.url)}
+              alt={m.name}
+              width={260}
+              height={260}
+              loading="lazy"
+              decoding="async"
+              onError={() => {
+                if (m.thumbnailUrl && !thumbnailFallbacks.has(m.id)) setThumbnailFallbacks((previous) => new Set(previous).add(m.id));
+                else setMissingImages((previous) => new Set(previous).add(m.id));
+              }}
+              className="h-full w-full object-cover"
+            />
+          )}
+        </div>
+        <div className="p-2">
+          <p className="truncate text-[11px] font-medium" title={m.name}>
+            {m.name}
+          </p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">
+            {SOURCE_LABELS[m.source] ?? "手动"}
+          </p>
+        </div>
+        <div className="absolute inset-x-1 top-1 flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            className="rounded-md bg-background/90 p-1 text-foreground/80 hover:text-foreground"
+            onClick={() => copy(m.url)}
+            aria-label="复制链接"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+          <button
+            className="rounded-md bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => store.removeMedia(m.id)}
+            aria-label="删除"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+  );
+
+  /** 三个块共用：网格 + 分页条，空的就给一句提示。 */
+  const renderSectionBody = (key: "image" | "video" | "file") => {
+    const items = grouped[key];
+    const label = MEDIA_SECTIONS.find((item) => item.key === key)?.label ?? "";
+    if (!items.length) {
+      return <p className="text-sm text-muted-foreground">还没有{label}。</p>;
+    }
+    const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+    const page = Math.min(Math.max(1, pages[key] ?? 1), totalPages);
+    const pageItems = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    const goto = (next: number) =>
+      setPages((p) => ({ ...p, [key]: Math.min(Math.max(1, next), totalPages) }));
+    return (
+      <>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {pageItems.map(renderCard)}
+        </div>
+        {totalPages > 1 && (
+          <div className="mt-3 flex items-center justify-center gap-2 text-xs">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2"
+              disabled={page <= 1}
+              onClick={() => goto(page - 1)}
+              aria-label={`${label}上一页`}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            {/* 图片上万张时页数很多，留个输入框直接跳，不然翻不到底 */}
+            <Input
+              type="number"
+              min={1}
+              max={totalPages}
+              value={page}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                if (Number.isFinite(next)) goto(next);
+              }}
+              className="h-7 w-14 text-center text-xs"
+              aria-label={`${label}页码`}
+            />
+            <span className="text-muted-foreground">/ {totalPages}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2"
+              disabled={page >= totalPages}
+              onClick={() => goto(page + 1)}
+              aria-label={`${label}下一页`}
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -392,7 +643,7 @@ function MediaPage() {
           <div className="flex items-center gap-2">
             <ImageIcon className="h-4 w-4 text-primary" />
             <h2 className="font-display text-base font-semibold">图片</h2>
-            <span className="text-xs text-muted-foreground">共 {store.media.length}</span>
+            <span className="text-xs text-muted-foreground">共 {grouped.image.length}</span>
           </div>
           <div className="flex items-center gap-2">
             <Input
@@ -405,6 +656,7 @@ function MediaPage() {
               <option value="all">全部类型</option>
               <option value="supabase">Supabase</option>
               <option value="see">图床</option>
+              <option value="local">树莓派</option>
               <option value="imported">导入</option>
               <option value="manual">手动</option>
             </select>
@@ -431,6 +683,30 @@ function MediaPage() {
                 <Upload className="mr-1.5 h-4 w-4" />
               )}
               上传图片
+            </Button>
+            <input
+              ref={localFileRef}
+              type="file"
+              multiple
+              hidden
+              onChange={(e) => {
+                handleLocalUpload(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => localFileRef.current?.click()}
+              title="图片、视频、文档都可以，直接存到树莓派，不经图床"
+            >
+              {busy ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <HardDrive className="mr-1.5 h-4 w-4" />
+              )}
+              上传到树莓派
             </Button>
           </div>
         </div>
@@ -503,71 +779,25 @@ function MediaPage() {
           </div>
         )}
 
-        {filtered.length === 0 ? (
-          <p className="text-sm text-muted-foreground">还没有任何图片。</p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {filtered.map((m) => (
-              <div
-                key={m.id}
-                className="group relative overflow-hidden rounded-lg border border-border/60 bg-background/50"
-                style={{ contentVisibility: "auto", containIntrinsicSize: "260px" }}
-              >
-                <label className="absolute left-2 top-2 z-10 rounded bg-background/90 p-1 shadow-sm">
-                  <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggleSelected(m.id)} aria-label={`选择 ${m.name}`} className="h-4 w-4 accent-primary" />
-                </label>
-                <div className="aspect-square w-full overflow-hidden bg-muted/30">
-                  {missingImages.has(m.id) ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-xs text-muted-foreground">
-                      <ImageIcon className="h-8 w-8 opacity-40" />
-                      <span className="break-all">{m.name}</span>
-                      <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => retryThumbnail(m.id)}>重试生成</Button>
-                    </div>
-                  ) : (
-                    <img
-                      key={`${m.id}-${retryVersion}-${thumbnailFallbacks.has(m.id) ? "original" : "thumb"}`}
-                      src={thumbnailFallbacks.has(m.id) ? m.url : (m.thumbnailUrl ?? m.url)}
-                      alt={m.name}
-                      width={260}
-                      height={260}
-                      loading="lazy"
-                      decoding="async"
-                      onError={() => {
-                        if (m.thumbnailUrl && !thumbnailFallbacks.has(m.id)) setThumbnailFallbacks((previous) => new Set(previous).add(m.id));
-                        else setMissingImages((previous) => new Set(previous).add(m.id));
-                      }}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </div>
-                <div className="p-2">
-                  <p className="truncate text-[11px] font-medium" title={m.name}>
-                    {m.name}
-                  </p>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">
-                    {m.source === "see" ? "图床" : m.source === "imported" ? "导入" : "手动"}
-                  </p>
-                </div>
-                <div className="absolute inset-x-1 top-1 flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                  <button
-                    className="rounded-md bg-background/90 p-1 text-foreground/80 hover:text-foreground"
-                    onClick={() => copy(m.url)}
-                    aria-label="复制链接"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    className="rounded-md bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90"
-                    onClick={() => store.removeMedia(m.id)}
-                    aria-label="删除"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {renderSectionBody("image")}
+      </section>
+
+      <section className="rounded-xl border border-border/70 bg-card/40 p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <Video className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-base font-semibold">视频</h2>
+          <span className="text-xs text-muted-foreground">共 {grouped.video.length}</span>
+        </div>
+        {renderSectionBody("video")}
+      </section>
+
+      <section className="rounded-xl border border-border/70 bg-card/40 p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-base font-semibold">文件</h2>
+          <span className="text-xs text-muted-foreground">共 {grouped.file.length}</span>
+        </div>
+        {renderSectionBody("file")}
       </section>
 
       <section className="rounded-xl border border-border/70 bg-card/40 p-5">

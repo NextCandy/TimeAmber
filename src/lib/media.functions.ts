@@ -88,3 +88,81 @@ export const fetchImageAsBase64 = createServerFn({ method: "POST" })
     const base64 = btoa(bin);
     return { base64, contentType: ct };
   });
+
+/* ── 本地上传（存到树莓派，不经图床）─────────────── */
+
+// 写入的是容器里单独挂的可写目录；读取仍走只读的 /data/media，URL 前缀 /cdn/uploads/。
+const LOCAL_UPLOAD_DIR = process.env.LOCAL_UPLOAD_DIR || "/data/uploads";
+const LOCAL_PUBLIC_PREFIX = "/cdn/uploads/";
+const LOCAL_MAX_BYTES = Number(process.env.LOCAL_UPLOAD_MAX_BYTES || 512 * 1024 * 1024);
+
+/**
+ * 只留文件名本身。路径分隔符、控制字符、以及各种会让 shell/URL 犯迷糊的符号
+ * 统统换成连字符，确保写不到 uploads 目录外面去。
+ */
+function safeFileName(raw: string) {
+  const base = raw.split(/[\\/]/).pop() || "file";
+  const cleaned = base
+    .replace(/[^\w.\-一-龥]/g, "-")
+    .replace(/^\.+/, "")
+    .slice(-120);
+  return cleaned || "file";
+}
+
+export const uploadToLocal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: FormData) => {
+    if (!(data instanceof FormData)) throw new Error("需要 FormData");
+    const file = data.get("file");
+    if (!(file instanceof File)) throw new Error("缺少文件");
+    if (file.size <= 0) throw new Error("文件是空的");
+    if (file.size > LOCAL_MAX_BYTES)
+      throw new Error(`文件超过上限 ${Math.floor(LOCAL_MAX_BYTES / 1024 / 1024)}MB`);
+    return { file };
+  })
+  .handler(async ({ data, context }) => {
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 只有管理员能往盘上写东西
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (profile?.role !== "admin") throw new Error("Administrator access required");
+
+    const file = data.file;
+    const name = safeFileName(file.name);
+    // 按月分目录，免得单个目录堆几万个文件
+    const bucketDir = new Date().toISOString().slice(0, 7);
+    const objectPath = `${bucketDir}/${crypto.randomUUID()}-${name}`;
+    const target = join(LOCAL_UPLOAD_DIR, objectPath);
+
+    await mkdir(join(LOCAL_UPLOAD_DIR, bucketDir), { recursive: true });
+    await writeFile(target, Buffer.from(await file.arrayBuffer()));
+
+    const url = `${LOCAL_PUBLIC_PREFIX}${objectPath.split("/").map(encodeURIComponent).join("/")}`;
+    const id = crypto.randomUUID();
+    await supabaseAdmin.from("media_items").insert({
+      id,
+      bucket: "local",
+      object_path: objectPath,
+      name: file.name.slice(0, 200),
+      public_url: url,
+      size_bytes: file.size,
+      content_type: file.type || "application/octet-stream",
+      source: "local",
+    });
+
+    return {
+      id,
+      url,
+      name: file.name,
+      size: file.size,
+      contentType: file.type || "application/octet-stream",
+      // 树莓派上的真实位置，方便直接去盘上找
+      diskPath: `legacy-media/uploads/${objectPath}`,
+    };
+  });

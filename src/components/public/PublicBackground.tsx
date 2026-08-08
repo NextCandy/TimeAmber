@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 import { safePublicHref, type PublicSiteConfig } from "@/lib/public-site-settings";
-import { PublicLeafDecor } from "@/components/public/PublicLeafDecor";
+import { PublicLetterDecor } from "@/components/public/PublicLetterDecor";
 
 type BackgroundStyle = CSSProperties & {
   "--page-overlay-opacity"?: number;
@@ -111,7 +111,7 @@ export function PublicBackground({ config }: { config: PublicSiteConfig }) {
         <div className="public-background__grain" />
         <BackgroundStatus config={config} />
       </div>
-      <PublicLeafDecor />
+      <PublicLetterDecor />
     </>
   );
 }

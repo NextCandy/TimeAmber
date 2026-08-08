@@ -159,8 +159,10 @@ export type MediaItem = {
   url: string;
   thumbnailUrl?: string;
   size?: number;
+  /** 媒体库按图片/视频/音频/文件分区就靠它，取自 media_items.content_type。 */
+  contentType?: string;
   uploadedAt: string;
-  source: "supabase" | "see" | "manual" | "imported";
+  source: "supabase" | "see" | "manual" | "imported" | "local";
 };
 
 export type AnalyticsEvent = { at: string; path: string; referrer?: string };
@@ -806,6 +808,7 @@ export function AdminStoreProvider({
         url: item.url,
         thumbnailUrl: item.thumbnailUrl,
         size: item.size,
+        contentType: item.contentType,
         source: item.source,
         uploadedAt: item.uploadedAt ?? new Date().toISOString(),
       };

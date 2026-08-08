@@ -19,8 +19,7 @@ export function Footer() {
     const timer = window.setInterval(update, 60_000);
     return () => window.clearInterval(timer);
   }, []);
-  const year = new Date().getFullYear();
-  const copyright = config.footer.copyrightText || `© ${year} ${config.identity.siteName}`;
+  const copyright = config.footer.copyrightText.trim();
   const badges = config.footer.showTechBadges
     ? config.footer.techBadges.filter((item) => item.enabled).sort((a, b) => a.order - b.order)
     : [];
@@ -59,7 +58,7 @@ export function Footer() {
               天
             </span>
           )}
-          <span>{copyright}</span>
+          {copyright && <span>{copyright}</span>}
           {config.footer.icpName &&
             (config.footer.icpUrl ? (
               <a

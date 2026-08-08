@@ -27,9 +27,53 @@ const contentTypes = {
   ".webp": "image/webp",
   ".woff": "font/woff",
   ".woff2": "font/woff2",
+  // 后台本地上传的媒体：类型给对了浏览器才会内联播放/预览，而不是当附件下载。
+  ".avif": "image/avif",
+  ".bmp": "image/bmp",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
+  ".mkv": "video/x-matroska",
+  ".mp3": "audio/mpeg",
+  ".m4a": "audio/mp4",
+  ".wav": "audio/wav",
+  ".ogg": "audio/ogg",
+  ".flac": "audio/flac",
+  ".pdf": "application/pdf",
+  ".txt": "text/plain; charset=utf-8",
+  ".md": "text/markdown; charset=utf-8",
+  ".zip": "application/zip",
+  ".7z": "application/x-7z-compressed",
+  ".gz": "application/gzip",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 };
 
-async function fileResponse(root, pathname, immutable = false, clip = false) {
+/** 解析 `Range: bytes=start-end`，越界或语法不认的一律返回 null，退回整文件响应。 */
+function parseRange(rangeHeader, size) {
+  const match = /^bytes=(\d*)-(\d*)$/.exec((rangeHeader || "").trim());
+  if (!match) return null;
+  const [, rawStart, rawEnd] = match;
+  if (!rawStart && !rawEnd) return null;
+  let start;
+  let end;
+  if (rawStart) {
+    start = Number(rawStart);
+    end = rawEnd ? Number(rawEnd) : size - 1;
+  } else {
+    // bytes=-N 表示最后 N 字节
+    start = size - Number(rawEnd);
+    end = size - 1;
+  }
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  start = Math.max(0, start);
+  end = Math.min(size - 1, end);
+  if (start > end) return null;
+  return { start, end };
+}
+
+async function fileResponse(root, pathname, immutable = false, clip = false, rangeHeader = "") {
   const clean = normalize(decodeURIComponent(pathname)).replace(/^([/\\]*\.\.[/\\])+/, "");
   const target = resolve(root, clean.replace(/^[/\\]+/, ""));
   if (!target.startsWith(root) || target === root) return null;
@@ -45,12 +89,32 @@ async function fileResponse(root, pathname, immutable = false, clip = false) {
       if (shelled) return shelled;
     }
 
+    const cacheControl =
+      immutable || target.includes(`${join("assets", "")}`)
+        ? "public, max-age=31536000, immutable"
+        : "public, max-age=300";
+
+    // 视频/音频要能拖进度条，就得认 Range —— 否则浏览器只能整段下完再播。
+    const range = parseRange(rangeHeader, info.size);
+    if (range) {
+      const { start, end } = range;
+      return new Response(Readable.toWeb(createReadStream(target, { start, end })), {
+        status: 206,
+        headers: new Headers({
+          "content-type": contentType,
+          "content-length": String(end - start + 1),
+          "content-range": `bytes ${start}-${end}/${info.size}`,
+          "accept-ranges": "bytes",
+          "cache-control": cacheControl,
+        }),
+      });
+    }
+
     const headers = new Headers({
       "content-type": contentType,
       "content-length": String(info.size),
-      "cache-control": immutable || target.includes(`${join("assets", "")}`)
-        ? "public, max-age=31536000, immutable"
-        : "public, max-age=300",
+      "accept-ranges": "bytes",
+      "cache-control": cacheControl,
     });
     return new Response(Readable.toWeb(createReadStream(target)), { headers });
   } catch {
@@ -137,8 +201,8 @@ createServer(async (req, res) => {
     }
     const mediaPath = url.pathname.startsWith("/cdn/") ? url.pathname.slice(5) : "";
     const staticResult = mediaPath
-      ? await fileResponse(mediaRoot, mediaPath, true, true)
-      : await fileResponse(clientRoot, url.pathname);
+      ? await fileResponse(mediaRoot, mediaPath, true, true, req.headers.range)
+      : await fileResponse(clientRoot, url.pathname, false, false, req.headers.range);
     const request = new Request(url, {
       method: req.method,
       headers: req.headers,

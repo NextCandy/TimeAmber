@@ -175,11 +175,18 @@ function HomeModule({ children }: { children: ReactNode }) {
   return <div className="aibrium-column__item">{children}</div>;
 }
 
+const normalizeHeroCopy = (value: string) => value.trim().replace(/[。.!！？?]+$/, "");
+
 export function HomeDashboard({ home }: { home: HomeData }) {
   const { settings } = useAdminStore();
   const config = settings.publicSite ?? DEFAULT_PUBLIC_SITE_CONFIG;
   const modules = sortedModules(config).filter((module) => module.enabled);
   const hasModule = (id: string) => modules.some((module) => module.id === id);
+  const heroTitle = config.homepage.welcomeTitle || config.identity.slogan;
+  const heroDescription = config.homepage.welcomeDescription || config.identity.description;
+  const showHeroDescription =
+    heroDescription.trim().length > 0 &&
+    normalizeHeroCopy(heroDescription) !== normalizeHeroCopy(heroTitle);
   const heroImage =
     [config.appearance.lightBackgroundImages[0], home.latest.find((post) => post.cover)?.cover]
       .map((value) => safePublicHref(value))
@@ -195,8 +202,8 @@ export function HomeDashboard({ home }: { home: HomeData }) {
       <section className="aibrium-hero" style={heroStyle}>
         <div className="aibrium-hero__content">
           <p className="aibrium-hero__eyebrow">{config.identity.siteName}</p>
-          <h1>{config.homepage.welcomeTitle || config.identity.slogan}</h1>
-          <p>{config.homepage.welcomeDescription || config.identity.description}</p>
+          <h1>{heroTitle}</h1>
+          {showHeroDescription && <p>{heroDescription}</p>}
         </div>
       </section>
 
@@ -208,7 +215,7 @@ export function HomeDashboard({ home }: { home: HomeData }) {
         <aside className="aibrium-column aibrium-column--left">
           {hasModule("profile") && (
             <HomeModule>
-              <ProfileOverview config={config} home={home} />
+              <ProfileOverview config={config} home={home} settings={settings} />
             </HomeModule>
           )}
           {hasModule("navigationGrid") && (

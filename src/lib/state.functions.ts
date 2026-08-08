@@ -100,6 +100,7 @@ async function loadMediaItems(): Promise<AdminState["media"]> {
     url: mediaPublicUrl(row),
     thumbnailUrl: mediaThumbnailUrl(row),
     size: row.size_bytes == null ? undefined : Number(row.size_bytes),
+    contentType: row.content_type == null ? undefined : String(row.content_type),
     source: row.source as AdminState["media"][number]["source"],
     uploadedAt: asDate(row.created_at),
   }));
