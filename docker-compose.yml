@@ -91,49 +91,49 @@ services:
       - bind:
           create_host_path: true
           selinux: Z
-        source: /opt/docker/timeamber/deploy/supabase/volumes/db/realtime.sql
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/db/realtime.sql
         target: /docker-entrypoint-initdb.d/migrations/99-realtime.sql
         type: bind
       - bind:
           create_host_path: true
           selinux: Z
-        source: /opt/docker/timeamber/deploy/supabase/volumes/db/webhooks.sql
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/db/webhooks.sql
         target: /docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql
         type: bind
       - bind:
           create_host_path: true
           selinux: Z
-        source: /opt/docker/timeamber/deploy/supabase/volumes/db/roles.sql
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/db/roles.sql
         target: /docker-entrypoint-initdb.d/init-scripts/99-roles.sql
         type: bind
       - bind:
           create_host_path: true
           selinux: Z
-        source: /opt/docker/timeamber/deploy/supabase/volumes/db/jwt.sql
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/db/jwt.sql
         target: /docker-entrypoint-initdb.d/init-scripts/99-jwt.sql
         type: bind
       - bind:
           create_host_path: true
           selinux: Z
-        source: /opt/docker/timeamber/deploy/supabase/volumes/db/data
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/db/data
         target: /var/lib/postgresql/data
         type: bind
       - bind:
           create_host_path: true
           selinux: Z
-        source: /opt/docker/timeamber/deploy/supabase/volumes/db/_supabase.sql
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/db/_supabase.sql
         target: /docker-entrypoint-initdb.d/migrations/97-_supabase.sql
         type: bind
       - bind:
           create_host_path: true
           selinux: Z
-        source: /opt/docker/timeamber/deploy/supabase/volumes/db/logs.sql
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/db/logs.sql
         target: /docker-entrypoint-initdb.d/migrations/99-logs.sql
         type: bind
       - bind:
           create_host_path: true
           selinux: Z
-        source: /opt/docker/timeamber/deploy/supabase/volumes/db/pooler.sql
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/db/pooler.sql
         target: /docker-entrypoint-initdb.d/migrations/99-pooler.sql
         type: bind
       - source: db-config
@@ -175,7 +175,7 @@ services:
       - bind:
           create_host_path: true
           selinux: z
-        source: /opt/docker/timeamber/deploy/supabase/volumes/functions
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/functions
         target: /home/deno/functions
         type: bind
       - source: deno-cache
@@ -206,7 +206,7 @@ services:
       - bind:
           create_host_path: true
           selinux: z
-        source: /opt/docker/timeamber/deploy/supabase/volumes/storage
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/storage
         target: /var/lib/storage
         type: bind
   kong:
@@ -254,14 +254,14 @@ services:
           create_host_path: true
           selinux: z
         read_only: true
-        source: /opt/docker/timeamber/deploy/supabase/volumes/api/kong.yml
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/api/kong.yml
         target: /home/kong/temp.yml
         type: bind
       - bind:
           create_host_path: true
           selinux: z
         read_only: true
-        source: /opt/docker/timeamber/deploy/supabase/volumes/api/kong-entrypoint.sh
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/api/kong-entrypoint.sh
         target: /home/kong/kong-entrypoint.sh
         type: bind
   meta:
@@ -393,7 +393,7 @@ services:
       - bind:
           create_host_path: true
           selinux: z
-        source: /opt/docker/timeamber/deploy/supabase/volumes/storage
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/storage
         target: /var/lib/storage
         type: bind
   studio:
@@ -441,14 +441,14 @@ services:
       - bind:
           create_host_path: true
           selinux: z
-        source: /opt/docker/timeamber/deploy/supabase/volumes/snippets
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/snippets
         target: /app/snippets
         type: bind
       - bind:
           create_host_path: true
           selinux: z
         read_only: true
-        source: /opt/docker/timeamber/deploy/supabase/volumes/functions
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/functions
         target: /app/edge-functions
         type: bind
   supavisor:
@@ -508,7 +508,7 @@ services:
           create_host_path: true
           selinux: z
         read_only: true
-        source: /opt/docker/timeamber/deploy/supabase/volumes/pooler/pooler.exs
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/pooler/pooler.exs
         target: /etc/pooler/pooler.exs
         type: bind
   timeamber-app:
@@ -516,7 +516,7 @@ services:
       args:
         VITE_SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY}
         VITE_SUPABASE_URL: ${SUPABASE_PUBLIC_URL}
-      context: /opt/docker/timeamber
+      context: /volume1/docker/timeamber
       dockerfile: Dockerfile
     container_name: timeamber-app
     depends_on:
@@ -576,7 +576,7 @@ services:
         volume: {}
   timeamber-bootstrap:
     build:
-      context: /opt/docker/timeamber
+      context: /volume1/docker/timeamber
       dockerfile: Dockerfile
     command:
       - node
@@ -598,12 +598,12 @@ services:
       - bind:
           create_host_path: true
         read_only: true
-        source: /opt/docker/timeamber/deploy/bootstrap.mjs
+        source: /volume1/docker/timeamber/deploy/bootstrap.mjs
         target: /app/bootstrap.mjs
         type: bind
   timeamber-media-import:
     build:
-      context: /opt/docker/timeamber
+      context: /volume1/docker/timeamber
       dockerfile: Dockerfile
     command:
       - node
@@ -630,7 +630,7 @@ services:
       - bind:
           create_host_path: true
         read_only: true
-        source: /opt/docker/timeamber/deploy/migrate-media.mjs
+        source: /volume1/docker/timeamber/deploy/migrate-media.mjs
         target: /app/migrate-media.mjs
         type: bind
   timeamber-migrate:
@@ -664,18 +664,18 @@ services:
       - bind:
           create_host_path: true
         read_only: true
-        source: /opt/docker/timeamber/supabase/migrations
+        source: /volume1/docker/timeamber/supabase/migrations
         target: /migrations
         type: bind
       - bind:
           create_host_path: true
         read_only: true
-        source: /opt/docker/timeamber/deploy/supabase/volumes/import
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/import
         target: /import
         type: bind
   timeamber-worker:
     build:
-      context: /opt/docker/timeamber
+      context: /volume1/docker/timeamber
       dockerfile: Dockerfile.worker
     container_name: timeamber-worker
     depends_on:
@@ -720,28 +720,10 @@ services:
         volume: {}
       - bind:
           create_host_path: true
-        source: /opt/docker/timeamber/deploy/supabase/volumes/timeamber-backups
+        source: /volume1/docker/timeamber/deploy/supabase/volumes/timeamber-backups
         target: /data/backups
         type: bind
 
-  timeamber-cloudflared:
-    command:
-      - tunnel
-      - --no-autoupdate
-      - --config
-      - /etc/cloudflared/config.yml
-      - run
-    container_name: timeamber-cloudflared
-    image: cloudflare/cloudflared:latest
-    network_mode: host
-    restart: unless-stopped
-    volumes:
-      - type: bind
-        source: /opt/docker/timeamber/cloudflared
-        target: /etc/cloudflared
-        read_only: true
-        bind:
-          create_host_path: true
 volumes:
   db-config:
     name: timeamber_db-config
