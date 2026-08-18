@@ -177,7 +177,11 @@ src/lib/feeds.server.ts      sitemap.xml / rss.xml 生成
 src/lib/strip-markdown.ts    meta description 与 RSS 共用的去语法工具
 server/                      Node 生产入口、静态资源和媒体代理
 server/clip-shell.mjs        /cdn/ 剪藏快照的本站外壳（流式注入，不改快照文件）
+src/lib/sync-admin.functions.ts   后台同步中心取数：三来源状态、Notion 授权探测、数据源增删
+src/routes/_authenticated/admin/sync.tsx  后台「内容同步」页面
 worker/                      Notion、web-archive、备份任务
+worker/notion-sync.ts        Notion 增量同步与正文回填（含限速、退避、多数据源游标）
+worker/archive-sync.ts       web-archive 离线 HTML 抓取
 supabase/migrations/         数据库结构、RLS 和 Storage 策略
 deploy/supabase/             Supabase + TimeAmber Compose
 public/brand/                Logo、favicon、PWA 图标和默认首图
@@ -558,25 +562,125 @@ docker compose \
 迁移会创建文章、分类、标签、匿名互动、媒体、同步记录、配置、审计、通知和诊断表，
 并启用 RLS。写入操作只允许管理员或 service role。
 
-## 自动导入
+## 内容同步
 
-生产 worker 使用 `SYNC_ENABLED=true`。
+文章有三个自动来源，都由 `timeamber-worker` 驱动（`SYNC_ENABLED=true`）：
 
-- Notion 增量同步：读取保存的 cursor，分批处理页面
-- Notion repair：补写正文图片和缺失字段
-- web-archive：按页读取 VS.DO，使用 `source + source_id` 去重
-- 所有任务写入 `public.sync_runs`
-- advisory lock 防止同一任务并发执行
+| 来源 | 类型 | 说明 |
+| --- | --- | --- |
+| Notion · **Link** | `post_type='markdown'` | 主力剪藏库，正文以 Markdown 存进 `posts.content` |
+| Notion · **SmartClip** | `post_type='markdown'` | 第二个 Notion 库，同上 |
+| **web-archive** | `post_type='html'` | NAS 上抓的离线 HTML，`external_url` 指向 `/cdn/...`，文章页整页跳转过去 |
 
-后台可在“备份与同步”中查看状态并手动触发。命令行诊断：
+后台入口：**`/admin/sync`（侧边栏「内容同步」）**。三个来源的状态、进度、手动触发、
+Notion 授权与数据源管理都在这一页，不必再去翻 worker 日志。
+
+### 调度
+
+`worker/index.ts` 的 `tick()` 每分钟检查一次，按分钟数触发：
+
+| 任务 | 频率 | 作用 |
+| --- | --- | --- |
+| `notion` | 每 10 分钟（`minute % 10 === 0`） | 增量同步：按游标拉新页面、更新元数据 |
+| `notion-repair` | 每 10 分钟（`minute % 10 === 5`） | 回填正文：只处理正文为空/是链接壳的文章 |
+| `archive` | 每 20 分钟（`minute % 20 === 5`） | web-archive 分页抓取，`source + source_id` 去重 |
+| `knowledge-index` | 每 20 分钟（`minute % 20 === 18`） | 重建 Ask TimeAmber 的知识索引 |
+| `backup` | 每天 03:30（上海时区） | `pg_dump` 全库备份 |
+
+所有任务写入 `public.sync_runs`；advisory lock 防止同名任务并发。看到
+`already running` 说明手动触发与定时任务重叠，锁挡住了重复写入，等当前任务结束即可。
+
+### Notion：database id 不等于 data source id
+
+**这是配置 Notion 同步最容易出错的地方。** 从浏览器地址栏复制的链接长这样：
+
+```text
+https://cangshu.notion.site/31437041b78c81f7b936fcac6ba2f06a?v=...
+                            └─ 这是 database id，不是同步要用的 id ─┘
+```
+
+同步走的是 Notion 的 `/data_sources/{id}/query` 端点，需要的是该 database **下面**的
+data source id，两者是不同的 UUID。直接把链接里的 id 填进配置，查询时只会得到
+`404 object_not_found`。
+
+换算方式（后台「粘贴 Notion 数据库链接来添加数据源」会自动做这一步）：
+
+```bash
+curl -s -H "Authorization: Bearer $NOTION_TOKEN" \
+     -H "Notion-Version: 2026-03-11" \
+     "https://api.notion.com/v1/databases/<database-id>" | jq .data_sources
+```
+
+配置项 `settings.notion_data_source_id` 存的是逗号分隔的 **data source id** 列表。
+
+另外，令牌有效 ≠ 每个库都能访问：Notion 集成必须在每个库上被单独「连接」。后台的
+**测试授权**按钮会逐库探测并显示授权状态与条目数 —— 这正是排查 404 的第一步。
+
+### 正文回填与节流参数
+
+Notion 同步分两步：增量同步先写入元数据，正文由 `notion-repair` 分批补。判断依据是
+`isLinkShellContent()`（正文短于 260 字符，或短于 900 字符且含「原文地址」）。
+
+这套流程最初跑在 Cloudflare Workers 上，受制于它的子请求配额，几个上限被写死成很小的值。
+迁到 NAS 之后这些限制不再存在，但参数一直没放开，导致回填速度是 **每轮 1 篇**，
+积压几百篇时要跑好几天。现在的取值：
+
+| 参数 | 位置 | 现值 | 说明 |
+| --- | --- | --- | --- |
+| `DEFAULT_MAX_NOTION_SUBREQUESTS` | `notion-sync.ts` | 默认 40，上限 20000 | 单次任务的 Notion 请求预算 |
+| `maxBodyPages` | `notion-sync.ts` | 上限 2000 | 单轮最多回填多少篇正文 |
+| `maxPages` | `notion-sync.ts` | 上限 500 | 单轮翻多少页 |
+| `DEFAULT_REPAIR_BODY_PAGES` | `index.ts` | 8（`NOTION_REPAIR_BODY_PAGES` 可覆盖） | 定时 repair 每轮的回填量 |
+| `DEFAULT_MIN_REQUEST_INTERVAL_MS` | `notion-sync.ts` | 350ms | Notion 限速约 3 req/s，客户端自己节流 |
+| `MAX_NOTION_RETRIES` | `notion-sync.ts` | 4 | 429/5xx 指数退避重试 |
+
+回填一篇的实际耗时是 **10–20 秒**，瓶颈不在 Notion API 而在图片转存：正文里的图片会被
+`rewriteExternalImagesToSee()` 下载后上传到图床，替换成 `https://i.see.you/...`。这一步
+不能省 —— Notion 返回的图片是带签名的临时 URL，会过期。
+
+大批量回填走后台的「回填正文」按钮（可设条数），或直接调 worker：
+
+```bash
+docker exec timeamber-worker node -e '
+fetch("http://127.0.0.1:3001/run/notion-repair", {
+  method: "POST",
+  headers: {"content-type":"application/json","x-worker-secret":process.env.WORKER_SECRET},
+  body: JSON.stringify({ maxPages: 3, maxBodyPages: 20, maxSubrequests: 800 }),
+}).then(r => r.text()).then(console.log)'
+```
+
+注意单次调用是一个数据库事务，别把 `maxBodyPages` 设得太大导致长事务。
+
+### 多数据源的游标
+
+每个数据源有自己的游标键（`notionCursorKey()`）：第一个用基础键
+`notion_sync_next_cursor` / `notion_repair_next_cursor`，其余带 id 后缀，例如
+`notion_repair_next_cursor_31437041b78c`。
+
+游标只在数据源循环内部写入。**收尾时不能再统一写一次** —— `NotionSyncResult.nextCursor`
+是所有数据源共享的字段，会被最后一个数据源覆盖；当第二个库条目很少、先扫完并把
+`nextCursor` 变成空串时，收尾写入就会把第一个库的游标一并清空，于是它每轮都从头扫，
+永远推进不到后面的文章（表现为回填数字长时间纹丝不动）。
+
+自检方法 —— 两个键的值应当**不同**，且都不为空（除非该库确实扫完了）：
 
 ```bash
 docker exec supabase-db psql -U postgres -d postgres -c \
-  "select * from public.sync_runs order by id desc limit 20;"
+  "select key, left(value, 40) from public.settings where key like 'notion%cursor%' order by key;"
 ```
 
-出现 `already running` 表示自动任务与手动任务重叠，锁已阻止重复写入；等待当前
-任务结束后，下一周期会继续运行。
+### 命令行诊断
+
+```bash
+docker exec supabase-db psql -U postgres -d postgres -c \
+  "select source_key, mode, status, started_at, created_count, updated_count, failed_count
+     from public.sync_runs order by id desc limit 20;"
+
+# 还有多少篇正文没补
+docker exec supabase-db psql -U postgres -d postgres -c \
+  "select count(*) from public.posts
+     where post_type='markdown' and coalesce(content,'')='';"
+```
 
 ## 媒体库
 
@@ -653,6 +757,34 @@ docker logs --tail 200 timeamber-worker
 docker exec supabase-db psql -U postgres -d postgres -c \
   "select id, source_key, status, error from public.sync_runs order by id desc limit 20;"
 ```
+
+worker 日志里的 `word is too long to be indexed`（PostgreSQL NOTICE，code 54000）**不是错误**：
+剪藏 HTML 里的 base64 长串超过全文索引的 2047 字符上限被忽略，不影响功能。
+
+### 文章打开显示「这是一篇剪藏文章，完整内容请在原始来源查看」
+
+这是 `posts.$slug.tsx` 在**正文为空**时的兜底文案，说明该文章的元数据同步进来了但正文还没回填。
+
+```bash
+# 有多少篇是空的
+docker exec supabase-db psql -U postgres -d postgres -c \
+  "select count(*) from public.posts where post_type='markdown' and coalesce(content,'')='';"
+```
+
+去后台 `/admin/sync` 点「回填正文」，或参考上文的 worker 调用。注意 Notion 同步进来的
+文章分类默认也叫「剪藏」，容易与 `post_type='html'` 的 web-archive 剪藏混淆 —— 后者有
+`external_url`，打开是 307 跳转到存档页，不会走这个兜底分支。
+
+### Notion 同步报 404 object_not_found
+
+多半不是数据源被删，而是**令牌没有那个库的授权**，或者配置里填的是 database id 而不是
+data source id。去后台 `/admin/sync` 点「测试授权」逐库探测；确认要在 Notion 的集成设置里
+把该库连接给本集成。
+
+### 回填数字长时间不动
+
+先看游标是不是被覆盖了（见「多数据源的游标」一节的自检命令）。若两个游标键的值相同或
+都为空，说明第一个库的游标每轮都被清掉了。
 
 ### 登录失败
 

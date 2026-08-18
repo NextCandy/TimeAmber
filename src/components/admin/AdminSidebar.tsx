@@ -17,6 +17,7 @@ import {
   Activity,
   BrainCircuit,
   Github,
+  RefreshCw,
 } from "lucide-react";
 import {
   Sidebar,
@@ -43,6 +44,7 @@ const NAV = [
   { to: "/admin/friends", label: "友链", icon: Users, exact: false },
   { to: "/admin/media", label: "媒体库", icon: ImageIcon, exact: false },
   { to: "/admin/analytics", label: "访客分析", icon: BarChart3, exact: false },
+  { to: "/admin/sync", label: "内容同步", icon: RefreshCw, exact: false },
   { to: "/admin/backup", label: "备份与同步", icon: CloudUpload, exact: false },
   { to: "/admin/ai", label: "AI 配置", icon: Sparkles, exact: false },
   { to: "/admin/notifications", label: "通知设置", icon: Bell, exact: false },

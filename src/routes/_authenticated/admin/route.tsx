@@ -207,6 +207,7 @@ function AdminLayout() {
     "/_authenticated/admin/friends": "友链",
     "/_authenticated/admin/media": "媒体库",
     "/_authenticated/admin/analytics": "访客分析",
+    "/_authenticated/admin/sync": "内容同步",
     "/_authenticated/admin/backup": "备份与同步",
     "/_authenticated/admin/ai": "AI 配置",
     "/_authenticated/admin/notifications": "通知设置",

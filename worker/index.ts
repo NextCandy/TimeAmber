@@ -86,7 +86,18 @@ async function runLockedTask(sourceKey: string, mode: string, task: () => Promis
   }
 }
 
-async function runNotion(repairOnly = false) {
+// 每轮 repair 能回填多少篇正文。历史值是 1（Cloudflare Workers 时代的
+// 子请求预算所迫），在 NAS 上没有这个限制，积压时按这个速率要跑好几天。
+const DEFAULT_REPAIR_BODY_PAGES = Number(process.env.NOTION_REPAIR_BODY_PAGES || 8);
+
+type NotionRunOverrides = {
+  maxPages?: number;
+  maxBodyPages?: number;
+  maxSubrequests?: number;
+  minRequestIntervalMs?: number;
+};
+
+async function runNotion(repairOnly = false, overrides: NotionRunOverrides = {}) {
   return runLockedTask(
     repairOnly ? "notion-repair" : "notion",
     repairOnly ? "repair" : "incremental",
@@ -99,9 +110,12 @@ async function runNotion(repairOnly = false) {
         settings,
         rewriteImages: async (content) =>
           rewriteImages ? (await rewriteExternalImagesToSee(content, settings)).content : content,
-        maxPages: 1,
+        maxPages: overrides.maxPages ?? 1,
         repairOnly,
-        maxBodyPages: repairOnly ? 1 : undefined,
+        maxBodyPages:
+          overrides.maxBodyPages ?? (repairOnly ? DEFAULT_REPAIR_BODY_PAGES : undefined),
+        maxSubrequests: overrides.maxSubrequests,
+        minRequestIntervalMs: overrides.minRequestIntervalMs,
       });
     },
   );
@@ -240,10 +254,11 @@ createServer(async (request, response) => {
       response.end(JSON.stringify({ syncEnabled: process.env.SYNC_ENABLED === "true", runs }));
       return;
     }
-    if (request.method === "POST") await jsonBody(request);
+    const body: NotionRunOverrides =
+      request.method === "POST" ? await jsonBody(request) : {};
     let result: TaskResult;
-    if (url.pathname === "/run/notion") result = await runNotion(false);
-    else if (url.pathname === "/run/notion-repair") result = await runNotion(true);
+    if (url.pathname === "/run/notion") result = await runNotion(false, body);
+    else if (url.pathname === "/run/notion-repair") result = await runNotion(true, body);
     else if (url.pathname === "/run/archive") result = await runArchive();
     else if (url.pathname === "/run/knowledge-index") result = await runKnowledgeIndex();
     else if (url.pathname === "/run/backup") {

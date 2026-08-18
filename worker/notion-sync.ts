@@ -8,6 +8,10 @@ const DEFAULT_METADATA_SYNC_PAGE_SIZE = 10;
 const DEFAULT_BODY_SYNC_PAGE_SIZE = 1;
 const DEFAULT_SYNC_MAX_PAGES = 1;
 const DEFAULT_MAX_NOTION_SUBREQUESTS = 40;
+// Notion 官方限速约 3 请求/秒。常态同步一次只发几个请求碰不到上限，
+// 但批量回填会连发上千个，必须自己节流并对 429/5xx 退避重试。
+const DEFAULT_MIN_REQUEST_INTERVAL_MS = 350;
+const MAX_NOTION_RETRIES = 4;
 const DEFAULT_POST_COVER = "/brand/timeamber-default-cover.png";
 const NOTION_DELETED_SLUGS_KEY = "notion_sync_deleted_slugs";
 const MAX_DELETED_NOTION_SLUGS = 5000;
@@ -95,6 +99,8 @@ type SyncOptions = {
   resetCursor?: boolean;
   repairOnly?: boolean;
   maxBodyPages?: number;
+  maxSubrequests?: number;
+  minRequestIntervalMs?: number;
 };
 
 export function getNotionDataSourceId(env: NotionEnv, settings: Record<string, string>): string {
@@ -204,14 +210,24 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   }
 
   const client = new NotionClient(token);
-  client.setRequestBudget(clampInt(Number(options.env.NOTION_SYNC_MAX_SUBREQUESTS), 10, 45, DEFAULT_MAX_NOTION_SUBREQUESTS));
+  client.setRequestBudget(
+    clampInt(
+      options.maxSubrequests ?? Number(options.env.NOTION_SYNC_MAX_SUBREQUESTS),
+      10,
+      20000,
+      DEFAULT_MAX_NOTION_SUBREQUESTS,
+    ),
+  );
+  client.setMinRequestInterval(
+    clampInt(options.minRequestIntervalMs, 0, 5000, DEFAULT_MIN_REQUEST_INTERVAL_MS),
+  );
   const includePageBody = options.settings.notion_sync_include_page_body !== "false";
   const defaultPageSize = options.repairOnly ? DEFAULT_METADATA_SYNC_PAGE_SIZE : includePageBody ? DEFAULT_BODY_SYNC_PAGE_SIZE : DEFAULT_METADATA_SYNC_PAGE_SIZE;
   const pageSize = clampInt(options.pageSize, 1, 20, defaultPageSize);
-  const maxPages = clampInt(options.maxPages, 1, 25, DEFAULT_SYNC_MAX_PAGES);
+  const maxPages = clampInt(options.maxPages, 1, 500, DEFAULT_SYNC_MAX_PAGES);
   const baseCursorKey = options.repairOnly ? "notion_repair_next_cursor" : "notion_sync_next_cursor";
   const deletedNotionSlugs = parseDeletedNotionSlugs(options.settings);
-  const maxBodyPages = clampInt(options.maxBodyPages, 1, 5, options.repairOnly ? 1 : 5);
+  const maxBodyPages = clampInt(options.maxBodyPages, 1, 2000, options.repairOnly ? 1 : 5);
   let bodyPagesProcessed = 0;
   const existingTitleMap = new Map<string, PostWithTags>();
   const initialPosts = await options.db.getAllPosts();
@@ -293,16 +309,21 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
 
             post.content = await options.rewriteImages(post.content);
             if (existing) {
+              // 防止全量同步（不带 page body）用空/链接壳内容覆盖库里已有的完整正文。
+              // 只在「新内容是壳」且「旧内容是完整正文」时保留旧正文，其余情况照常更新。
+              const incomingIsShell = isLinkShellContent(post.content || "");
+              const existingHasBody = !isLinkShellContent(existing.content || "");
+              const safeContent = incomingIsShell && existingHasBody ? existing.content : post.content;
               await options.db.updatePost(existing.slug, {
                 title: post.title,
-                content: post.content,
+                content: safeContent,
                 excerpt: post.excerpt,
                 tags: post.tags,
                 category: post.category,
-                coverImage: extractFirstImage(post.content) || existing.coverImage || DEFAULT_POST_COVER,
+                coverImage: extractFirstImage(safeContent) || existing.coverImage || DEFAULT_POST_COVER,
               });
               resultBase.updated++;
-              existingTitleMap.set(normalizeTitle(post.title), { ...existing, title: post.title, content: post.content, excerpt: post.excerpt, category: post.category, tags: post.tags });
+              existingTitleMap.set(normalizeTitle(post.title), { ...existing, title: post.title, content: safeContent, excerpt: post.excerpt, category: post.category, tags: post.tags });
             } else {
               const created = await options.db.createPost({
                 slug: post.slug,
@@ -348,7 +369,7 @@ export async function syncNotionPosts(options: SyncOptions): Promise<NotionSyncR
   }
 
   const result = finishResult(startedAt, startedMs, resultBase);
-  await saveSyncStatus(options.db, result, baseCursorKey, options.repairOnly);
+  await saveSyncStatus(options.db, result, options.repairOnly);
   return result;
 }
 
@@ -640,7 +661,7 @@ function finishResult(startedAt: string, startedMs: number, result: Omit<NotionS
   };
 }
 
-async function saveSyncStatus(db: IDatabase, result: NotionSyncResult, cursorKey = "notion_sync_next_cursor", repairOnly = false): Promise<void> {
+async function saveSyncStatus(db: IDatabase, result: NotionSyncResult, repairOnly = false): Promise<void> {
   await db.saveSettings({
     notion_sync_last_run_at: result.finishedAt,
     notion_sync_last_status: result.success && result.failed === 0 ? repairOnly ? "repair-success" : "success" : "error",
@@ -651,9 +672,17 @@ async function saveSyncStatus(db: IDatabase, result: NotionSyncResult, cursorKey
     notion_sync_last_failed: String(result.failed),
     notion_sync_last_processed: String(result.processed),
     notion_sync_has_more: String(result.hasMore),
-    [cursorKey]: result.nextCursor,
+    // 这里**不能**再写游标。每个数据源的游标已经在上面的循环里按各自的 key 存过了
+    // （notionCursorKey：第一个用 baseKey，其余带 id 后缀）。而 result.nextCursor 是
+    // 共享字段，会被最后一个数据源覆盖 —— 配了两个库时，条目少的那个先扫完、
+    // nextCursor 变成 ""，收尾时就把第一个库的游标一并清空，导致它每轮都从头扫，
+    // 永远推进不到后面的文章。
     notion_sync_last_duration_ms: String(result.durationMs),
   });
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function errorToMessage(error: unknown): string {
@@ -663,11 +692,17 @@ function errorToMessage(error: unknown): string {
 class NotionClient {
   private requestCount = 0;
   private maxRequests = DEFAULT_MAX_NOTION_SUBREQUESTS;
+  private minIntervalMs = 0;
+  private lastRequestAt = 0;
 
   constructor(private readonly token: string) {}
 
   setRequestBudget(maxRequests: number) {
     this.maxRequests = maxRequests;
+  }
+
+  setMinRequestInterval(ms: number) {
+    this.minIntervalMs = Math.max(0, ms);
   }
 
   isBudgetExhausted(): boolean {
@@ -725,21 +760,31 @@ class NotionClient {
       throw new Error("Notion sync reached the per-invocation subrequest budget.");
     }
     this.requestCount++;
-    const res = await fetch(`${NOTION_API_BASE}${path}`, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        "Content-Type": "application/json",
-        "Notion-Version": NOTION_VERSION,
-        ...(init.headers || {}),
-      },
-    });
 
-    if (!res.ok) {
+    for (let attempt = 0; ; attempt++) {
+      const wait = this.lastRequestAt + this.minIntervalMs - Date.now();
+      if (this.minIntervalMs > 0 && wait > 0) await sleep(wait);
+      this.lastRequestAt = Date.now();
+
+      const res = await fetch(`${NOTION_API_BASE}${path}`, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          "Content-Type": "application/json",
+          "Notion-Version": NOTION_VERSION,
+          ...(init.headers || {}),
+        },
+      });
+
+      if (res.ok) return res.json() as Promise<T>;
+
       const text = await res.text().catch(() => "");
-      throw new Error(`Notion API ${res.status}: ${text.slice(0, 300)}`);
+      const retryable = res.status === 429 || res.status >= 500;
+      if (!retryable || attempt >= MAX_NOTION_RETRIES) {
+        throw new Error(`Notion API ${res.status}: ${text.slice(0, 300)}`);
+      }
+      const retryAfter = Number(res.headers.get("retry-after"));
+      await sleep(retryAfter > 0 ? retryAfter * 1000 : Math.min(30000, 1000 * 2 ** attempt));
     }
-
-    return res.json() as Promise<T>;
   }
 }
